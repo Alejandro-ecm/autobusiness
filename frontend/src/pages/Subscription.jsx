@@ -7,8 +7,8 @@ import './Subscription.css'
 const PLAN_INFO = {
   FREE:    { color: '#64748b', features: ['50 productos', '2 usuarios', 'POS básico', 'Inventario'] },
   BASIC:   { color: '#3b82f6', features: ['500 productos', '5 usuarios', 'Tienda online + QR', 'Reportes'] },
-  PRO:     { color: '#6366f1', features: ['Ilimitado', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Mercado Pago'] },
-  PREMIUM: { color: '#8b5cf6', features: ['Todo ilimitado', 'Multi-sucursal', 'CFDI', 'Subdominio propio', 'Soporte 24/7'] },
+  PRO:     { color: '#6366f1', features: ['Productos ilimitados', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Mercado Pago'] },
+  PREMIUM: { color: '#8b5cf6', features: ['Todo ilimitado', 'Usuarios ilimitados', 'CFDI', 'Soporte prioritario', 'Multi-sucursal'] },
 }
 
 const STATUS_LABEL = {

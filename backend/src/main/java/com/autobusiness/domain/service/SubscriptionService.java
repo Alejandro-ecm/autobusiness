@@ -31,10 +31,10 @@ public class SubscriptionService {
 
     // ── Límites por plan ────────────────────────────────────────────────────
     private static final Map<String, Map<String, Object>> PLAN_LIMITS = Map.of(
-        "FREE", Map.of("maxProducts", 50, "maxUsers", 2, "onlineStore", false, "reports", false, "price", 0),
-        "BASIC", Map.of("maxProducts", 500, "maxUsers", 5, "onlineStore", true, "reports", true, "price", 299),
-        "PRO", Map.of("maxProducts", -1, "maxUsers", 15, "onlineStore", true, "reports", true, "ai", true, "price", 599),
-        "PREMIUM", Map.of("maxProducts", -1, "maxUsers", -1, "onlineStore", true, "reports", true, "ai", true, "cfdi", true, "price", 999)
+        "FREE",    Map.of("maxProducts", 50,  "maxUsers", 2,  "onlineStore", false, "reports", false, "price", 0),
+        "BASIC",   Map.of("maxProducts", 500, "maxUsers", 5,  "onlineStore", true,  "reports", true,  "price", 29),
+        "PRO",     Map.of("maxProducts", -1,  "maxUsers", 15, "onlineStore", true,  "reports", true,  "ai", true, "price", 49),
+        "PREMIUM", Map.of("maxProducts", -1,  "maxUsers", -1, "onlineStore", true,  "reports", true,  "ai", true, "cfdi", true, "price", 89)
     );
 
     @Transactional
