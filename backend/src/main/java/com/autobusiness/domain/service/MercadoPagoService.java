@@ -264,8 +264,8 @@ public class MercadoPagoService {
      * Crea un link de pago para suscripción mensual.
      */
     public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {
-        Map<String, Integer> prices = Map.of("BASIC", 299, "PRO", 599, "PREMIUM", 999);
-        int price = prices.getOrDefault(plan.toUpperCase(), 299);
+        Map<String, Integer> prices = Map.of("BASIC", 29, "PRO", 49, "PREMIUM", 89);
+        int price = prices.getOrDefault(plan.toUpperCase(), 29);
 
         var items = List.of(Map.<String, Object>of(
                 "title",      "AutoBusiness " + plan + " — mensual",

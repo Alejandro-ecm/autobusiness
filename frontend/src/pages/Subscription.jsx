@@ -39,10 +39,14 @@ export default function Subscription() {
     setUpgrading(plan)
     try {
       const res = await subApi.upgrade(plan)
-      // Redirigir al init_point de MP (en sandbox usa sandboxPoint)
-      const url = res.sandboxPoint || res.initPoint
-      window.open(url, '_blank', 'noopener')
-      show('Serás redirigido a Mercado Pago para completar el pago', 'success')
+      const url = res.initPoint || res.sandboxPoint
+      // Abrir Mercado Pago en ventana modal centrada
+      const w = 520, h = 720
+      const left = Math.round(window.screenX + (window.outerWidth - w) / 2)
+      const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)
+      window.open(url, 'mercadopago_checkout',
+        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=no`)
+      show('Completa el pago en la ventana de Mercado Pago', 'success')
     } catch (err) {
       show(err?.error || 'Error al generar enlace de pago', 'error')
     } finally { setUpgrading(null) }
