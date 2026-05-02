@@ -1,0 +1,70 @@
+name: autobusiness
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: autobusiness_db
+    environment:
+      POSTGRES_DB: autobusiness
+      POSTGRES_USER: autobusiness
+      POSTGRES_PASSWORD: autobusiness_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autobusiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: autobusiness_backend
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/autobusiness
+      SPRING_DATASOURCE_USERNAME: autobusiness
+      SPRING_DATASOURCE_PASSWORD: autobusiness_secret
+      JWT_SECRET: ${JWT_SECRET:-autobusiness_jwt_super_secret_key_2024_CHANGE_IN_PROD}
+      AI_ENGINE_URL: http://ai-engine:8001
+      MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-TEST-placeholder-change-me}
+      MP_NOTIFICATION_URL: ${MP_NOTIFICATION_URL:-http://localhost:8080/api/payments/mercadopago/webhook}
+      MP_SUCCESS_URL: ${MP_SUCCESS_URL:-http://localhost:3000/payment/success}
+      MP_FAILURE_URL: ${MP_FAILURE_URL:-http://localhost:3000/payment/failure}
+      MP_PENDING_URL: ${MP_PENDING_URL:-http://localhost:3000/payment/pending}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:3000}
+      APP_BASE_DOMAIN: ${APP_BASE_DOMAIN:-localhost}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-engine:
+    build: ./ai-engine
+    container_name: autobusiness_ai
+    environment:
+      DATABASE_URL: postgresql://autobusiness:autobusiness_secret@postgres:5432/autobusiness
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: autobusiness_frontend
+    environment:
+      # IP local de la PC para el certificado SSL (necesario para cámara en celular)
+      HOST_IP: ${HOST_IP:-192.168.1.5}
+    ports:
+      - "3000:80"    # HTTP  → auto-redirige a HTTPS
+      - "3443:443"   # HTTPS → cámara funciona en celular
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

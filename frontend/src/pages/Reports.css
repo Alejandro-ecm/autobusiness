@@ -1,0 +1,31 @@
+.reports-page { display: flex; flex-direction: column; gap: 16px; }
+
+.reports-range {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.reports-range-btn {
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
+  border: 1.5px solid var(--color-border); background: var(--color-surface);
+  cursor: pointer; color: var(--color-text-soft); transition: all 0.12s;
+}
+.reports-range-btn.active {
+  background: #6366f1; color: #fff; border-color: #6366f1;
+}
+
+.reports-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.reports-kpi {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.reports-kpi-val  { font-size: 20px; font-weight: 800; color: #0f172a; }
+.reports-kpi-lbl  { font-size: 12px; color: var(--color-text-soft); }
+
+.reports-sale-row:hover td { background: #fafbfc; }
+.reports-item-row td { background: #fafbfc; padding: 5px 16px; }

@@ -1,0 +1,118 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* The scrollable content area that sits to the right of the fixed sidebar */
+.app-content {
+  margin-left: 220px;
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+  padding: 28px 32px;
+  max-width: 1400px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Mobile top bar (hidden on desktop) ──────────────────────── */
+.mobile-topbar {
+  display: none;
+}
+
+/* ── Backdrop ────────────────────────────────────────────────── */
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ═══════════════════════════════════
+   MOBILE  (≤ 768 px)
+   ═══════════════════════════════════ */
+@media (max-width: 768px) {
+  .app-content {
+    margin-left: 0;          /* sidebar slides over, doesn't push */
+    width: 100%;
+  }
+
+  .app-main {
+    padding: 14px 14px 24px;
+  }
+
+  /* ── Top bar ── */
+  .mobile-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #0f172a;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+    flex-shrink: 0;
+  }
+
+  .mobile-topbar-brand {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -.2px;
+  }
+
+  /* ── Hamburger ── */
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .hamburger span {
+    display: block;
+    width: 22px;
+    height: 2.5px;
+    background: #fff;
+    border-radius: 2px;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+    transform-origin: center;
+  }
+
+  /* × animation when open */
+  .hamburger.is-open span:nth-child(1) {
+    transform: translateY(7.5px) rotate(45deg);
+  }
+  .hamburger.is-open span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  .hamburger.is-open span:nth-child(3) {
+    transform: translateY(-7.5px) rotate(-45deg);
+  }
+
+  /* ── Backdrop ── */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 150;
+    animation: fade-in 0.2s ease;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+}

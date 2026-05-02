@@ -1,0 +1,41 @@
+{
+  "name": "AutoBusiness AI",
+  "short_name": "AutoBusiness",
+  "description": "Gestión inteligente para tu negocio — inventario, POS, tienda online y análisis IA",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "es-MX",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='32' fill='%236366f1'/><text y='130' x='96' text-anchor='middle' font-size='120' font-family='system-ui' fill='white'>AB</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='80' fill='%236366f1'/><text y='340' x='256' text-anchor='middle' font-size='300' font-family='system-ui' fill='white'>AB</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "POS — Nueva venta",
+      "short_name": "POS",
+      "description": "Abrir punto de venta",
+      "url": "/caja"
+    },
+    {
+      "name": "Inventario",
+      "short_name": "Inventario",
+      "description": "Gestionar productos",
+      "url": "/inventory"
+    }
+  ]
+}

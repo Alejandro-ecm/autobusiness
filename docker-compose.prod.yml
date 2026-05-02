@@ -1,0 +1,54 @@
+name: autobusiness
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: autobusiness_db
+    restart: always
+    environment:
+      POSTGRES_DB: autobusiness
+      POSTGRES_USER: autobusiness
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autobusiness"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: autobusiness_backend
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/autobusiness
+      SPRING_DATASOURCE_USERNAME: autobusiness
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      AI_ENGINE_URL: http://ai-engine:8001
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ai-engine:
+    build: ./ai-engine
+    container_name: autobusiness_ai
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://autobusiness:${DB_PASSWORD}@postgres:5432/autobusiness
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: autobusiness_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

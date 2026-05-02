@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: autobusiness-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/autobusiness}
+    username: ${SPRING_DATASOURCE_USERNAME:autobusiness}
+    password: ${SPRING_DATASOURCE_PASSWORD:autobusiness_secret}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  task:
+    scheduling:
+      enabled: true
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+
+jwt:
+  secret: ${JWT_SECRET:autobusiness_jwt_super_secret_key_2024_development}
+  expiration: 86400000  # 24h en ms
+
+ai:
+  engine:
+    url: ${AI_ENGINE_URL:http://localhost:8001}
+
+mercadopago:
+  access-token: ${MP_ACCESS_TOKEN:TEST-placeholder-change-me}
+  notification-url: ${MP_NOTIFICATION_URL:http://localhost:8080/api/payments/mercadopago/webhook}
+  success-url: ${MP_SUCCESS_URL:http://localhost:3000/payment/success}
+  failure-url: ${MP_FAILURE_URL:http://localhost:3000/payment/failure}
+  pending-url: ${MP_PENDING_URL:http://localhost:3000/payment/pending}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:3000}
+  base-domain: ${APP_BASE_DOMAIN:localhost}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: AutoBusiness AI
+    version: 1.0.0
+    description: Backend API — SaaS multitenant
+
+logging:
+  level:
+    com.autobusiness: ${LOG_LEVEL:INFO}
+    org.springframework.security: WARN
+    org.springframework.scheduling: INFO

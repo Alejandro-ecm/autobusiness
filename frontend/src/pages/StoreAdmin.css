@@ -1,0 +1,21 @@
+.store-admin-page { display: flex; flex-direction: column; gap: 20px; }
+
+.store-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 900px) { .store-kpis { grid-template-columns: repeat(2, 1fr); } }
+
+.store-kpi { text-align: center; padding: 20px 16px; }
+.store-kpi-icon { font-size: 28px; margin-bottom: 8px; }
+.store-kpi-val { font-size: 28px; font-weight: 800; color: #0f172a; }
+.store-kpi-val--alert { color: #f59e0b; }
+.store-kpi-label { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+.store-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 10px; width: fit-content; }
+
+.orders-list { display: flex; flex-direction: column; gap: 12px; }
+
+.order-card { padding: 16px 20px; }
+.order-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.order-number { font-weight: 700; font-size: 15px; }
+.order-items { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.order-item-tag { background: #f1f5f9; padding: 3px 10px; border-radius: 20px; font-size: 12px; color: #475569; }
+.order-actions { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid #f1f5f9; }

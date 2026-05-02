@@ -1,0 +1,279 @@
+package com.autobusiness.domain.service;
+
+import com.autobusiness.domain.model.Business;
+import com.autobusiness.domain.model.Payment;
+import com.autobusiness.domain.repository.BusinessRepository;
+import com.autobusiness.domain.repository.OrderRepository;
+import com.autobusiness.domain.repository.PaymentRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.math.BigDecimal;
+import java.util.*;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class MercadoPagoService {
+
+    private final PaymentRepository paymentRepo;
+    private final OrderRepository orderRepo;
+    private final BusinessRepository businessRepo;
+    private final WebClient.Builder webClientBuilder;
+
+    @Value("${mercadopago.access-token:TEST-placeholder}")
+    private String accessToken;
+
+    @Value("${mercadopago.notification-url:http://localhost:8080/api/payments/mercadopago/webhook}")
+    private String notificationUrl;
+
+    @Value("${mercadopago.success-url:http://localhost:3000/payment/success}")
+    private String successUrl;
+
+    @Value("${mercadopago.failure-url:http://localhost:3000/payment/failure}")
+    private String failureUrl;
+
+    @Value("${mercadopago.pending-url:http://localhost:3000/payment/pending}")
+    private String pendingUrl;
+
+    private static final String MP_API = "https://api.mercadopago.com";
+
+    /**
+     * Crea una preferencia de pago en Mercado Pago y retorna el init_point.
+     * El externalRef se usa como referencia para identificar la orden en el webhook.
+     */
+    @Transactional
+    public Map<String, Object> createPreference(UUID businessId, UUID orderId,
+                                                 List<Map<String, Object>> items,
+                                                 BigDecimal total,
+                                                 String payerEmail) {
+        Business business = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        String externalRef = orderId != null ? orderId.toString() : UUID.randomUUID().toString();
+
+        // Build preference payload
+        var mpItems = items.stream().map(item -> Map.of(
+                "title",       item.getOrDefault("title", item.getOrDefault("name", "Producto")).toString(),
+                "quantity",    Integer.parseInt(item.getOrDefault("quantity", 1).toString()),
+                "unit_price",  Double.parseDouble(item.getOrDefault("unit_price",
+                               item.getOrDefault("price", 0)).toString()),
+                "currency_id", "MXN"
+        )).toList();
+
+        var preference = new HashMap<String, Object>();
+        preference.put("items", mpItems);
+        preference.put("external_reference", externalRef);
+        preference.put("notification_url", notificationUrl);
+        preference.put("back_urls", Map.of(
+                "success", successUrl + "?ref=" + externalRef,
+                "failure", failureUrl + "?ref=" + externalRef,
+                "pending", pendingUrl + "?ref=" + externalRef
+        ));
+        preference.put("auto_return", "approved");
+        if (payerEmail != null && !payerEmail.isBlank()) {
+            preference.put("payer", Map.of("email", payerEmail));
+        }
+        preference.put("metadata", Map.of("business_id", businessId.toString()));
+
+        WebClient client = webClientBuilder.baseUrl(MP_API)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .build();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = client.post()
+                .uri("/checkout/preferences")
+                .bodyValue(preference)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (result == null || result.containsKey("error")) {
+            String err = result != null ? result.getOrDefault("message", "Error MP").toString() : "Sin respuesta";
+            log.error("MP preference creation failed: {}", err);
+            throw new IllegalStateException("Error al crear preferencia de pago: " + err);
+        }
+
+        String preferenceId = result.get("id").toString();
+        String initPoint    = result.get("init_point").toString();
+        String sandboxPoint = result.getOrDefault("sandbox_init_point", initPoint).toString();
+
+        // Persistir payment en estado pending
+        Payment payment = Payment.builder()
+                .business(business)
+                .orderId(orderId)
+                .method("mercadopago")
+                .status("pending")
+                .amount(total)
+                .currency("MXN")
+                .preferenceId(preferenceId)
+                .externalRef(externalRef)
+                .payerEmail(payerEmail)
+                .build();
+        paymentRepo.save(payment);
+
+        log.info("MP preference created: {} for business {}", preferenceId, businessId);
+
+        return Map.of(
+                "preferenceId", preferenceId,
+                "initPoint",    initPoint,
+                "sandboxPoint", sandboxPoint,
+                "paymentId",    payment.getId()
+        );
+    }
+
+    /**
+     * Procesa una notificación IPN de Mercado Pago.
+     * Consulta la API de MP para confirmar el estado real del pago.
+     */
+    @Transactional
+    public void processWebhook(String topic, String resourceId,
+                                Map<String, Object> body) {
+        String type       = body != null ? (String) body.getOrDefault("type", topic) : topic;
+        String paymentId  = resourceId;
+
+        if ("payment".equals(type) && body != null && body.containsKey("data")) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> data = (Map<String, Object>) body.get("data");
+            paymentId = data != null ? data.getOrDefault("id", resourceId).toString() : resourceId;
+        }
+
+        if (paymentId == null || paymentId.isBlank()) {
+            log.warn("MP webhook received with no payment_id");
+            return;
+        }
+
+        // Idempotencia: si ya procesamos este payment_id, skip
+        if (paymentRepo.existsByTransactionId(paymentId)) {
+            log.info("MP payment {} already processed, skipping", paymentId);
+            return;
+        }
+
+        // Consultar estado real en MP
+        Map<String, Object> mpPayment = fetchPayment(paymentId);
+        if (mpPayment == null) return;
+
+        String status       = mpPayment.getOrDefault("status", "unknown").toString();
+        String extRef       = mpPayment.getOrDefault("external_reference", "").toString();
+        Object amountObj    = mpPayment.getOrDefault("transaction_amount", 0);
+        BigDecimal amount   = new BigDecimal(amountObj.toString());
+        String email        = "";
+        String name         = "";
+
+        if (mpPayment.containsKey("payer")) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> payer = (Map<String, Object>) mpPayment.get("payer");
+            email = payer != null ? payer.getOrDefault("email", "").toString() : "";
+            name  = payer != null
+                    ? payer.getOrDefault("first_name", "") + " " + payer.getOrDefault("last_name", "")
+                    : "";
+        }
+
+        log.info("MP payment {} status={} extRef={}", paymentId, status, extRef);
+
+        // Buscar el payment pendiente por preferenceId o externalRef
+        Payment payment = null;
+        if (!extRef.isBlank()) {
+            payment = paymentRepo.findAll().stream()
+                    .filter(p -> extRef.equals(p.getExternalRef()) && "pending".equals(p.getStatus()))
+                    .findFirst().orElse(null);
+        }
+
+        if (payment == null) {
+            // Buscar el business por metadata
+            String businessIdStr = "";
+            if (mpPayment.containsKey("metadata")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> meta = (Map<String, Object>) mpPayment.get("metadata");
+                businessIdStr = meta != null ? meta.getOrDefault("business_id", "").toString() : "";
+            }
+            if (businessIdStr.isBlank()) {
+                log.warn("MP webhook: no business_id in metadata, payment_id={}", paymentId);
+                return;
+            }
+            Business biz = businessRepo.findById(UUID.fromString(businessIdStr)).orElse(null);
+            if (biz == null) return;
+
+            payment = Payment.builder()
+                    .business(biz)
+                    .method("mercadopago")
+                    .amount(amount)
+                    .currency("MXN")
+                    .externalRef(extRef)
+                    .build();
+        }
+
+        // Actualizar payment
+        payment.setTransactionId(paymentId);
+        payment.setRawStatus(status);
+        payment.setPayerEmail(email);
+        payment.setPayerName(name.trim());
+        payment.setAmount(amount);
+
+        if ("approved".equals(status)) {
+            payment.setStatus("approved");
+            // Marcar la orden como pagada si existe
+            if (!extRef.isBlank()) {
+                try {
+                    UUID orderId = UUID.fromString(extRef);
+                    payment.setOrderId(orderId);
+                    final String finalPaymentId = paymentId;
+                    orderRepo.findById(orderId).ifPresent(order -> {
+                        order.setStatus("confirmed");
+                        orderRepo.save(order);
+                        log.info("Order {} confirmed via MP payment {}", orderId, finalPaymentId);
+                    });
+                } catch (IllegalArgumentException ignored) { /* extRef no es UUID */ }
+            }
+        } else if ("rejected".equals(status) || "cancelled".equals(status)) {
+            payment.setStatus(status);
+        } else {
+            payment.setStatus("pending");
+        }
+
+        paymentRepo.save(payment);
+    }
+
+    private Map<String, Object> fetchPayment(String paymentId) {
+        try {
+            WebClient client = webClientBuilder.baseUrl(MP_API)
+                    .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                    .build();
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> result = client.get()
+                    .uri("/v1/payments/" + paymentId)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+            return result;
+        } catch (Exception e) {
+            log.error("Failed to fetch MP payment {}: {}", paymentId, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Crea un link de pago para suscripción mensual.
+     */
+    public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {
+        Map<String, Integer> prices = Map.of("BASIC", 299, "PRO", 599, "PREMIUM", 999);
+        int price = prices.getOrDefault(plan.toUpperCase(), 299);
+
+        var items = List.of(Map.<String, Object>of(
+                "title",      "AutoBusiness " + plan + " — mensual",
+                "quantity",   1,
+                "unit_price", price
+        ));
+
+        return createPreference(businessId, null, items,
+                BigDecimal.valueOf(price), null);
+    }
+}

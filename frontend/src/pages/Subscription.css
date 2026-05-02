@@ -1,0 +1,62 @@
+.sub-page { display: flex; flex-direction: column; gap: 16px; }
+
+.sub-current {
+  display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; padding: 24px;
+}
+.sub-current-left { display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
+.sub-plan-name { font-size: 22px; font-weight: 800; }
+.sub-badge {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  font-size: 12px; font-weight: 700; width: fit-content;
+}
+.sub-badge-trial   { background: #ede9fe; color: #7c3aed; }
+.sub-badge-active  { background: #d1fae5; color: #065f46; }
+.sub-badge-due     { background: #fef3c7; color: #92400e; }
+.sub-badge-canceled{ background: #fee2e2; color: #991b1b; }
+
+.sub-days    { font-size: 13px; color: #64748b; margin: 0; }
+.sub-expired { font-size: 13px; color: #ef4444; margin: 0; font-weight: 500; }
+
+.sub-current-features {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.sub-feat {
+  background: #f1f5f9; color: #334155; font-size: 13px; font-weight: 500;
+  padding: 4px 10px; border-radius: 6px;
+}
+
+.sub-usage { padding: 20px 24px; }
+.sub-usage h3 { font-size: 15px; font-weight: 700; margin: 0 0 16px; color: #1e293b; }
+.sub-usage-grid { display: flex; gap: 32px; }
+.sub-usage-item { display: flex; flex-direction: column; gap: 4px; }
+.sub-usage-val  { font-size: 28px; font-weight: 800; color: #6366f1; }
+.sub-usage-lbl  { font-size: 13px; color: #64748b; }
+
+.sub-plans {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+}
+.sub-plan-card {
+  background: var(--color-surface); border: 2px solid var(--color-border);
+  border-radius: 16px; padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+  position: relative;
+}
+.sub-plan-pro { border-color: #6366f1; box-shadow: 0 4px 20px rgba(99,102,241,0.15); }
+.sub-plan-badge {
+  position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+  background: #6366f1; color: #fff; font-size: 11px; font-weight: 700;
+  padding: 3px 12px; border-radius: 20px; white-space: nowrap;
+}
+.sub-plan-title { font-size: 14px; font-weight: 700; letter-spacing: 1px; }
+.sub-plan-price { font-size: 30px; font-weight: 900; color: #0f172a; }
+.sub-plan-price span { font-size: 14px; color: #64748b; font-weight: 400; }
+.sub-plan-feats {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 7px; flex: 1;
+}
+.sub-plan-feats li { font-size: 13px; color: #334155; }
+.sub-upgrade-btn { width: 100%; justify-content: center; }
+.sub-current-tag {
+  background: #f1f5f9; color: #64748b; text-align: center;
+  padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+}

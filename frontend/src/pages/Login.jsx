@@ -1,0 +1,100 @@
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { useAuth } from '../store/AuthContext'
+import { useToast } from '../store/ToastContext'
+import './Login.css'
+
+export default function Login() {
+  const [tab, setTab] = useState('login')
+  const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({ email: '', password: '', businessName: '', ownerName: '' })
+  const { login, register } = useAuth()
+  const { show } = useToast()
+  const navigate = useNavigate()
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
+
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const user = await login(form.email, form.password)
+      navigate(user.role === 'CASHIER' ? '/pos' : '/dashboard')
+    } catch (err) {
+      show(err?.error || 'Error al iniciar sesión', 'error')
+    } finally { setLoading(false) }
+  }
+
+  const handleRegister = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await register({ businessName: form.businessName, ownerName: form.ownerName, email: form.email, password: form.password })
+      navigate('/dashboard')
+    } catch (err) {
+      show(err?.error || 'Error al registrarse', 'error')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="login-page">
+      <div className="login-box card">
+        <div className="login-logo">
+          <div className="login-logo-icon">AB</div>
+          <h1 className="login-title">AutoBusiness AI</h1>
+          <p className="login-subtitle">Plataforma inteligente para tu negocio</p>
+        </div>
+
+        <div className="login-tabs">
+          <button className={`login-tab ${tab === 'login' ? 'active' : ''}`} onClick={() => setTab('login')}>
+            Iniciar sesión
+          </button>
+          <button className={`login-tab ${tab === 'register' ? 'active' : ''}`} onClick={() => setTab('register')}>
+            Crear cuenta
+          </button>
+        </div>
+
+        {tab === 'login' ? (
+          <form onSubmit={handleLogin} className="login-form">
+            <div className="input-group">
+              <label>Email</label>
+              <input className="input" type="email" value={form.email} onChange={set('email')} placeholder="tu@email.com" required />
+            </div>
+            <div className="input-group">
+              <label>Contraseña</label>
+              <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" required />
+            </div>
+            <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+              {loading ? <div className="spinner" /> : 'Entrar'}
+            </button>
+            <p className="login-demo">
+              Demo: <code>dueno@demo.com</code> / <code>demo1234</code>
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} className="login-form">
+            <div className="input-group">
+              <label>Nombre del negocio</label>
+              <input className="input" value={form.businessName} onChange={set('businessName')} placeholder="Ej: Tienda La Esperanza" required />
+            </div>
+            <div className="input-group">
+              <label>Tu nombre</label>
+              <input className="input" value={form.ownerName} onChange={set('ownerName')} placeholder="Tu nombre completo" required />
+            </div>
+            <div className="input-group">
+              <label>Email</label>
+              <input className="input" type="email" value={form.email} onChange={set('email')} placeholder="tu@email.com" required />
+            </div>
+            <div className="input-group">
+              <label>Contraseña</label>
+              <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="Mínimo 8 caracteres" required minLength={8} />
+            </div>
+            <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+              {loading ? <div className="spinner" /> : 'Crear negocio gratis'}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  )
+}
