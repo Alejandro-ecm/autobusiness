@@ -213,7 +213,7 @@ export default function Inventory() {
       })
       // Save barcode if one was generated
       if (form.barcode && created?.id) {
-        const token = localStorage.getItem('token')
+        const token = localStorage.getItem('ab_token')
         await fetch(`/api/inventory/products/${created.id}/barcode`, {
           method:  'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -377,7 +377,7 @@ export default function Inventory() {
   const doImport = async () => {
     setImporting(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('ab_token')
       const res   = await fetch('/api/inventory/products/import', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -398,7 +398,7 @@ export default function Inventory() {
   const generateBarcode = async (product) => {
     setGenLoading(product.id)
     const code  = generateEAN13()
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('ab_token')
     try {
       await fetch(`/api/inventory/products/${product.id}/barcode`, {
         method:  'PATCH',
@@ -422,7 +422,7 @@ export default function Inventory() {
 
     setBulkGenerating(true)
     setBulkProgress({ done: 0, total: noCode.length })
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem('ab_token')
     let done = 0
 
     // Process in batches of 10 to avoid overwhelming the backend

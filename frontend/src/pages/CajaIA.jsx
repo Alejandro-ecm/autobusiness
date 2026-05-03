@@ -568,7 +568,7 @@ export default function CajaIA() {
   // ── Cierre de caja ────────────────────────────────────────────────────────
   const openCorte = async () => {
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('ab_token')
       const data  = await fetch('/api/pos/corte/today', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(r => r.json())
@@ -585,7 +585,7 @@ export default function CajaIA() {
   const handleCloseRegister = async () => {
     setCorteSaving(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('ab_token')
       await fetch('/api/pos/corte/close', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
