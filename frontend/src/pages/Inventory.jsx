@@ -4,6 +4,8 @@ import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
 import './Inventory.css'
 
+const API = import.meta.env.VITE_API_URL || '/api'
+
 // ── EAN-13 generator (rango 2xxxxxxxx reservado GS1 para uso interno) ────────
 let _ean13Counter = 0
 function generateEAN13() {
@@ -214,7 +216,7 @@ export default function Inventory() {
       // Save barcode if one was generated
       if (form.barcode && created?.id) {
         const token = localStorage.getItem('ab_token')
-        await fetch(`/api/inventory/products/${created.id}/barcode`, {
+        await fetch(`${API}/inventory/products/${created.id}/barcode`, {
           method:  'PATCH',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body:    JSON.stringify({ barcode: form.barcode }),
@@ -378,7 +380,7 @@ export default function Inventory() {
     setImporting(true)
     try {
       const token = localStorage.getItem('ab_token')
-      const res   = await fetch('/api/inventory/products/import', {
+      const res   = await fetch(`${API}/inventory/products/import`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify(importRows),
@@ -400,7 +402,7 @@ export default function Inventory() {
     const code  = generateEAN13()
     const token = localStorage.getItem('ab_token')
     try {
-      await fetch(`/api/inventory/products/${product.id}/barcode`, {
+      await fetch(`${API}/inventory/products/${product.id}/barcode`, {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ barcode: code }),
@@ -431,7 +433,7 @@ export default function Inventory() {
       await Promise.allSettled(batch.map(async p => {
         const code = generateEAN13()
         try {
-          await fetch(`/api/inventory/products/${p.id}/barcode`, {
+          await fetch(`${API}/inventory/products/${p.id}/barcode`, {
             method:  'PATCH',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body:    JSON.stringify({ barcode: code }),

@@ -4,6 +4,8 @@ import { useToast } from '../store/ToastContext'
 import { pos as posApi } from '../api'
 import './CajaIA.css'
 
+const API = import.meta.env.VITE_API_URL || '/api'
+
 // COCO-SSD keyword → Spanish product keywords (fallback when no custom model)
 const KEYWORD_MAP = {
   bottle:       ['agua', 'refresco', 'bebida', 'cerveza', 'jugo', 'botella', 'coca', 'pepsi', 'sprite', 'soda', 'leche', 'yogurt', 'vinagre', 'aceite', 'salsa'],
@@ -569,7 +571,7 @@ export default function CajaIA() {
   const openCorte = async () => {
     try {
       const token = localStorage.getItem('ab_token')
-      const data  = await fetch('/api/pos/corte/today', {
+      const data  = await fetch(`${API}/pos/corte/today`, {
         headers: { Authorization: `Bearer ${token}` }
       }).then(r => r.json())
       setCorteData(data)
@@ -586,7 +588,7 @@ export default function CajaIA() {
     setCorteSaving(true)
     try {
       const token = localStorage.getItem('ab_token')
-      await fetch('/api/pos/corte/close', {
+      await fetch(`${API}/pos/corte/close`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body:    JSON.stringify({ notes: corteNotes }),
