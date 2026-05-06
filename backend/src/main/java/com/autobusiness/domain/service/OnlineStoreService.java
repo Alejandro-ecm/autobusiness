@@ -57,30 +57,31 @@ public class OnlineStoreService {
 
         for (Map<String, Object> item : items) {
             UUID productId = UUID.fromString(item.get("productId").toString());
-            int qty = Integer.parseInt(item.get("quantity").toString());
+            BigDecimal qty = new BigDecimal(item.get("quantity").toString());
 
             Product product = productRepo.findById(productId)
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
 
             if (!product.isOnline()) throw new IllegalArgumentException("Producto no disponible: " + product.getName());
-            if (product.getStock() < qty) {
+            if (product.getStock().compareTo(qty) < 0) {
                 throw new IllegalStateException(
-                        product.getStock() == 0
+                        product.getStock().compareTo(BigDecimal.ZERO) == 0
                                 ? product.getName() + " está agotado"
-                                : "Solo quedan " + product.getStock() + " unidades de " + product.getName()
+                                : "Solo quedan " + product.getStock().stripTrailingZeros().toPlainString()
+                                  + " " + product.getBaseUnit() + " de " + product.getName()
                 );
             }
 
-            BigDecimal subtotal = product.getPrice().multiply(BigDecimal.valueOf(qty));
+            BigDecimal subtotal = product.getPrice().multiply(qty).setScale(2, java.math.RoundingMode.HALF_UP);
             order.getItems().add(OrderItem.builder()
                     .order(order)
                     .product(product)
-                    .quantity(qty)
+                    .quantity(qty.intValue())
                     .unitPrice(product.getPrice())
                     .subtotal(subtotal)
                     .build());
 
-            product.setStock(product.getStock() - qty);
+            product.setStock(product.getStock().subtract(qty));
             productRepo.save(product);
             total = total.add(subtotal);
         }

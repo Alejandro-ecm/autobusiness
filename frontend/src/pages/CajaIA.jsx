@@ -156,6 +156,8 @@ export default function CajaIA() {
   const [showDiscount,     setShowDiscount]     = useState(false)
   const [showCorte,        setShowCorte]        = useState(false)
   const [corteData,        setCorteData]        = useState(null)
+  const [weightPicker,     setWeightPicker]     = useState(null)  // {product, mode}
+  const [weightInput,      setWeightInput]      = useState('')
 
   // Keep refs in sync with state
   useEffect(() => { autoAddRef.current = autoAdd }, [autoAdd])
@@ -504,37 +506,87 @@ export default function CajaIA() {
   }
 
   // ── Cart ──────────────────────────────────────────────────────────────────
-  const addToCart = useCallback((product) => {
-    if (product.stock === 0) { show(`${product.name} está agotado`, 'error'); return }
+  // quantity es número (puede ser decimal para kg). saleMode: 'UNIT'|'WEIGHT'. variantName: string|null
+  const addToCart = useCallback((product, qty = 1, saleMode = 'UNIT', variantName = null) => {
+    const stock = Number(product.stock)
+    if (stock <= 0) { show(`${product.name} está agotado`, 'error'); return }
+    const quantity = Number(qty)
+    if (quantity <= 0 || isNaN(quantity)) return
+
+    // Precio según modo: variante con priceOverride > pricePerKg (WEIGHT) > price
+    let unitPrice = product.price
+    if (saleMode === 'WEIGHT' && product.pricePerKg) unitPrice = product.pricePerKg
+    if (variantName && product.variants) {
+      try {
+        const variants = JSON.parse(product.variants)
+        const v = variants.find(x => x.name === variantName)
+        if (v) {
+          if (v.priceOverride != null) unitPrice = Number(v.priceOverride)
+          else if (v.multiplier != null) {
+            const base = (saleMode === 'WEIGHT' && product.pricePerKg) ? product.pricePerKg : product.price
+            unitPrice = Number(base) * Number(v.multiplier)
+          }
+        }
+      } catch { /* JSON inválido */ }
+    }
+
+    const cartKey = variantName ? `${product.id}__${variantName}` : product.id
+
     setCart(prev => {
-      const ex = prev.find(i => i.productId === product.id)
+      const ex = prev.find(i => i.cartKey === cartKey)
       if (ex) {
-        if (ex.quantity >= product.stock) { show(`Máximo ${product.stock} uds`, 'error'); return prev }
-        const q = ex.quantity + 1
-        return prev.map(i => i.productId === product.id
-          ? { ...i, quantity: q, subtotal: q * i.price } : i)
+        const newQty = Number((ex.quantity + quantity).toFixed(4))
+        if (newQty > stock) { show(`Máximo ${fmtStock(stock, product.baseUnit)} disponible`, 'error'); return prev }
+        return prev.map(i => i.cartKey === cartKey
+          ? { ...i, quantity: newQty, subtotal: Number((newQty * i.unitPrice).toFixed(2)) } : i)
       }
       return [...prev, {
-        productId: product.id,
-        name:      product.name,
-        price:     product.price,
-        quantity:  1,
-        subtotal:  product.price,
-        maxStock:  product.stock,
+        cartKey,
+        productId:   product.id,
+        name:        variantName ? `${product.name} — ${variantName}` : product.name,
+        unitPrice,
+        price:       unitPrice,  // alias para compatibilidad
+        quantity,
+        subtotal:    Number((quantity * unitPrice).toFixed(2)),
+        maxStock:    stock,
+        saleMode,
+        variantName,
+        baseUnit:    product.baseUnit || 'unit',
       }]
     })
-    show(`✓ ${product.name}`, 'success')
+    show(`✓ ${product.name}${variantName ? ` (${variantName})` : ''}`, 'success')
   }, [show])
 
-  const removeFromCart = (productId) =>
-    setCart(prev => prev.filter(i => i.productId !== productId))
+  const fmtStock = (n, unit) => {
+    const s = Number(n)
+    return (unit && unit !== 'unit') ? `${s} ${unit}` : `${Math.round(s)} uds`
+  }
 
-  const updateQty = (productId, qty) => {
-    if (qty <= 0) { removeFromCart(productId); return }
+  // Abre picker de peso para productos WEIGHT/MIXED
+  const openWeightPicker = useCallback((product, mode = 'WEIGHT') => {
+    setWeightInput('')
+    setWeightPicker({ product, mode })
+  }, [])
+
+  const confirmWeight = () => {
+    const qty = parseFloat(weightInput.replace(',', '.'))
+    if (!qty || qty <= 0) { show('Ingresa un peso válido', 'error'); return }
+    addToCart(weightPicker.product, qty, weightPicker.mode, null)
+    setWeightPicker(null)
+    setWeightInput('')
+    setMobileTab('cart')
+  }
+
+  const removeFromCart = (cartKey) =>
+    setCart(prev => prev.filter(i => i.cartKey !== cartKey))
+
+  const updateQty = (cartKey, qty) => {
+    const q = Number(qty)
+    if (q <= 0) { removeFromCart(cartKey); return }
     setCart(prev => prev.map(i => {
-      if (i.productId !== productId) return i
-      if (qty > i.maxStock) { show(`Máximo ${i.maxStock} uds`, 'error'); return i }
-      return { ...i, quantity: qty, subtotal: qty * i.price }
+      if (i.cartKey !== cartKey) return i
+      if (q > i.maxStock) { show(`Máximo ${fmtStock(i.maxStock, i.baseUnit)}`, 'error'); return i }
+      return { ...i, quantity: q, subtotal: Number((q * i.unitPrice).toFixed(2)) }
     }))
   }
 
@@ -609,7 +661,12 @@ export default function CajaIA() {
     try {
       const res = await posApi.checkout({
         branchId:      user.branchId,
-        items:         cart.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        items:         cart.map(i => ({
+          productId:   i.productId,
+          quantity:    i.quantity,
+          saleMode:    i.saleMode    || 'UNIT',
+          variantName: i.variantName || null,
+        })),
         paymentMethod: payMethod,
         cashReceived:  payMethod === 'cash' && cashReceived
           ? parseFloat(cashReceived) : undefined,
@@ -654,7 +711,12 @@ export default function CajaIA() {
   // ── WhatsApp receipt ──────────────────────────────────────────────────────
   const sendWhatsApp = useCallback(() => {
     if (!cart.length) return
-    const lines  = cart.map(i => `• ${i.name} ×${i.quantity}  $${i.subtotal.toFixed(2)}`)
+    const lines  = cart.map(i => {
+      const qtyStr = i.saleMode === 'WEIGHT'
+        ? `${Number(i.quantity).toFixed(3)} ${i.baseUnit || 'kg'}`
+        : `×${i.quantity}`
+      return `• ${i.name} ${qtyStr}  $${i.subtotal.toFixed(2)}`
+    })
     const text   = [
       '🧾 *Recibo de compra*',
       '',
@@ -674,6 +736,54 @@ export default function CajaIA() {
 
   // ── Sale completed screen ─────────────────────────────────────────────────
   const PAY_LABELS = { cash: '💵 Efectivo', card: '💳 Tarjeta', transfer: '🏦 Transferencia', mp: '💙 Mercado Pago' }
+
+  // ── Modal picker de peso ──────────────────────────────────────────────────
+  const WeightPickerModal = weightPicker && (
+    <div className="caia-modal-backdrop" onClick={() => setWeightPicker(null)}>
+      <div className="caia-modal caia-weight-modal" onClick={e => e.stopPropagation()}>
+        <div className="caia-modal-header">
+          <h2>⚖️ {weightPicker.product.name}</h2>
+          <button className="caia-modal-close" onClick={() => setWeightPicker(null)}>✕</button>
+        </div>
+        <div className="caia-weight-body">
+          <p className="caia-weight-price">
+            {weightPicker.product.pricePerKg
+              ? `${fmt(weightPicker.product.pricePerKg)} / kg`
+              : fmt(weightPicker.product.price)}
+          </p>
+          <div className="caia-weight-quick">
+            {['0.25','0.5','1','2','5'].map(w => (
+              <button key={w} className="caia-weight-quick-btn"
+                onClick={() => setWeightInput(String(parseFloat(weightInput || '0') + parseFloat(w)))}>
+                +{w} kg
+              </button>
+            ))}
+          </div>
+          <input
+            className="caia-weight-input"
+            type="number"
+            inputMode="decimal"
+            step="0.001"
+            min="0"
+            placeholder="0.000 kg"
+            value={weightInput}
+            onChange={e => setWeightInput(e.target.value)}
+            autoFocus
+            onKeyDown={e => e.key === 'Enter' && confirmWeight()}
+          />
+          {weightInput && parseFloat(weightInput) > 0 && weightPicker.product.pricePerKg && (
+            <p className="caia-weight-preview">
+              Total: <strong>{fmt(parseFloat(weightInput) * weightPicker.product.pricePerKg)}</strong>
+            </p>
+          )}
+          <button className="caia-btn-primary full" onClick={confirmWeight}
+            disabled={!weightInput || parseFloat(weightInput) <= 0}>
+            ✓ Agregar al carrito
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 
   if (lastSale) return (
     <div className="caia-ticket-screen">
@@ -713,7 +823,7 @@ export default function CajaIA() {
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) && p.stock > 0
+    p.name.toLowerCase().includes(productSearch.toLowerCase()) && Number(p.stock) > 0
   )
 
   const suggestions = detections
@@ -753,6 +863,7 @@ export default function CajaIA() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <>
+    {WeightPickerModal}
     {/* ── Cierre de caja modal ── */}
     {showCorte && corteData && (
       <div className="caia-modal-backdrop" onClick={() => setShowCorte(false)}>
@@ -934,7 +1045,8 @@ export default function CajaIA() {
               <div className="caia-chips">
                 {suggestions.map(p => (
                   <button key={p.id} className="caia-chip" onClick={() => {
-                    addToCart(p)
+                    if ((p.saleMode || 'UNIT') === 'WEIGHT') { openWeightPicker(p, 'WEIGHT'); return }
+                    addToCart(p, 1, p.saleMode || 'UNIT', null)
                     setMobileTab('cart')
                   }}>
                     <span>{p.name}</span>
@@ -974,24 +1086,89 @@ export default function CajaIA() {
               onChange={e => setProductSearch(e.target.value)}
             />
             <div className="caia-product-grid">
-              {filteredProducts.map(p => (
-                <button
-                  key={p.id}
-                  className="caia-product-btn"
-                  onClick={() => { addToCart(p); setMobileTab('cart') }}
-                  title={`Stock: ${p.stock}`}
-                >
-                  {p.imageUrl
-                    ? <img src={p.imageUrl} alt={p.name} className="caia-prod-img" />
-                    : <div className="caia-prod-img-placeholder">📦</div>
-                  }
-                  <span className="caia-prod-name">{p.name}</span>
-                  <span className="caia-prod-price">{fmt(p.price)}</span>
-                  <span className={`caia-prod-stock${p.stock <= (p.minStock || 3) ? ' low' : ''}`}>
-                    {p.stock} uds
-                  </span>
-                </button>
-              ))}
+              {filteredProducts.map(p => {
+                const stock     = Number(p.stock)
+                const minS      = Number(p.minStock) || 3
+                const isLow     = stock <= minS
+                const stockLbl  = fmtStock(stock, p.baseUnit)
+                const mode      = p.saleMode || 'UNIT'
+                const variants  = p.variants ? (() => { try { return JSON.parse(p.variants) } catch { return [] } })() : []
+
+                const imgEl = p.imageUrl
+                  ? <img src={p.imageUrl} alt={p.name} className="caia-prod-img" />
+                  : <div className="caia-prod-img-placeholder">📦</div>
+
+                // ── Producto con variantes ────────────────────────────────
+                if (variants.length > 0) return (
+                  <div key={p.id} className="caia-product-btn caia-product-variants">
+                    {imgEl}
+                    <span className="caia-prod-name">{p.name}</span>
+                    <span className="caia-prod-price">{fmt(p.price)}/{p.baseUnit || 'unit'}</span>
+                    <div className="caia-variant-btns">
+                      {variants.map(v => (
+                        <button key={v.name} className="caia-variant-btn"
+                          onClick={() => { addToCart(p, v.multiplier || 1, mode, v.name); setMobileTab('cart') }}>
+                          {v.name}
+                        </button>
+                      ))}
+                      {mode === 'WEIGHT' && (
+                        <button className="caia-variant-btn caia-variant-custom"
+                          onClick={() => openWeightPicker(p, 'WEIGHT')}>
+                          ⚖️ Personalizado
+                        </button>
+                      )}
+                    </div>
+                    <span className={`caia-prod-stock${isLow ? ' low' : ''}`}>{stockLbl}</span>
+                  </div>
+                )
+
+                // ── Producto WEIGHT ───────────────────────────────────────
+                if (mode === 'WEIGHT') return (
+                  <button key={p.id} className="caia-product-btn caia-product-weight"
+                    onClick={() => openWeightPicker(p, 'WEIGHT')}
+                    title={`Stock: ${stockLbl}`}>
+                    {imgEl}
+                    <span className="caia-prod-name">{p.name}</span>
+                    <span className="caia-prod-price">
+                      {p.pricePerKg ? `${fmt(p.pricePerKg)}/kg` : fmt(p.price)}
+                    </span>
+                    <span className="caia-prod-weight-icon">⚖️ Pesar</span>
+                    <span className={`caia-prod-stock${isLow ? ' low' : ''}`}>{stockLbl}</span>
+                  </button>
+                )
+
+                // ── Producto MIXED ────────────────────────────────────────
+                if (mode === 'MIXED') return (
+                  <div key={p.id} className="caia-product-btn caia-product-mixed">
+                    {imgEl}
+                    <span className="caia-prod-name">{p.name}</span>
+                    <span className="caia-prod-price">{fmt(p.price)}</span>
+                    <div className="caia-mixed-btns">
+                      <button className="caia-mixed-btn"
+                        onClick={() => { addToCart(p, 1, 'UNIT', null); setMobileTab('cart') }}>
+                        🔢 Pieza
+                      </button>
+                      <button className="caia-mixed-btn"
+                        onClick={() => openWeightPicker(p, 'WEIGHT')}>
+                        ⚖️ Peso
+                      </button>
+                    </div>
+                    <span className={`caia-prod-stock${isLow ? ' low' : ''}`}>{stockLbl}</span>
+                  </div>
+                )
+
+                // ── Producto UNIT (default) ───────────────────────────────
+                return (
+                  <button key={p.id} className="caia-product-btn"
+                    onClick={() => { addToCart(p, 1, 'UNIT', null); setMobileTab('cart') }}
+                    title={`Stock: ${stockLbl}`}>
+                    {imgEl}
+                    <span className="caia-prod-name">{p.name}</span>
+                    <span className="caia-prod-price">{fmt(p.price)}</span>
+                    <span className={`caia-prod-stock${isLow ? ' low' : ''}`}>{stockLbl}</span>
+                  </button>
+                )
+              })}
               {filteredProducts.length === 0 && (
                 <p className="caia-empty">Sin resultados</p>
               )}
@@ -1018,22 +1195,29 @@ export default function CajaIA() {
             ) : (
               <>
                 <div className="caia-cart-items">
-                  {cart.map(item => (
-                    <div key={item.productId} className="caia-cart-item">
-                      <span className="caia-ci-name">{item.name}</span>
-                      <div className="caia-ci-controls">
-                        <button className="caia-qty-btn"
-                          onClick={() => updateQty(item.productId, item.quantity - 1)}>−</button>
-                        <span className="caia-qty-val">{item.quantity}</span>
-                        <button className="caia-qty-btn"
-                          onClick={() => updateQty(item.productId, item.quantity + 1)}
-                          disabled={item.quantity >= item.maxStock}>+</button>
-                        <span className="caia-ci-sub">{fmt(item.subtotal)}</span>
-                        <button className="caia-rm-btn"
-                          onClick={() => removeFromCart(item.productId)}>×</button>
+                  {cart.map(item => {
+                    const isWeight = item.saleMode === 'WEIGHT'
+                    const step     = isWeight ? 0.25 : 1
+                    const qtyLabel = isWeight
+                      ? `${Number(item.quantity).toFixed(item.quantity % 1 === 0 ? 0 : 3)} ${item.baseUnit || 'kg'}`
+                      : item.quantity
+                    return (
+                      <div key={item.cartKey} className="caia-cart-item">
+                        <span className="caia-ci-name">{item.name}</span>
+                        <div className="caia-ci-controls">
+                          <button className="caia-qty-btn"
+                            onClick={() => updateQty(item.cartKey, Number((item.quantity - step).toFixed(4)))}>−</button>
+                          <span className="caia-qty-val">{qtyLabel}</span>
+                          <button className="caia-qty-btn"
+                            onClick={() => updateQty(item.cartKey, Number((item.quantity + step).toFixed(4)))}
+                            disabled={item.quantity >= item.maxStock}>+</button>
+                          <span className="caia-ci-sub">{fmt(item.subtotal)}</span>
+                          <button className="caia-rm-btn"
+                            onClick={() => removeFromCart(item.cartKey)}>×</button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
 
                 <div className="caia-cart-footer">

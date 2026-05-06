@@ -67,6 +67,11 @@ const COL_MAP = {
   barcode:     ['barcode', 'codigo barras', 'código barras', 'codigo de barras', 'ean', 'upc'],
   description: ['descripcion', 'descripción', 'description', 'detalle'],
   isOnline:    ['online', 'tienda online', 'en linea', 'en línea', 'web'],
+  // Nuevas columnas de modo de venta
+  saleMode:    ['tipoventa', 'tipo venta', 'salemode', 'sale mode', 'tipo'],
+  baseUnit:    ['unidad', 'baseunit', 'base unit', 'unidad base', 'unit'],
+  pricePerKg:  ['precioporkg', 'precio por kg', 'priceperkg', 'precio/kg', 'precio kg'],
+  variants:    ['variantes', 'variants', 'empaques', 'packaging'],
 }
 
 function normalizeKey(header) {
@@ -106,12 +111,12 @@ export default function Inventory() {
   const [showCatModal, setShowCatModal] = useState(false)
   const [catForm, setCatForm] = useState({ name: '', color: '#6366f1' })
   const [catSaving, setCatSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false, categoryId: '' })
+  const [form, setForm] = useState({ name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' })
   const [saving, setSaving] = useState(false)
 
   const [lastUpdated, setLastUpdated] = useState(null)
   const [editProduct, setEditProduct] = useState(null)
-  const [editForm, setEditForm] = useState({})
+  const [editForm, setEditForm]       = useState({})
   const [editSaving, setEditSaving] = useState(false)
   const [sortBy, setSortBy] = useState('name')
   const [filterStock, setFilterStock] = useState('all')
@@ -203,15 +208,20 @@ export default function Inventory() {
     setSaving(true)
     try {
       const created = await inventoryApi.create({
-        name: form.name.trim(),
+        name:       form.name.trim(),
         price,
-        cost: parseFloat(form.cost) || 0,
-        stock: parseInt(form.stock) || 0,
-        minStock: parseInt(form.minStock) || 5,
-        sku: form.sku.trim() || undefined,
-        imageUrl: form.imageUrl.trim() || undefined,
-        isOnline: form.isOnline,
+        cost:       parseFloat(form.cost) || 0,
+        stock:      parseFloat(form.stock) || 0,
+        minStock:   parseFloat(form.minStock) || 5,
+        sku:        form.sku.trim() || undefined,
+        imageUrl:   form.imageUrl.trim() || undefined,
+        isOnline:   form.isOnline,
         categoryId: form.categoryId || undefined,
+        saleMode:   form.saleMode || 'UNIT',
+        baseUnit:   form.baseUnit || 'unit',
+        allowsDecimal: form.saleMode === 'WEIGHT' || form.saleMode === 'MIXED',
+        pricePerKg: form.pricePerKg ? parseFloat(form.pricePerKg) : undefined,
+        variants:   form.variants.trim() || undefined,
       })
       // Save barcode if one was generated
       if (form.barcode && created?.id) {
@@ -233,7 +243,20 @@ export default function Inventory() {
 
   const openEdit = (p) => {
     setEditProduct(p)
-    setEditForm({ name: p.name, price: p.price, cost: p.cost || 0, minStock: p.minStock || 5, sku: p.sku || '', imageUrl: p.imageUrl || '', isOnline: !!p.isOnline, categoryId: p.categoryId || '' })
+    setEditForm({
+      name:     p.name,
+      price:    p.price,
+      cost:     p.cost || 0,
+      minStock: p.minStock || 5,
+      sku:      p.sku || '',
+      imageUrl: p.imageUrl || '',
+      isOnline: !!p.isOnline,
+      categoryId: p.categoryId || '',
+      saleMode: p.saleMode || 'UNIT',
+      baseUnit: p.baseUnit || 'unit',
+      pricePerKg: p.pricePerKg || '',
+      variants:   p.variants  || '',
+    })
   }
 
   const handleEdit = async (e) => {
@@ -243,14 +266,19 @@ export default function Inventory() {
     setEditSaving(true)
     try {
       await inventoryApi.update(editProduct.id, {
-        name: editForm.name.trim(),
+        name:       editForm.name.trim(),
         price,
-        cost: parseFloat(editForm.cost) || 0,
-        minStock: parseInt(editForm.minStock) || 5,
-        sku: editForm.sku?.trim() || undefined,
-        imageUrl: editForm.imageUrl?.trim() || undefined,
-        isOnline: editForm.isOnline,
+        cost:       parseFloat(editForm.cost) || 0,
+        minStock:   parseFloat(editForm.minStock) || 5,
+        sku:        editForm.sku?.trim() || undefined,
+        imageUrl:   editForm.imageUrl?.trim() || undefined,
+        isOnline:   editForm.isOnline,
         categoryId: editForm.categoryId || undefined,
+        saleMode:   editForm.saleMode || 'UNIT',
+        baseUnit:   editForm.baseUnit || 'unit',
+        allowsDecimal: editForm.saleMode === 'WEIGHT' || editForm.saleMode === 'MIXED',
+        pricePerKg: editForm.pricePerKg ? parseFloat(editForm.pricePerKg) : undefined,
+        variants:   editForm.variants?.trim() || undefined,
       })
       show('Producto actualizado', 'success')
       setEditProduct(null)
@@ -289,67 +317,74 @@ export default function Inventory() {
     const XLSX = await import('xlsx')
 
     // ── Hoja 1: Plantilla ──────────────────────────────────────────────────
-    const headers = ['Nombre','Precio','Costo','Stock','Stock Minimo','SKU','Codigo Barras','Descripcion','Online']
+    const headers = ['Nombre','Precio','Costo','Stock','Stock Minimo','SKU','Codigo Barras','Descripcion','Online','TipoVenta','Unidad','PrecioPorKg','Variantes']
     const examples = [
-      ['Coca-Cola 600ml',    18,   12,  50, 5, 'CC600',   '7501055301008', 'Refresco de cola 600ml',        'Si'],
-      ['Agua Bonafont 1L',   12,    7, 100, 10,'AB1L',    '7501007010022', 'Agua purificada 1 litro',       'Si'],
-      ['Sabritas Original',  22,   14,  80, 8, 'SAB-OR',  '7501011100063', 'Papas fritas sabor original',   'Si'],
-      ['Galletas Oreo',      25,   16,  60, 6, 'ORE-100', '7622210023339', 'Galletas con crema 100g',       'No'],
-      ['Jabón Dove 90g',     35,   22,  40, 5, 'DOV-90',  '7891150062978', 'Jabón de tocador Dove',         'No'],
-      ['Pan Bimbo Blanco',   45,   30,  30, 5, 'BIM-BL',  '7441029501016', 'Pan de caja blanco grande',     'Si'],
-      ['Leche Lala 1L',      26,   18,  70, 8, 'LAL-1L',  '7501020503025', 'Leche entera 1 litro',          'Si'],
-      ['Huevo Bachoco 12pk', 55,   42,  25, 5, 'HUV-12',  '7501003770018', 'Huevo blanco 12 piezas',        'No'],
+      // Productos normales (UNIT)
+      ['Coca-Cola 600ml',    18,   12,   50,  5, 'CC600',   '7501055301008', 'Refresco 600ml', 'Si',  'UNIT', 'unit', '',    ''],
+      ['Agua Bonafont 1L',   12,    7,  100, 10, 'AB1L',    '7501007010022', 'Agua 1 litro',   'Si',  'UNIT', 'unit', '',    ''],
+      ['Sabritas Original',  22,   14,   80,  8, 'SAB-OR',  '7501011100063', 'Papas original', 'Si',  'UNIT', 'unit', '',    ''],
+      // Productos por peso (WEIGHT)
+      ['Azúcar blanca',      25,   18, 1000, 50, 'AZU-BL',  '',              'Azúcar a granel','No',  'WEIGHT','kg',  '25',  'Costal:50,Tonelada:1000'],
+      ['Frijol negro',       32,   24,  500, 20, 'FRJ-NG',  '',              'Frijol a granel','No',  'WEIGHT','kg',  '32',  'Costal:50,Caja:25'],
+      ['Arroz extra largo',  28,   20,  800, 30, 'ARR-EL',  '',              'Arroz a granel', 'No',  'WEIGHT','kg',  '28',  'Costal:50'],
+      // Mixto
+      ['Jabón Dove 90g',     35,   22,   40,  5, 'DOV-90',  '7891150062978', 'Jabón tocador',  'No',  'UNIT', 'unit', '',    ''],
+      ['Leche Lala 1L',      26,   18,   70,  8, 'LAL-1L',  '7501020503025', 'Leche entera',   'Si',  'UNIT', 'unit', '',    ''],
     ]
 
     const wsData = [headers, ...examples]
     const ws     = XLSX.utils.aoa_to_sheet(wsData)
 
-    // Ancho de columnas
     ws['!cols'] = [
-      { wch: 30 }, // Nombre
+      { wch: 28 }, // Nombre
       { wch: 10 }, // Precio
       { wch: 10 }, // Costo
-      { wch: 8  }, // Stock
+      { wch: 10 }, // Stock
       { wch: 12 }, // Stock Min
       { wch: 12 }, // SKU
       { wch: 16 }, // Barcode
-      { wch: 35 }, // Descripcion
+      { wch: 30 }, // Descripcion
       { wch: 8  }, // Online
+      { wch: 10 }, // TipoVenta
+      { wch: 8  }, // Unidad
+      { wch: 12 }, // PrecioPorKg
+      { wch: 28 }, // Variantes
     ]
 
-    // Estilo del encabezado (negrita)
     headers.forEach((_, ci) => {
       const cell = XLSX.utils.encode_cell({ r: 0, c: ci })
       if (!ws[cell]) return
-      ws[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: '6366F1' } }, font: { color: { rgb: 'FFFFFF' }, bold: true } }
+      ws[cell].s = { font: { bold: true, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '6366F1' } } }
     })
 
     // ── Hoja 2: Instrucciones ──────────────────────────────────────────────
     const instrData = [
       ['INSTRUCCIONES PARA LLENAR LA PLANTILLA'],
       [''],
-      ['COLUMNA',              'OBLIGATORIO', 'DESCRIPCIÓN',                                         'EJEMPLO'],
-      ['Nombre',               'SÍ',          'Nombre completo del producto',                        'Coca-Cola 600ml'],
-      ['Precio',               'SÍ',          'Precio de venta al público (sin $ ni comas)',         '18'],
-      ['Costo',                'No',          'Costo de compra/adquisición del producto',            '12'],
-      ['Stock',                'No',          'Cantidad actual en inventario',                       '50'],
-      ['Stock Minimo',         'No',          'Cantidad mínima antes de alerta (default: 5)',        '10'],
-      ['SKU',                  'No',          'Código interno del negocio (tu referencia)',          'CC600'],
-      ['Codigo Barras',        'No',          'Código de barras del producto (EAN-13, UPC, etc.)',   '7501055301008'],
-      ['Descripcion',          'No',          'Descripción que aparece en tu tienda online',         'Refresco de cola 600ml'],
-      ['Online',               'No',          'Si aparece en tu tienda online. Escribe: Si o No',   'Si'],
+      ['COLUMNA',        'OBLIGATORIO', 'DESCRIPCIÓN',                                           'EJEMPLO'],
+      ['Nombre',         'SÍ',          'Nombre completo del producto',                          'Azúcar blanca'],
+      ['Precio',         'SÍ',          'Precio de venta (sin $ ni comas)',                      '25'],
+      ['Costo',          'No',          'Costo de compra del producto',                          '18'],
+      ['Stock',          'No',          'Cantidad actual (puede ser decimal para kg)',            '1000'],
+      ['Stock Minimo',   'No',          'Mínimo antes de alerta de stock bajo',                  '50'],
+      ['SKU',            'No',          'Código interno de tu negocio',                          'AZU-BL'],
+      ['Codigo Barras',  'No',          'Código de barras (EAN-13, UPC, etc.)',                  '7501055301008'],
+      ['Descripcion',    'No',          'Descripción para tienda online',                        'Azúcar a granel'],
+      ['Online',         'No',          'Disponible en tienda online: Si o No',                  'Si'],
+      ['TipoVenta',      'No',          'UNIT = por pieza | WEIGHT = por peso | MIXED = ambos', 'WEIGHT'],
+      ['Unidad',         'No',          'Unidad base: kg, g, L, mL, ton, unit',                 'kg'],
+      ['PrecioPorKg',    'No',          'Precio por kg (solo para WEIGHT/MIXED)',                '25'],
+      ['Variantes',      'No',          'Empaques: Nombre:multiplicador separados por coma',     'Costal:50,Tonelada:1000'],
       [''],
-      ['CONSEJOS:'],
-      ['• El código de barras es el número que está bajo las rayas del empaque.'],
-      ['• Si no tienes SKU propio, puedes usar el código de barras como SKU.'],
-      ['• El precio y costo deben ser números sin símbolos: 18.50 no $18.50'],
-      ['• Para Online escribe exactamente: Si (con acento o sin acento) o No'],
-      ['• No borres la fila de encabezados (primera fila con los nombres de columnas)'],
-      ['• Puedes agregar tantos productos como necesites debajo de los ejemplos'],
+      ['EJEMPLOS DE VARIANTES:'],
+      ['• Costal:50           → vende costales de 50 kg al precio de 50×pricePerKg'],
+      ['• Tonelada:1000       → vende toneladas de 1000 kg'],
+      ['• Costal:50:1100      → costal a precio fijo $1100 (ignora precio/kg)'],
+      ['• Caja:25,Costal:50   → dos variantes en el mismo producto'],
     ]
 
     const ws2    = XLSX.utils.aoa_to_sheet(instrData)
-    ws2['!cols'] = [{ wch: 18 }, { wch: 14 }, { wch: 55 }, { wch: 25 }]
+    ws2['!cols'] = [{ wch: 16 }, { wch: 13 }, { wch: 55 }, { wch: 30 }]
 
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws,  'Productos')
@@ -842,6 +877,47 @@ export default function Inventory() {
                 <input type="checkbox" checked={editForm.isOnline} onChange={setEdit('isOnline')} />
                 Disponible en tienda online
               </label>
+
+              {/* ── Modo de venta ── */}
+              <div className="input-group" style={{ marginTop: 8 }}>
+                <label>Modo de venta</label>
+                <select className="input" value={editForm.saleMode || 'UNIT'} onChange={setEdit('saleMode')}>
+                  <option value="UNIT">Por pieza / unidad</option>
+                  <option value="WEIGHT">Por peso (kg, g…)</option>
+                  <option value="MIXED">Mixto (pieza y peso)</option>
+                </select>
+              </div>
+              {(editForm.saleMode === 'WEIGHT' || editForm.saleMode === 'MIXED') && (
+                <div className="form-row">
+                  <div className="input-group">
+                    <label>Unidad base</label>
+                    <select className="input" value={editForm.baseUnit || 'kg'} onChange={setEdit('baseUnit')}>
+                      <option value="kg">kg</option>
+                      <option value="g">g (gramos)</option>
+                      <option value="L">L (litros)</option>
+                      <option value="mL">mL</option>
+                      <option value="ton">tonelada</option>
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Precio por kg</label>
+                    <input className="input" type="number" step="0.01" min="0"
+                      value={editForm.pricePerKg || ''} onChange={setEdit('pricePerKg')}
+                      placeholder="ej: 25.00" />
+                  </div>
+                </div>
+              )}
+              <div className="input-group">
+                <label style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  Variantes (empaque)
+                  <span style={{ fontSize:11, color:'#94a3b8', fontWeight:400 }}>
+                    ej: Costal:50,Tonelada:1000
+                  </span>
+                </label>
+                <input className="input" value={editForm.variants || ''} onChange={setEdit('variants')}
+                  placeholder="Nombre:multiplicador, ej: Costal:50,Caja:25" />
+              </div>
+
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline" onClick={() => setEditProduct(null)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={editSaving}>
@@ -947,6 +1023,47 @@ export default function Inventory() {
                 <input type="checkbox" checked={form.isOnline} onChange={set('isOnline')} />
                 Disponible en tienda online
               </label>
+
+              {/* ── Modo de venta ── */}
+              <div className="input-group" style={{ marginTop: 8 }}>
+                <label>Modo de venta</label>
+                <select className="input" value={form.saleMode} onChange={set('saleMode')}>
+                  <option value="UNIT">Por pieza / unidad</option>
+                  <option value="WEIGHT">Por peso (kg, g…)</option>
+                  <option value="MIXED">Mixto (pieza y peso)</option>
+                </select>
+              </div>
+              {(form.saleMode === 'WEIGHT' || form.saleMode === 'MIXED') && (
+                <div className="form-row">
+                  <div className="input-group">
+                    <label>Unidad base</label>
+                    <select className="input" value={form.baseUnit} onChange={set('baseUnit')}>
+                      <option value="kg">kg</option>
+                      <option value="g">g (gramos)</option>
+                      <option value="L">L (litros)</option>
+                      <option value="mL">mL</option>
+                      <option value="ton">tonelada</option>
+                    </select>
+                  </div>
+                  <div className="input-group">
+                    <label>Precio por kg</label>
+                    <input className="input" type="number" step="0.01" min="0"
+                      value={form.pricePerKg} onChange={set('pricePerKg')}
+                      placeholder="ej: 25.00" />
+                  </div>
+                </div>
+              )}
+              <div className="input-group">
+                <label style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  Variantes (empaque)
+                  <span style={{ fontSize:11, color:'#94a3b8', fontWeight:400 }}>
+                    ej: Costal:50,Tonelada:1000
+                  </span>
+                </label>
+                <input className="input" value={form.variants} onChange={set('variants')}
+                  placeholder="Nombre:multiplicador, ej: Costal:50,Caja:25" />
+              </div>
+
               <div className="modal-footer">
                 <button type="button" className="btn btn-outline" onClick={() => setShowModal(false)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>

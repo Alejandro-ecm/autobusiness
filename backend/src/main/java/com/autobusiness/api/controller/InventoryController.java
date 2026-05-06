@@ -47,12 +47,17 @@ public class InventoryController {
                     .name(body.get("name").toString())
                     .price(new BigDecimal(body.get("price").toString()))
                     .cost(body.get("cost") != null ? new BigDecimal(body.get("cost").toString()) : BigDecimal.ZERO)
-                    .stock(body.get("stock") != null ? Integer.parseInt(body.get("stock").toString()) : 0)
-                    .minStock(body.get("minStock") != null ? Integer.parseInt(body.get("minStock").toString()) : 5)
+                    .stock(body.get("stock") != null ? new BigDecimal(body.get("stock").toString()) : BigDecimal.ZERO)
+                    .minStock(body.get("minStock") != null ? new BigDecimal(body.get("minStock").toString()) : BigDecimal.valueOf(5))
                     .sku(body.get("sku") != null ? body.get("sku").toString() : null)
                     .description(body.get("description") != null ? body.get("description").toString() : null)
                     .imageUrl(body.get("imageUrl") != null ? body.get("imageUrl").toString() : null)
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
+                    .saleMode(body.get("saleMode") != null ? body.get("saleMode").toString() : "UNIT")
+                    .baseUnit(body.get("baseUnit") != null ? body.get("baseUnit").toString() : "unit")
+                    .allowsDecimal(body.get("allowsDecimal") != null && Boolean.parseBoolean(body.get("allowsDecimal").toString()))
+                    .pricePerKg(body.get("pricePerKg") != null ? new BigDecimal(body.get("pricePerKg").toString()) : null)
+                    .variants(body.get("variants") != null ? body.get("variants").toString() : null)
                     .build();
             return ResponseEntity.ok(inventoryService.createProduct(principal.businessId(), product));
         } catch (Exception e) {
@@ -67,7 +72,7 @@ public class InventoryController {
             @PathVariable UUID productId,
             @RequestBody Map<String, Object> body) {
         try {
-            int delta = Integer.parseInt(body.get("delta").toString());
+            BigDecimal delta = new BigDecimal(body.get("delta").toString());
             String reason = body.get("reason") != null ? body.get("reason").toString() : "Ajuste manual";
             return ResponseEntity.ok(inventoryService.adjustStock(principal.businessId(), productId, delta, reason));
         } catch (Exception e) {
@@ -112,10 +117,15 @@ public class InventoryController {
                     .name(body.get("name").toString())
                     .price(new BigDecimal(body.get("price").toString()))
                     .cost(body.get("cost") != null ? new BigDecimal(body.get("cost").toString()) : BigDecimal.ZERO)
-                    .minStock(body.get("minStock") != null ? Integer.parseInt(body.get("minStock").toString()) : 5)
+                    .minStock(body.get("minStock") != null ? new BigDecimal(body.get("minStock").toString()) : BigDecimal.valueOf(5))
                     .description(body.get("description") != null ? body.get("description").toString() : null)
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
                     .imageUrl(body.get("imageUrl") != null ? body.get("imageUrl").toString() : null)
+                    .saleMode(body.get("saleMode") != null ? body.get("saleMode").toString() : null)
+                    .baseUnit(body.get("baseUnit") != null ? body.get("baseUnit").toString() : null)
+                    .allowsDecimal(body.get("allowsDecimal") != null && Boolean.parseBoolean(body.get("allowsDecimal").toString()))
+                    .pricePerKg(body.get("pricePerKg") != null ? new BigDecimal(body.get("pricePerKg").toString()) : null)
+                    .variants(body.get("variants") != null ? body.get("variants").toString() : null)
                     .build();
             // set category if provided
             if (body.get("categoryId") != null) {

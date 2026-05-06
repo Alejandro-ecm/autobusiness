@@ -2,6 +2,56 @@
    Caja IA — Mobile-first, touch-friendly POS
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── Variantes ────────────────────────────────────────────────── */
+.caia-product-variants, .caia-product-mixed {
+  display: flex; flex-direction: column; align-items: stretch;
+  gap: 4px; cursor: default;
+}
+.caia-variant-btns, .caia-mixed-btns {
+  display: flex; flex-wrap: wrap; gap: 4px; justify-content: center;
+  margin-top: 2px;
+}
+.caia-variant-btn {
+  background: #6366f1; color: #fff; border: none;
+  border-radius: 6px; padding: 4px 8px; font-size: 11px;
+  cursor: pointer; font-weight: 600; flex: 1; min-width: 60px;
+  transition: background .15s;
+}
+.caia-variant-btn:hover { background: #4f46e5; }
+.caia-variant-custom { background: #0891b2; }
+.caia-variant-custom:hover { background: #0e7490; }
+.caia-mixed-btn {
+  background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0;
+  border-radius: 6px; padding: 4px 10px; font-size: 12px;
+  cursor: pointer; font-weight: 600; flex: 1;
+  transition: background .15s;
+}
+.caia-mixed-btn:hover { background: #e0e7ff; color: #6366f1; }
+.caia-product-weight .caia-prod-weight-icon {
+  font-size: 11px; color: #0891b2; font-weight: 600; margin-top: 1px;
+}
+
+/* ── Modal de peso ────────────────────────────────────────────── */
+.caia-weight-modal { max-width: 340px; }
+.caia-weight-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.caia-weight-price { text-align: center; font-size: 20px; font-weight: 700; color: #6366f1; margin: 0; }
+.caia-weight-quick { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.caia-weight-quick-btn {
+  background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 8px 12px; font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background .15s; color: #374151;
+}
+.caia-weight-quick-btn:hover { background: #e0e7ff; color: #6366f1; border-color: #a5b4fc; }
+.caia-weight-input {
+  border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 16px;
+  font-size: 24px; font-weight: 700; text-align: center; width: 100%;
+  box-sizing: border-box; color: #1e293b; outline: none;
+  transition: border-color .2s;
+}
+.caia-weight-input:focus { border-color: #6366f1; }
+.caia-weight-preview { text-align: center; font-size: 15px; color: #64748b; margin: 0; }
+.caia-weight-preview strong { color: #10b981; font-size: 18px; }
+
 /* ── Customer display (fullscreen facing screen) ─────────────── */
 .caia-customer-display {
   position: fixed;

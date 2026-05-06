@@ -27,8 +27,9 @@ public class SaleItem {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(nullable = false)
-    private Integer quantity;
+    // Decimal para soportar kg (ej: 1.750 kg)
+    @Column(nullable = false, precision = 12, scale = 4)
+    private BigDecimal quantity;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal unitPrice;
@@ -39,4 +40,7 @@ public class SaleItem {
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal subtotal;
+
+    // Nombre de la variante usada ("Costal 50kg", null si venta normal)
+    private String variantName;
 }

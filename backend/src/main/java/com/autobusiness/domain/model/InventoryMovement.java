@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,8 +31,9 @@ public class InventoryMovement {
     @Column(nullable = false)
     private String type; // IN, OUT, ADJUSTMENT, LOSS
 
-    @Column(nullable = false)
-    private Integer quantity;
+    // Decimal para soportar movimientos en kg
+    @Column(nullable = false, precision = 12, scale = 4)
+    private BigDecimal quantity;
 
     private String reason;
 

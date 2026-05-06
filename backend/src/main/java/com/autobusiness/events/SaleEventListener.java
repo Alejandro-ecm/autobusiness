@@ -31,7 +31,8 @@ public class SaleEventListener {
         for (SaleItem item : sale.getItems()) {
             try {
                 if (item.getProduct().isLowStock()) {
-                    boolean critical = item.getProduct().getStock() == 0;
+                    boolean critical = item.getProduct().getStock().compareTo(java.math.BigDecimal.ZERO) == 0;
+                    String stockStr = item.getProduct().getStock().stripTrailingZeros().toPlainString();
                     alertRepo.save(Alert.builder()
                             .business(sale.getBusiness())
                             .branch(sale.getBranch())
@@ -39,12 +40,12 @@ public class SaleEventListener {
                             .severity(critical ? "CRITICAL" : "WARNING")
                             .message((critical ? "⛔ Sin stock: " : "⚠️ Stock bajo: ")
                                     + item.getProduct().getName()
-                                    + " — " + item.getProduct().getStock() + " unidades restantes")
+                                    + " — " + stockStr + " " + item.getProduct().getBaseUnit() + " restantes")
                             .referenceType("product")
                             .referenceId(item.getProduct().getId())
                             .build());
                     log.warn("event=stock.low product={} stock={}",
-                            item.getProduct().getName(), item.getProduct().getStock());
+                            item.getProduct().getName(), stockStr);
                 }
             } catch (Exception e) {
                 log.error("Failed to process stock alert for product {}", item.getProduct().getId(), e);

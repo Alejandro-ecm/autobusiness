@@ -39,7 +39,9 @@ public class PosController {
         List<PosService.CartItemRequest> items = rawItems.stream()
                 .map(item -> new PosService.CartItemRequest(
                         UUID.fromString(item.get("productId").toString()),
-                        Integer.parseInt(item.get("quantity").toString())
+                        new BigDecimal(item.get("quantity").toString()),
+                        item.get("variantName") != null ? item.get("variantName").toString() : null,
+                        item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT"
                 )).toList();
 
         BigDecimal cashReceived = body.get("cashReceived") != null

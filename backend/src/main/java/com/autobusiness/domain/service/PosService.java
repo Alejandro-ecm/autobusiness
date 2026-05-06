@@ -4,12 +4,15 @@ import com.autobusiness.domain.model.*;
 import com.autobusiness.domain.repository.*;
 import com.autobusiness.events.EventPublisher;
 import com.autobusiness.events.SaleCreatedEvent;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -27,11 +30,28 @@ public class PosService {
     private final CashRegisterSessionRepository sessionRepo;
     private final EventPublisher eventPublisher;
 
-    public record CartItemRequest(UUID productId, int quantity) {}
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public record CheckoutRequest(UUID businessId, UUID branchId, UUID cashierId,
-                                   List<CartItemRequest> items, String paymentMethod,
-                                   BigDecimal cashReceived) {}
+    /**
+     * quantity es BigDecimal para soportar kg decimales (ej: 1.750).
+     * variantName es opcional ("Costal 50kg").
+     * saleMode indica cómo se cobró: "UNIT" o "WEIGHT".
+     */
+    public record CartItemRequest(
+            UUID productId,
+            BigDecimal quantity,
+            String variantName,
+            String saleMode
+    ) {}
+
+    public record CheckoutRequest(
+            UUID businessId,
+            UUID branchId,
+            UUID cashierId,
+            List<CartItemRequest> items,
+            String paymentMethod,
+            BigDecimal cashReceived
+    ) {}
 
     @Transactional
     public Sale checkout(CheckoutRequest req) {
@@ -56,26 +76,35 @@ public class PosService {
             Product product = productRepo.findById(item.productId())
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + item.productId()));
 
-            if (product.getStock() < item.quantity()) {
+            BigDecimal qty = item.quantity() != null ? item.quantity() : BigDecimal.ONE;
+            if (qty.compareTo(BigDecimal.ZERO) <= 0)
+                throw new IllegalArgumentException("Cantidad inválida para " + product.getName());
+
+            // Verificar stock disponible
+            if (product.getStock().compareTo(qty) < 0) {
                 throw new IllegalStateException(
-                        product.getStock() == 0
-                                ? product.getName() + " está agotado"
-                                : "Solo quedan " + product.getStock() + " unidades de " + product.getName()
+                    product.getStock().compareTo(BigDecimal.ZERO) == 0
+                        ? product.getName() + " está agotado"
+                        : "Solo quedan " + fmtQty(product.getStock(), product.getBaseUnit())
+                          + " de " + product.getName()
                 );
             }
 
-            BigDecimal itemSubtotal = product.getPrice().multiply(BigDecimal.valueOf(item.quantity()));
-            SaleItem saleItem = SaleItem.builder()
+            // Precio: variante > pricePerKg (WEIGHT) > price estándar
+            BigDecimal unitPrice = resolveUnitPrice(product, item.variantName(), item.saleMode());
+            BigDecimal itemSubtotal = unitPrice.multiply(qty).setScale(2, RoundingMode.HALF_UP);
+
+            sale.getItems().add(SaleItem.builder()
                     .sale(sale)
                     .product(product)
-                    .quantity(item.quantity())
-                    .unitPrice(product.getPrice())
-                    .unitCost(product.getCost())
+                    .quantity(qty)
+                    .unitPrice(unitPrice)
+                    .unitCost(product.getCost() != null ? product.getCost() : BigDecimal.ZERO)
                     .subtotal(itemSubtotal)
-                    .build();
-            sale.getItems().add(saleItem);
+                    .variantName(item.variantName())
+                    .build());
 
-            product.setStock(product.getStock() - item.quantity());
+            product.setStock(product.getStock().subtract(qty));
             productRepo.save(product);
             subtotal = subtotal.add(itemSubtotal);
         }
@@ -94,6 +123,45 @@ public class PosService {
         return saved;
     }
 
+    /**
+     * Precio prioritario: priceOverride de variante > multiplier*base > pricePerKg > price
+     */
+    private BigDecimal resolveUnitPrice(Product product, String variantName, String saleMode) {
+        if (variantName != null && !variantName.isBlank() && product.getVariants() != null) {
+            try {
+                List<Map<String, Object>> variants = MAPPER.readValue(
+                        product.getVariants(), new TypeReference<>() {});
+                for (Map<String, Object> v : variants) {
+                    if (variantName.equals(v.get("name"))) {
+                        Object po = v.get("priceOverride");
+                        if (po != null) return new BigDecimal(po.toString());
+                        // Sin priceOverride: multiplier * precio base (por kg o unitario)
+                        Object mult = v.get("multiplier");
+                        if (mult != null) {
+                            BigDecimal base = ("WEIGHT".equals(saleMode) && product.getPricePerKg() != null)
+                                    ? product.getPricePerKg() : product.getPrice();
+                            return base.multiply(new BigDecimal(mult.toString()))
+                                    .setScale(2, RoundingMode.HALF_UP);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error parsing variants for product {}: {}", product.getId(), e.getMessage());
+            }
+        }
+
+        if ("WEIGHT".equals(saleMode) && product.getPricePerKg() != null) {
+            return product.getPricePerKg();
+        }
+        return product.getPrice();
+    }
+
+    private String fmtQty(BigDecimal qty, String unit) {
+        if (qty == null) return "0";
+        String num = qty.stripTrailingZeros().toPlainString();
+        return (unit != null && !"unit".equals(unit)) ? num + " " + unit : num;
+    }
+
     public List<Product> searchProducts(UUID businessId, String query) {
         if (query == null || query.isBlank()) {
             return productRepo.findByBusinessIdAndIsActiveTrue(businessId);
@@ -101,7 +169,7 @@ public class PosService {
         return productRepo.search(businessId, query);
     }
 
-    // ── Corte de caja: resumen del día ────────────────────────────────────────
+    // ── Corte de caja ────────────────────────────────────────────────────────
     public Map<String, Object> getTodaySummary(UUID businessId) {
         Instant from = Instant.now().truncatedTo(ChronoUnit.DAYS);
         Instant to   = Instant.now();
@@ -116,29 +184,28 @@ public class PosService {
         }
 
         BigDecimal avgTicket = count > 0
-                ? totalRevenue.divide(BigDecimal.valueOf(count), 2, java.math.RoundingMode.HALF_UP)
+                ? totalRevenue.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
 
         List<CashRegisterSession> history = sessionRepo.findTop10ByBusinessIdOrderByClosedAtDesc(businessId);
 
         return Map.of(
-                "totalRevenue",    totalRevenue,
+                "totalRevenue",     totalRevenue,
                 "transactionCount", count,
-                "avgTicket",       avgTicket,
-                "cash",            byMethod.getOrDefault("cash",     BigDecimal.ZERO),
-                "card",            byMethod.getOrDefault("card",     BigDecimal.ZERO),
-                "transfer",        byMethod.getOrDefault("transfer", BigDecimal.ZERO),
-                "mp",              byMethod.getOrDefault("mp",       BigDecimal.ZERO),
-                "history",         history.stream().map(s -> Map.of(
-                        "id",          s.getId(),
-                        "closedAt",    s.getClosedAt().toString(),
-                        "total",       s.getTotalRevenue(),
+                "avgTicket",        avgTicket,
+                "cash",             byMethod.getOrDefault("cash",     BigDecimal.ZERO),
+                "card",             byMethod.getOrDefault("card",     BigDecimal.ZERO),
+                "transfer",         byMethod.getOrDefault("transfer", BigDecimal.ZERO),
+                "mp",               byMethod.getOrDefault("mp",       BigDecimal.ZERO),
+                "history",          history.stream().map(s -> Map.of(
+                        "id",           s.getId(),
+                        "closedAt",     s.getClosedAt().toString(),
+                        "total",        s.getTotalRevenue(),
                         "transactions", s.getTransactionCount()
                 )).toList()
         );
     }
 
-    // ── Persistir corte de caja ───────────────────────────────────────────────
     @Transactional
     public Map<String, Object> closeRegister(UUID businessId, UUID cashierId, String notes) {
         Instant from = Instant.now().truncatedTo(ChronoUnit.DAYS);
@@ -175,13 +242,13 @@ public class PosService {
         log.info("corte.closed business={} total={} transactions={}", businessId, totalRevenue, count);
 
         return Map.of(
-                "saved",           true,
-                "totalRevenue",    totalRevenue,
+                "saved",            true,
+                "totalRevenue",     totalRevenue,
                 "transactionCount", count,
-                "cash",            byMethod.getOrDefault("cash",     BigDecimal.ZERO),
-                "card",            byMethod.getOrDefault("card",     BigDecimal.ZERO),
-                "transfer",        byMethod.getOrDefault("transfer", BigDecimal.ZERO),
-                "mp",              byMethod.getOrDefault("mp",       BigDecimal.ZERO)
+                "cash",             byMethod.getOrDefault("cash",     BigDecimal.ZERO),
+                "card",             byMethod.getOrDefault("card",     BigDecimal.ZERO),
+                "transfer",         byMethod.getOrDefault("transfer", BigDecimal.ZERO),
+                "mp",               byMethod.getOrDefault("mp",       BigDecimal.ZERO)
         );
     }
 }

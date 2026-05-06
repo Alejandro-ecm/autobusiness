@@ -50,13 +50,14 @@ public class Product {
     @Builder.Default
     private BigDecimal cost = BigDecimal.ZERO;
 
-    @Column(nullable = false)
+    // Stock ahora es decimal para soportar kg, gramos, etc.
+    @Column(nullable = false, precision = 12, scale = 4)
     @Builder.Default
-    private Integer stock = 0;
+    private BigDecimal stock = BigDecimal.ZERO;
 
-    @Column(nullable = false)
+    @Column(nullable = false, precision = 12, scale = 4)
     @Builder.Default
-    private Integer minStock = 5;
+    private BigDecimal minStock = BigDecimal.valueOf(5);
 
     private String imageUrl;
 
@@ -66,6 +67,31 @@ public class Product {
     @Builder.Default
     private boolean isOnline = false;
 
+    // ── Modo de venta ─────────────────────────────────────────────────────────
+    // UNIT = por pieza (default, backward compatible)
+    // WEIGHT = por peso (kg, g, etc.)
+    // MIXED = usuario elige pieza o peso en el POS
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private String saleMode = "UNIT";
+
+    // Unidad base: "unit", "kg", "g", "L", "mL", etc.
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private String baseUnit = "unit";
+
+    // Si el POS debe permitir cantidades decimales
+    @Builder.Default
+    private boolean allowsDecimal = false;
+
+    // Precio por kg (usado cuando saleMode = WEIGHT o MIXED)
+    @Column(precision = 12, scale = 4)
+    private BigDecimal pricePerKg;
+
+    // Variantes en JSON: [{"name":"Costal 50kg","multiplier":50,"priceOverride":null}, ...]
+    @Column(columnDefinition = "TEXT")
+    private String variants;
+
     @CreationTimestamp
     private Instant createdAt;
 
@@ -73,12 +99,20 @@ public class Product {
     private Instant updatedAt;
 
     public BigDecimal getMargin() {
-        if (price.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
-        return price.subtract(cost).divide(price, 4, java.math.RoundingMode.HALF_UP)
+        if (price == null || price.compareTo(BigDecimal.ZERO) == 0) return BigDecimal.ZERO;
+        return price.subtract(cost != null ? cost : BigDecimal.ZERO)
+                .divide(price, 4, java.math.RoundingMode.HALF_UP)
                 .multiply(BigDecimal.valueOf(100));
     }
 
     public boolean isLowStock() {
-        return stock <= minStock;
+        if (stock == null || minStock == null) return false;
+        return stock.compareTo(minStock) <= 0;
+    }
+
+    // Devuelve el precio efectivo dado un modo de venta
+    public BigDecimal effectivePrice(String mode) {
+        if ("WEIGHT".equals(mode) && pricePerKg != null) return pricePerKg;
+        return price;
     }
 }
