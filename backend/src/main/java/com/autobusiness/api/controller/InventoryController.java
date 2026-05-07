@@ -118,6 +118,7 @@ public class InventoryController {
                     .price(new BigDecimal(body.get("price").toString()))
                     .cost(body.get("cost") != null ? new BigDecimal(body.get("cost").toString()) : BigDecimal.ZERO)
                     .minStock(body.get("minStock") != null ? new BigDecimal(body.get("minStock").toString()) : BigDecimal.valueOf(5))
+                    .sku(body.get("sku") != null ? body.get("sku").toString() : null)
                     .description(body.get("description") != null ? body.get("description").toString() : null)
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
                     .imageUrl(body.get("imageUrl") != null ? body.get("imageUrl").toString() : null)

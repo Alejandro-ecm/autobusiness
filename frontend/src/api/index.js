@@ -25,6 +25,7 @@ export const inventory = {
   update:      (id, data)      => client.put(`/inventory/products/${id}`, data),
   adjustStock: (id, delta, reason) =>
     client.patch(`/inventory/products/${id}/stock`, { delta, reason }),
+  import:      (rows)          => client.post('/inventory/products/import', rows),
   movements:   ()              => client.get('/inventory/movements'),
 }
 

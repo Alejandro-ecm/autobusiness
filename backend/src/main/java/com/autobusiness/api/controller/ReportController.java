@@ -38,12 +38,15 @@ public class ReportController {
             m.put("paymentMethod", s.getPaymentMethod());
             m.put("total",         s.getTotal());
             m.put("cashier",       s.getCashier() != null ? s.getCashier().getName() : "—");
-            m.put("items",         s.getItems().stream().map(i -> Map.of(
-                    "name",     i.getProduct().getName(),
-                    "qty",      i.getQuantity(),
-                    "price",    i.getUnitPrice(),
-                    "subtotal", i.getSubtotal()
-            )).toList());
+            m.put("items", s.getItems().stream().map(i -> {
+                var im = new java.util.HashMap<String, Object>();
+                im.put("name",     i.getProduct().getName());
+                im.put("qty",      i.getQuantity());
+                im.put("price",    i.getUnitPrice());
+                im.put("cost",     i.getUnitCost());
+                im.put("subtotal", i.getSubtotal());
+                return im;
+            }).toList());
             return m;
         }).toList();
 

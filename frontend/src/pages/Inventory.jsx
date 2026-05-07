@@ -414,20 +414,13 @@ export default function Inventory() {
   const doImport = async () => {
     setImporting(true)
     try {
-      const token = localStorage.getItem('ab_token')
-      const res   = await fetch(`${API}/inventory/products/import`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify(importRows),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
+      const data = await inventoryApi.import(importRows)
       show(`✓ ${data.created} productos importados${data.errors?.length ? ` · ${data.errors.length} errores` : ''}`, 'success')
       setShowImport(false)
       setImportRows([])
       load()
     } catch (err) {
-      show(err?.message || 'Error al importar', 'error')
+      show(err?.error || err?.message || 'Error al importar', 'error')
     } finally { setImporting(false) }
   }
 
