@@ -180,7 +180,7 @@ public class PosService {
         return productRepo.findAllById(topIds).stream()
                 .filter(Product::isActive)
                 .map(p -> {
-                    var m = new java.util.LinkedHashMap<String, Object>();
+                    Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("id",         p.getId());
                     m.put("name",       p.getName());
                     m.put("price",      p.getPrice());
