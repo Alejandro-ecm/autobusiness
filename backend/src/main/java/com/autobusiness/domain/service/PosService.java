@@ -169,6 +169,30 @@ public class PosService {
         return productRepo.search(businessId, query);
     }
 
+    /** Top 8 productos más vendidos en los últimos 7 días */
+    public List<Map<String, Object>> getTopProducts(UUID businessId) {
+        Instant from = Instant.now().minus(7, ChronoUnit.DAYS);
+        Instant to   = Instant.now();
+        List<Object[]> rows = saleRepo.topProductsByRevenue(businessId, from, to);
+        List<UUID> topIds = rows.stream().limit(8).map(r -> (UUID) r[0]).toList();
+        if (topIds.isEmpty()) return List.of();
+
+        return productRepo.findAllById(topIds).stream()
+                .filter(Product::isActive)
+                .map(p -> {
+                    var m = new java.util.LinkedHashMap<String, Object>();
+                    m.put("id",         p.getId());
+                    m.put("name",       p.getName());
+                    m.put("price",      p.getPrice());
+                    m.put("stock",      p.getStock());
+                    m.put("saleMode",   p.getSaleMode());
+                    m.put("baseUnit",   p.getBaseUnit());
+                    m.put("pricePerKg", p.getPricePerKg());
+                    m.put("variants",   p.getVariants());
+                    return m;
+                }).toList();
+    }
+
     // ── Corte de caja ────────────────────────────────────────────────────────
     public Map<String, Object> getTodaySummary(UUID businessId) {
         Instant from = Instant.now().truncatedTo(ChronoUnit.DAYS);

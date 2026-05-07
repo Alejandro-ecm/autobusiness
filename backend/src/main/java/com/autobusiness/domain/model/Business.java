@@ -47,6 +47,13 @@ public class Business {
 
     private String subdomain;
 
+    @Column(length = 50)
+    private String profileType;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean onboardingCompleted = false;
+
     @CreationTimestamp
     private Instant createdAt;
 

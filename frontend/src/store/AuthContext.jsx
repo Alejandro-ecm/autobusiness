@@ -9,19 +9,22 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null
   })
 
+  const _persist = (userData) => {
+    localStorage.setItem('ab_user', JSON.stringify(userData))
+    setUser(userData)
+  }
+
   const login = useCallback(async (email, password) => {
     const res = await authApi.login(email, password)
     localStorage.setItem('ab_token', res.token)
-    localStorage.setItem('ab_user', JSON.stringify(res.user))
-    setUser(res.user)
+    _persist(res.user)
     return res.user
   }, [])
 
   const register = useCallback(async (data) => {
     const res = await authApi.register(data)
     localStorage.setItem('ab_token', res.token)
-    localStorage.setItem('ab_user', JSON.stringify(res.user))
-    setUser(res.user)
+    _persist(res.user)
     return res.user
   }, [])
 
@@ -31,8 +34,24 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  // Actualiza campos del usuario en memoria y localStorage (ej: onboardingCompleted)
+  const updateUser = useCallback((patch) => {
+    setUser(prev => {
+      const updated = { ...prev, ...patch }
+      localStorage.setItem('ab_user', JSON.stringify(updated))
+      return updated
+    })
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isOwner: user?.role === 'OWNER' || user?.role === 'ADMIN' }}>
+    <AuthContext.Provider value={{
+      user,
+      login,
+      register,
+      logout,
+      updateUser,
+      isOwner: user?.role === 'OWNER' || user?.role === 'ADMIN',
+    }}>
       {children}
     </AuthContext.Provider>
   )

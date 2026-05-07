@@ -29,3 +29,22 @@
 
 .reports-sale-row:hover td { background: #fafbfc; }
 .reports-item-row td { background: #fafbfc; padding: 5px 16px; }
+
+/* Filtros extendidos */
+.reports-filters {
+  display: flex; flex-direction: column; gap: .75rem;
+}
+.reports-custom {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+}
+.reports-date-input {
+  padding: .45rem .75rem; border: 1.5px solid var(--color-border);
+  border-radius: .5rem; font-size: .85rem; color: #1e293b;
+}
+.reports-date-input:focus { outline: none; border-color: #6366f1; }
+.reports-date-sep { color: #94a3b8; font-size: .85rem; }
+.reports-cashier-filter {
+  padding: .45rem .75rem; border: 1.5px solid var(--color-border);
+  border-radius: .5rem; font-size: .85rem; color: #1e293b; background: #fff;
+}
+.reports-cashier-filter:focus { outline: none; border-color: #6366f1; }

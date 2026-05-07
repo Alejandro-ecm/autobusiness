@@ -21,12 +21,18 @@ import Users from './pages/Users'
 import Reports from './pages/Reports'
 import Subscription from './pages/Subscription'
 import SuperAdmin from './pages/SuperAdmin'
+import Purchases from './pages/Purchases'
+import OnboardingWizard from './components/OnboardingWizard'
 
 function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
   const { user } = useAuth()
   if (!user) return <Navigate to="/login" replace />
   if (superAdminOnly && !user.isSuperAdmin) return <Navigate to="/dashboard" replace />
   if (ownerOnly && user.role === 'CASHIER') return <Navigate to="/caja" replace />
+  // Mostrar onboarding solo a OWNER la primera vez (no en super-admin ni en caja)
+  if (user && !user.onboardingCompleted && !user.isSuperAdmin && user.role === 'OWNER') {
+    return <OnboardingWizard />
+  }
   return children
 }
 
@@ -103,6 +109,10 @@ function AppRoutes() {
 
       <Route path="/subscription" element={
         <PrivateRoute ownerOnly><AppLayout><Subscription /></AppLayout></PrivateRoute>
+      } />
+
+      <Route path="/purchases" element={
+        <PrivateRoute ownerOnly><AppLayout><Purchases /></AppLayout></PrivateRoute>
       } />
 
       <Route path="*" element={<Navigate to="/" replace />} />

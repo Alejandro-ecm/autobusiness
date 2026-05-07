@@ -1,8 +1,10 @@
 package com.autobusiness.api.controller;
 
+import com.autobusiness.config.JwtAuthFilter.AuthPrincipal;
 import com.autobusiness.domain.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -35,6 +37,12 @@ public class AuthController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PatchMapping("/onboarding")
+    public ResponseEntity<?> completeOnboarding(@AuthenticationPrincipal AuthPrincipal p,
+                                                 @RequestBody Map<String, String> body) {
+        return ResponseEntity.ok(authService.completeOnboarding(p.businessId(), body.get("profileType")));
     }
 
     @GetMapping("/health")

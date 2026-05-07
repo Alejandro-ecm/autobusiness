@@ -28,6 +28,11 @@ public class PosController {
         return ResponseEntity.ok(posService.searchProducts(principal.businessId(), q));
     }
 
+    @GetMapping("/top-products")
+    public ResponseEntity<?> topProducts(@AuthenticationPrincipal AuthPrincipal principal) {
+        return ResponseEntity.ok(posService.getTopProducts(principal.businessId()));
+    }
+
     @PostMapping("/checkout")
     public ResponseEntity<?> checkout(
             @AuthenticationPrincipal AuthPrincipal principal,

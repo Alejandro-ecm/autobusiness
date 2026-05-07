@@ -12,6 +12,7 @@ const ownerNav = [
   { to: '/orders',        icon: '📋', label: 'Pedidos' },
   { to: '/reports',       icon: '📊', label: 'Reportes' },
   { to: '/finance',       icon: '💰', label: 'Finanzas' },
+  { to: '/purchases',     icon: '🧾', label: 'Compras' },
   { to: '/contabilidad',  icon: '📒', label: 'Contabilidad' },
   { to: '/marketing',     icon: '📣', label: 'Marketing' },
   { to: '/users',         icon: '👤', label: 'Usuarios' },

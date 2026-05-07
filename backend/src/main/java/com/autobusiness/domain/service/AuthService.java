@@ -69,6 +69,8 @@ public class AuthService {
                 "daysLeft", sub.get("daysLeft")
         ));
         if (branchId != null) userMap.put("branchId", branchId);
+        userMap.put("profileType",         user.getBusiness().getProfileType());
+        userMap.put("onboardingCompleted", user.getBusiness().isOnboardingCompleted());
 
         log.info("Login: {} role={}", email, user.getRole());
         return Map.of("token", token, "user", userMap);
@@ -114,22 +116,32 @@ public class AuthService {
 
         log.info("Registered: business='{}' slug='{}' owner={}", businessName, slug, email);
 
-        return Map.of(
-                "token", token,
-                "user", Map.of(
-                        "id",           owner.getId(),
-                        "name",         owner.getName(),
-                        "email",        owner.getEmail(),
-                        "role",         owner.getRole(),
-                        "isSuperAdmin", false,
-                        "businessId",   business.getId(),
-                        "businessName", business.getName(),
-                        "businessSlug", business.getSlug(),
-                        "branchId",     mainBranch.getId(),
-                        "subscription", Map.of("plan", "FREE", "status", "TRIAL",
-                                               "isActive", true, "daysLeft", 14)
-                )
-        );
+        var userMap2 = new HashMap<String, Object>();
+        userMap2.put("id",                 owner.getId());
+        userMap2.put("name",               owner.getName());
+        userMap2.put("email",              owner.getEmail());
+        userMap2.put("role",               owner.getRole());
+        userMap2.put("isSuperAdmin",       false);
+        userMap2.put("businessId",         business.getId());
+        userMap2.put("businessName",       business.getName());
+        userMap2.put("businessSlug",       business.getSlug());
+        userMap2.put("branchId",           mainBranch.getId());
+        userMap2.put("profileType",        null);
+        userMap2.put("onboardingCompleted",false);
+        userMap2.put("subscription",       Map.of("plan", "FREE", "status", "TRIAL",
+                                                   "isActive", true, "daysLeft", 14));
+        return Map.of("token", token, "user", userMap2);
+    }
+
+    @Transactional
+    public Map<String, Object> completeOnboarding(UUID businessId, String profileType) {
+        Business business = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+        business.setProfileType(profileType);
+        business.setOnboardingCompleted(true);
+        businessRepo.save(business);
+        log.info("onboarding.completed business={} profileType={}", businessId, profileType);
+        return Map.of("onboardingCompleted", true, "profileType", profileType);
     }
 
     private String generateSlug(String name) {

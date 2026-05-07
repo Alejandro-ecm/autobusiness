@@ -1,5 +1,19 @@
 .finance-page { display: flex; flex-direction: column; gap: 20px; }
 
+/* Banner HOY */
+.finance-today-banner {
+  display: flex; align-items: center; flex-wrap: wrap;
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+  border: 1.5px solid #c7d2fe; border-radius: 1rem;
+  padding: 1rem 1.5rem; gap: 1.25rem;
+}
+.finance-today-item { display: flex; align-items: center; gap: .75rem; }
+.finance-today-icon { font-size: 1.75rem; }
+.finance-today-val { font-size: 1.3rem; font-weight: 800; color: #1e293b; }
+.finance-today-lbl { font-size: .75rem; color: #64748b; margin-top: .1rem; }
+.finance-today-divider { width: 1px; height: 2.5rem; background: #c7d2fe; }
+@media (max-width: 600px) { .finance-today-divider { display: none; } }
+
 .month-compare-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 24px; flex-wrap: wrap; }
 .month-compare-item { display: flex; flex-direction: column; gap: 4px; }
 .month-compare-arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; text-align: center; }

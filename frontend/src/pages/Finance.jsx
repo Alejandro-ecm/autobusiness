@@ -119,6 +119,7 @@ function DonutChart({ margin }) {
 export default function Finance() {
   const { user } = useAuth()
   const [data, setData] = useState(null)
+  const [today, setToday] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('resumen')
@@ -178,9 +179,14 @@ export default function Finance() {
   useEffect(() => {
     setLoading(true)
     setError(null)
-    client.get('/dashboard/finance')
-      .then(d => { setData(d); setAdvice(generateAdvice(d)) })
-      .catch(err => setError(err?.error || err?.message || 'Error al cargar datos financieros'))
+    Promise.all([
+      client.get('/dashboard/finance'),
+      client.get('/dashboard').catch(() => null),
+    ]).then(([finance, dash]) => {
+      setData(finance)
+      setAdvice(generateAdvice(finance))
+      if (dash?.kpis) setToday(dash.kpis)
+    }).catch(err => setError(err?.error || err?.message || 'Error al cargar datos financieros'))
       .finally(() => setLoading(false))
   }, [user?.businessId])
 
@@ -229,6 +235,51 @@ export default function Finance() {
           ))}
         </div>
       </div>
+
+      {/* Banner HOY */}
+      {today && (
+        <div className="finance-today-banner">
+          <div className="finance-today-item">
+            <span className="finance-today-icon">📅</span>
+            <div>
+              <div className="finance-today-val">{fmt(today.todayRevenue)}</div>
+              <div className="finance-today-lbl">Ingresos hoy</div>
+            </div>
+          </div>
+          <div className="finance-today-divider" />
+          <div className="finance-today-item">
+            <span className="finance-today-icon">🛒</span>
+            <div>
+              <div className="finance-today-val">{today.todaySales}</div>
+              <div className="finance-today-lbl">Ventas hoy</div>
+            </div>
+          </div>
+          <div className="finance-today-divider" />
+          <div className="finance-today-item">
+            <span className="finance-today-icon">{Number(today.revenueGrowth) >= 0 ? '📈' : '📉'}</span>
+            <div>
+              <div className="finance-today-val" style={{ color: Number(today.revenueGrowth) >= 0 ? '#059669' : '#ef4444' }}>
+                {Number(today.revenueGrowth) >= 0 ? '+' : ''}{pct(today.revenueGrowth)}
+              </div>
+              <div className="finance-today-lbl">vs mes anterior</div>
+            </div>
+          </div>
+          {Number(data.margin) > 0 && (
+            <>
+              <div className="finance-today-divider" />
+              <div className="finance-today-item finance-today-profit">
+                <span className="finance-today-icon">💵</span>
+                <div>
+                  <div className="finance-today-val" style={{ color: '#059669' }}>
+                    {fmt(Number(today.todayRevenue) * (Number(data.margin) / 100))}
+                  </div>
+                  <div className="finance-today-lbl">Utilidad est. hoy ({pct(data.margin)} margen)</div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="finance-kpis">

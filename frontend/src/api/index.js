@@ -11,10 +11,11 @@ export const dashboard = {
 }
 
 export const pos = {
-  products: (q)    => client.get('/pos/products', { params: q ? { q } : {} }),
-  checkout: (data) => client.post('/pos/checkout', data),
-  corteToday: ()   => client.get('/pos/corte/today'),
-  corteClose: (notes) => client.post('/pos/corte/close', { notes }),
+  products:    (q)     => client.get('/pos/products', { params: q ? { q } : {} }),
+  topProducts: ()      => client.get('/pos/top-products'),
+  checkout:    (data)  => client.post('/pos/checkout', data),
+  corteToday:  ()      => client.get('/pos/corte/today'),
+  corteClose:  (notes) => client.post('/pos/corte/close', { notes }),
 }
 
 export const inventory = {
@@ -102,4 +103,13 @@ export const superAdmin = {
   suspend:    (id)            => client.patch(`/super-admin/businesses/${id}/suspend`),
   activate:   (id)            => client.patch(`/super-admin/businesses/${id}/activate`),
   setPlan:    (id, plan)      => client.patch(`/super-admin/businesses/${id}/plan`, { plan }),
+}
+
+export const purchases = {
+  list:   ()     => client.get('/purchases'),
+  create: (data) => client.post('/purchases', data),
+}
+
+export const onboarding = {
+  complete: (profileType) => client.patch('/auth/onboarding', { profileType }),
 }

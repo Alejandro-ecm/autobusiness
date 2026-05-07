@@ -1,0 +1,164 @@
+.ob-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+}
+
+.ob-card {
+  background: #fff;
+  border-radius: 1.25rem;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 60px rgba(0,0,0,.35);
+}
+
+/* Progreso */
+.ob-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: 1.5rem 1.5rem .5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+.ob-step {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  font-size: .8rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+.ob-step--done { color: #6366f1; }
+.ob-step-dot {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ob-step--done .ob-step-dot {
+  background: #6366f1;
+  color: #fff;
+}
+.ob-step + .ob-step::before {
+  content: '';
+  width: 2rem;
+  height: 2px;
+  background: #e2e8f0;
+  margin-right: .5rem;
+}
+
+/* Body */
+.ob-body { padding: 1.75rem 1.5rem; }
+.ob-body--center { text-align: center; }
+
+.ob-big-icon { font-size: 4rem; margin-bottom: .75rem; }
+.ob-title { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 0 0 .35rem; }
+.ob-sub { color: #64748b; font-size: .95rem; margin: 0 0 1.5rem; }
+
+/* Grid de perfiles */
+.ob-profiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: .75rem;
+}
+.ob-profile {
+  border: 2px solid #e2e8f0;
+  border-radius: .875rem;
+  padding: 1rem .75rem;
+  cursor: pointer;
+  background: #fff;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.ob-profile:hover { border-color: #a5b4fc; background: #f5f3ff; transform: translateY(-2px); }
+.ob-profile--selected { border-color: #6366f1; background: #eef2ff; }
+.ob-profile-icon { font-size: 1.75rem; }
+.ob-profile-label { font-size: .9rem; font-weight: 600; color: #1e293b; }
+.ob-profile-desc { font-size: .78rem; color: #64748b; }
+
+/* Opciones paso 2 */
+.ob-options { display: flex; flex-direction: column; gap: .75rem; margin-bottom: 1rem; }
+.ob-opt {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e2e8f0;
+  border-radius: .875rem;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, background .15s;
+  font-size: 1.5rem;
+}
+.ob-opt:hover { border-color: #6366f1; background: #f5f3ff; }
+.ob-opt strong { display: block; font-size: .95rem; color: #1e293b; }
+.ob-opt p { margin: 0; font-size: .82rem; color: #64748b; }
+
+/* CTA paso 3 */
+.ob-cta {
+  display: inline-block;
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: .75rem;
+  padding: .85rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: .75rem;
+  transition: background .15s;
+}
+.ob-cta:hover { background: #4f46e5; }
+
+/* Footer */
+.ob-footer {
+  padding: 1rem 1.5rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f1f5f9;
+  gap: .75rem;
+}
+.ob-btn-primary {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: .75rem;
+  padding: .75rem 1.75rem;
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+}
+.ob-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.ob-btn-primary:not(:disabled):hover { background: #4f46e5; }
+.ob-skip { background: none; border: none; color: #94a3b8; font-size: .85rem; cursor: pointer; padding: .5rem; }
+.ob-skip:hover { color: #64748b; }
+.ob-skip-link { background: none; border: none; color: #6366f1; font-size: .85rem; cursor: pointer; padding: .5rem; text-decoration: underline; }
+
+@media (max-width: 500px) {
+  .ob-profiles { grid-template-columns: 1fr 1fr; }
+  .ob-title { font-size: 1.2rem; }
+}
