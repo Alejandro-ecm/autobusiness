@@ -97,14 +97,14 @@ export default function OnboardingWizard() {
             <h2 className="ob-title">Agrega tus productos</h2>
             <p className="ob-sub">Puedes subir un Excel o crearlos uno a uno desde el inventario</p>
             <div className="ob-options">
-              <button className="ob-opt" onClick={() => { navigate('/inventory'); updateUser({ onboardingCompleted: true }) }}>
+              <button className="ob-opt" onClick={() => { skip(); navigate('/inventory') }}>
                 <span>📁</span>
                 <div>
                   <strong>Subir Excel</strong>
                   <p>Importa tu catálogo completo</p>
                 </div>
               </button>
-              <button className="ob-opt" onClick={() => { navigate('/inventory'); updateUser({ onboardingCompleted: true }) }}>
+              <button className="ob-opt" onClick={() => { skip(); navigate('/inventory') }}>
                 <span>✏️</span>
                 <div>
                   <strong>Crear manual</strong>
@@ -124,7 +124,7 @@ export default function OnboardingWizard() {
             <div className="ob-big-icon">🎉</div>
             <h2 className="ob-title">¡Todo listo!</h2>
             <p className="ob-sub">Haz tu primera venta desde la Caja</p>
-            <button className="ob-cta" onClick={() => { updateUser({ onboardingCompleted: true }); navigate('/caja') }} disabled={loading}>
+            <button className="ob-cta" onClick={() => { skip(); navigate('/caja') }} disabled={loading}>
               💳 Ir a la Caja
             </button>
             <button className="ob-skip-link" onClick={finish} disabled={loading}>
