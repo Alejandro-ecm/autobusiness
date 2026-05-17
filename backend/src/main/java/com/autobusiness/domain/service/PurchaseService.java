@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.util.*;
 
 @Service
@@ -16,11 +17,12 @@ import java.util.*;
 @Slf4j
 public class PurchaseService {
 
-    private final PurchaseRepository purchaseRepo;
-    private final ProductRepository  productRepo;
-    private final BranchRepository   branchRepo;
-    private final UserRepository     userRepo;
-    private final BusinessRepository businessRepo;
+    private final PurchaseRepository          purchaseRepo;
+    private final ProductRepository           productRepo;
+    private final BranchRepository            branchRepo;
+    private final UserRepository              userRepo;
+    private final BusinessRepository          businessRepo;
+    private final InventoryMovementRepository movementRepo;
 
     public record PurchaseItemRequest(
             UUID productId,
@@ -79,13 +81,14 @@ public class PurchaseService {
                     .subtotal(subtotal)
                     .build());
 
-            // Actualizar stock
-            product.setStock(product.getStock().add(qty));
+            // Costo promedio ponderado antes de actualizar stock
+            BigDecimal oldStock = product.getStock() != null ? product.getStock() : BigDecimal.ZERO;
+            BigDecimal oldCost  = product.getCost()  != null ? product.getCost()  : BigDecimal.ZERO;
+            BigDecimal newStock = oldStock.add(qty);
 
-            // Costo promedio ponderado: (stockActual * costoActual + qty * costNuevo) / stockTotal
-            BigDecimal oldStock = product.getStock().subtract(qty);
-            BigDecimal oldCost  = product.getCost() != null ? product.getCost() : BigDecimal.ZERO;
-            BigDecimal newStock = product.getStock();
+            // Actualizar stock
+            product.setStock(newStock);
+
             if (newStock.compareTo(BigDecimal.ZERO) > 0) {
                 BigDecimal weightedCost = oldStock.multiply(oldCost)
                         .add(qty.multiply(cost))
@@ -94,6 +97,17 @@ public class PurchaseService {
             }
 
             productRepo.save(product);
+
+            // Registrar movimiento de inventario (entrada por compra)
+            movementRepo.save(InventoryMovement.builder()
+                    .business(product.getBusiness())
+                    .product(product)
+                    .type("IN")
+                    .quantity(qty)
+                    .reason("Compra a proveedor" + (supplierName != null ? ": " + supplierName : ""))
+                    .createdBy(createdBy)
+                    .build());
+
             total = total.add(subtotal);
         }
 
@@ -112,7 +126,7 @@ public class PurchaseService {
         m.put("notes",        p.getNotes() != null ? p.getNotes() : "");
         m.put("total",        p.getTotal());
         m.put("status",       p.getStatus());
-        m.put("createdAt",    p.getCreatedAt().toString());
+        m.put("createdAt",    p.getCreatedAt() != null ? p.getCreatedAt().toString() : Instant.now().toString());
         m.put("createdBy",    p.getCreatedBy() != null ? p.getCreatedBy().getName() : "—");
         m.put("items", p.getItems().stream().map(i -> Map.of(
                 "productId",   i.getProduct().getId(),

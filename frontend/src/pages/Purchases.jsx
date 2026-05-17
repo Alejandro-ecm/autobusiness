@@ -84,7 +84,7 @@ export default function Purchases() {
       load()
       setTimeout(() => setSuccess(''), 4000)
     } catch (e) {
-      setError(e?.response?.data?.error || 'Error al guardar')
+      setError(e?.error || e?.message || 'Error al guardar')
     } finally {
       setSaving(false)
     }

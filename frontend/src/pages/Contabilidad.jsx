@@ -78,16 +78,18 @@ export default function Contabilidad() {
   )
   if (!finance) return null
 
-  const revenue    = Number(finance.revenue || 0)
-  const cogs       = Number(finance.cost || 0)
+  const revenue     = Number(finance.revenue    || 0)
+  const cogs        = Number(finance.cost       || 0)
+  const purchasesTotal = Number(finance.purchases || 0)
   const grossProfit = Number(finance.grossProfit || 0)
-  const grossMargin = Number(finance.margin || 0)
-  const opexVal    = parseFloat(opex) || 0
-  const netIncome  = grossProfit - opexVal
-  const netMargin  = revenue > 0 ? (netIncome / revenue * 100) : 0
+  const grossMargin = Number(finance.margin     || 0)
+  const opexVal     = parseFloat(opex) || 0
+  const netIncome   = grossProfit - opexVal
+  const netMargin   = revenue > 0 ? (netIncome / revenue * 100) : 0
+  const netCash     = revenue - purchasesTotal
 
   const inventoryValue = products.reduce((s, p) => s + (Number(p.cost || 0) * Number(p.stock || 0)), 0)
-  const cashEstimate   = Math.max(grossProfit * 0.7, 0)
+  const cashEstimate   = Math.max(netCash * 0.7, 0)
   const totalAssets    = inventoryValue + cashEstimate
   const equity         = totalAssets  // liabilities = 0
 
@@ -174,6 +176,45 @@ export default function Contabilidad() {
                 <span><strong>= {netIncome >= 0 ? '✅ Utilidad Neta' : '❌ Pérdida Neta'}</strong></span>
                 <strong className={`conta-amount ${netIncome >= 0 ? 'positive' : 'negative'}`}>{fmt(netIncome)}</strong>
               </div>
+            </div>
+
+            {/* ── Flujo de Caja (Dinero que entra y sale) ── */}
+            <div style={{ marginTop: 24 }}>
+              <div className="conta-card-header" style={{ marginBottom: 8 }}>
+                <h3 className="section-title">Flujo de Caja</h3>
+                <Tooltip text="Muestra el dinero real que entró y salió de tu bolsillo este período, independientemente de las ganancias." />
+              </div>
+              <div className="conta-explain" style={{ marginBottom: 10 }}>
+                ℹ️ <strong>Dinero que entra y sale.</strong> Las compras a proveedores son efectivo que sale de tu caja.
+              </div>
+              <div className="conta-table">
+                <div className="conta-row conta-row--header">
+                  <span>Movimiento</span><span>Monto</span>
+                </div>
+                <div className="conta-row conta-row--income">
+                  <span>
+                    ✅ Dinero que entró (ventas)
+                    <Tooltip text="Ingresos reales cobrados por ventas en los últimos 30 días." />
+                  </span>
+                  <span className="conta-amount positive">{fmt(revenue)}</span>
+                </div>
+                <div className="conta-row conta-row--cost">
+                  <span>
+                    📤 Dinero que salió (compras a proveedores)
+                    <Tooltip text="Total pagado a proveedores por mercancía en los últimos 30 días. Este dinero ya salió de tu caja." />
+                  </span>
+                  <span className="conta-amount negative">({fmt(purchasesTotal)})</span>
+                </div>
+                <div className={`conta-row conta-row--total ${netCash >= 0 ? 'green' : 'red'}`}>
+                  <span><strong>= {netCash >= 0 ? '💰 Saldo neto de caja' : '⚠️ Déficit de caja'}</strong></span>
+                  <strong className={`conta-amount ${netCash >= 0 ? 'positive' : 'negative'}`}>{fmt(netCash)}</strong>
+                </div>
+              </div>
+              {purchasesTotal === 0 && (
+                <div className="conta-explain" style={{ marginTop: 8, background: '#f8fafc' }}>
+                  Sin compras a proveedores registradas en este período. Registra compras en la sección <strong>Compras</strong>.
+                </div>
+              )}
             </div>
 
             <div className="conta-bars">

@@ -22,6 +22,7 @@ public class DashboardService {
     private final AiInsightRepository insightRepo;
     private final AlertRepository alertRepo;
     private final BranchRepository branchRepo;
+    private final PurchaseRepository purchaseRepo;
 
     public Map<String, Object> getOwnerDashboard(UUID businessId) {
         Instant now = Instant.now();
@@ -76,6 +77,7 @@ public class DashboardService {
 
         BigDecimal revenue = Objects.requireNonNullElse(saleRepo.sumByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
         BigDecimal cost = Objects.requireNonNullElse(saleRepo.sumCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
+        BigDecimal purchases = Objects.requireNonNullElse(purchaseRepo.sumByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
         BigDecimal grossProfit = revenue.subtract(cost);
         BigDecimal margin = revenue.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO :
                 grossProfit.divide(revenue, 4, RoundingMode.HALF_UP)
@@ -99,10 +101,14 @@ public class DashboardService {
                 revenue.subtract(prevRevenue).divide(prevRevenue, 4, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
 
+        BigDecimal netCash = revenue.subtract(purchases);
+
         var result = new java.util.HashMap<String, Object>();
         result.put("period", "ultimos 30 dias");
         result.put("revenue", revenue);
         result.put("cost", cost);
+        result.put("purchases", purchases);
+        result.put("netCash", netCash);
         result.put("grossProfit", grossProfit);
         result.put("margin", margin);
         result.put("daily", daily);
