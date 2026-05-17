@@ -162,6 +162,126 @@ const TEMPLATES = {
   announcement: 'Anuncio',
 }
 
+// ── Store invite templates ───────────────────────────────────────────────────
+const STORE_PLATFORMS = [
+  { id: 'whatsapp', label: 'WhatsApp', color: '#25D366', icon: '💬' },
+  { id: 'facebook', label: 'Facebook', color: '#1877F2', icon: '📘' },
+  { id: 'tiktok',   label: 'TikTok',   color: '#000',    icon: '🎵' },
+  { id: 'instagram',label: 'Instagram',color: '#E1306C', icon: '📸' },
+]
+
+function buildStoreText(platform, businessName, storeUrl) {
+  const name = businessName || 'Mi Negocio'
+  const url  = storeUrl
+  switch (platform) {
+    case 'whatsapp':
+      return `🛍️ *¡Visita nuestra tienda online!*\n\nEn *${name}* encontrarás los mejores productos al mejor precio.\n\n✅ Catálogo completo\n✅ Pedidos fáciles y rápidos\n✅ Pago seguro\n\n🔗 Entra aquí: ${url}\n\n¡Comparte con tus amigos! 🙌`
+    case 'facebook':
+      return `🛍️ ¡Ya tenemos tienda online! 🎉\n\n${name} ahora te permite comprar desde donde estés.\n\n✨ Explora todos nuestros productos\n📦 Pedidos rápidos y sencillos\n💳 Pago seguro\n\n👉 Visítanos ahora: ${url}\n\n¡Dale "Me gusta" y compártelo con tus amigos para que no se lo pierdan! ❤️`
+    case 'tiktok':
+      return `POV: Encontraste la mejor tienda online 🛒✨\n\n@${name.replace(/\s+/g, '').toLowerCase()} ya está en línea y tiene todo lo que necesitas\n\n🔗 Link en bio: ${url}\n\n#tiendaonline #comprasenlinea #mexico #negociolocal #${name.replace(/\s+/g, '').toLowerCase()}`
+    case 'instagram':
+      return `🛍️ ¡Ya puedes comprar desde casa! ✨\n\nNuestra tienda online ya está lista para ti 🎉\n\n📦 Todos nuestros productos disponibles\n⚡ Pedidos en minutos\n🏪 La misma calidad de siempre\n\n🔗 Link en bio o entra directo:\n${url}\n\n¡Etiqueta a alguien que le encantaría conocernos! 👇\n\n#tiendaonline #${name.replace(/\s+/g, '').toLowerCase()} #comprasenlinea #negociolocal #mexico #emprendimiento`
+    default: return ''
+  }
+}
+
+function StoreInviteSection({ user, show }) {
+  const storeUrl = `${window.location.origin}/store/${user?.businessSlug || ''}`
+  const [activePlatform, setActivePlatform] = useState('whatsapp')
+  const [copied, setCopied] = useState(false)
+  const text = buildStoreText(activePlatform, user?.businessName, storeUrl)
+
+  const copy = (content) => {
+    navigator.clipboard.writeText(content)
+      .then(() => { show('Texto copiado', 'success'); setCopied(true); setTimeout(() => setCopied(false), 2000) })
+      .catch(() => show('No se pudo copiar', 'error'))
+  }
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(storeUrl)
+      .then(() => show('Link copiado', 'success'))
+      .catch(() => show('No se pudo copiar', 'error'))
+  }
+
+  const shareWA = () => {
+    const msg = encodeURIComponent(buildStoreText('whatsapp', user?.businessName, storeUrl))
+    window.open(`https://api.whatsapp.com/send?text=${msg}`, '_blank')
+  }
+
+  const shareFB = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(storeUrl)}`, '_blank')
+  }
+
+  return (
+    <div className="card mkt-store-invite">
+      <div className="mkt-store-invite-head">
+        <div>
+          <h3 className="section-title" style={{ marginBottom: 4 }}>🏪 Invita a conocer tu tienda online</h3>
+          <p className="text-soft" style={{ fontSize: 13 }}>
+            Comparte tu tienda con clientes en redes sociales y haz que ellos la difundan.
+          </p>
+        </div>
+        <div className="mkt-store-link-box">
+          <span className="mkt-store-link-url">{storeUrl}</span>
+          <button className="btn btn-sm btn-outline" onClick={copyLink}>📋 Copiar link</button>
+          <a className="btn btn-sm btn-primary" href={storeUrl} target="_blank" rel="noreferrer">
+            👁 Ver tienda
+          </a>
+        </div>
+      </div>
+
+      <div className="mkt-store-platforms">
+        {STORE_PLATFORMS.map(p => (
+          <button
+            key={p.id}
+            className={`mkt-store-plat-btn ${activePlatform === p.id ? 'active' : ''}`}
+            style={activePlatform === p.id ? { background: p.color, borderColor: p.color, color: '#fff' } : { '--hc': p.color }}
+            onClick={() => setActivePlatform(p.id)}
+          >
+            {p.icon} {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ position: 'relative' }}>
+        <textarea
+          className="mkt-store-textarea"
+          value={text}
+          readOnly
+          rows={activePlatform === 'instagram' ? 12 : 9}
+        />
+        <div className="mkt-store-actions">
+          <button className="btn btn-outline" onClick={() => copy(text)}>
+            {copied ? '✅ Copiado' : '📋 Copiar texto'}
+          </button>
+          {activePlatform === 'whatsapp' && (
+            <button className="btn btn-primary" style={{ background: '#25D366', borderColor: '#25D366' }}
+              onClick={shareWA}>
+              💬 Abrir WhatsApp
+            </button>
+          )}
+          {activePlatform === 'facebook' && (
+            <button className="btn btn-primary" style={{ background: '#1877F2', borderColor: '#1877F2' }}
+              onClick={shareFB}>
+              📘 Compartir en Facebook
+            </button>
+          )}
+          {(activePlatform === 'tiktok' || activePlatform === 'instagram') && (
+            <button className="btn btn-outline" onClick={copyLink}>
+              🔗 Copiar link para bio
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="mkt-store-tip">
+        💡 <strong>Tip:</strong> Pídele a tus clientes que compartan tu tienda — cada persona que la recomienda te trae nuevos compradores sin que pagues publicidad.
+      </div>
+    </div>
+  )
+}
+
 export default function Marketing() {
   const { user } = useAuth()
   const { show } = useToast()
@@ -190,7 +310,7 @@ export default function Marketing() {
         const entry = { date: new Date().toISOString(), type: templateType, posts: raw }
         const updated = [entry, ...history].slice(0, 10)
         setHistory(updated)
-        localStorage.setItem('mkt_history', JSON.stringify(updated))
+        try { localStorage.setItem('mkt_history', JSON.stringify(updated)) } catch {}
       }
     } catch {
       show('Motor de IA no disponible. Usando plantilla de ejemplo.', 'error')
@@ -227,7 +347,8 @@ export default function Marketing() {
 
   const copyText = (content) => {
     navigator.clipboard.writeText(content)
-    show('Texto copiado al portapapeles', 'success')
+      .then(() => show('Texto copiado al portapapeles', 'success'))
+      .catch(() => show('No se pudo copiar. Selecciona el texto manualmente.', 'error'))
   }
 
   const downloadImage = (dataUrl, productName) => {
@@ -257,6 +378,9 @@ export default function Marketing() {
           </button>
         </div>
       </div>
+
+      {/* Store invite section */}
+      <StoreInviteSection user={user} show={show} />
 
       {/* Config bar */}
       <div className="mkt-config-bar card">
