@@ -316,3 +316,56 @@
   .sf-product-img { height: 145px; }
   .sf-cart-bar { padding: 12px 16px; }
 }
+
+/* ── Theme: Classic (warm / light) ──────────────────────────────────────── */
+.sf-theme-classic { background: #fef9f0; }
+.sf-theme-classic .sf-hero {
+  background: linear-gradient(135deg, #92400e 0%, #b45309 50%, #d97706 100%) !important;
+}
+.sf-theme-classic .sf-price { color: #b45309; }
+.sf-theme-classic .sf-add-btn { background: #b45309; }
+.sf-theme-classic .sf-add-btn:hover:not(:disabled) { background: #92400e; }
+.sf-theme-classic .sf-cat-btn.active { background: #b45309; border-color: #b45309; }
+.sf-theme-classic .sf-cat-btn:hover:not(.active) { border-color: #b45309; color: #b45309; }
+.sf-theme-classic .sf-search-input:focus { border-color: #b45309; box-shadow: 0 0 0 3px rgba(180,83,9,.12); }
+.sf-theme-classic .sf-btn-primary { background: #b45309; }
+.sf-theme-classic .sf-btn-primary:hover:not(:disabled) { background: #92400e; }
+.sf-theme-classic .sf-btn-outline { color: #b45309; border-color: #b45309; }
+.sf-theme-classic .sf-btn-outline:hover { background: #b45309; color: #fff; }
+.sf-theme-classic .sf-product { background: #fffbf5; border-color: #fde68a; }
+.sf-theme-classic .sf-product:hover { box-shadow: 0 8px 28px rgba(180,83,9,.12); }
+
+/* ── Theme: Minimal (white / ultra-clean) ────────────────────────────────── */
+.sf-theme-minimal { background: #fff; }
+.sf-theme-minimal .sf-hero {
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0;
+  padding-top: 48px; padding-bottom: 36px;
+}
+.sf-theme-minimal .sf-hero-bg { display: none; }
+.sf-theme-minimal .sf-hero-name { color: #0f172a; text-shadow: none; }
+.sf-theme-minimal .sf-hero-desc { color: #64748b; }
+.sf-theme-minimal .sf-badge {
+  background: #f1f5f9; border-color: #e2e8f0;
+  color: #475569;
+}
+.sf-theme-minimal .sf-share-label { color: #94a3b8; }
+.sf-theme-minimal .sf-share-copy { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }
+.sf-theme-minimal .sf-hero-logo-wrap {
+  background: #f1f5f9;
+  box-shadow: 0 2px 12px rgba(0,0,0,.08), 0 0 0 1px #e2e8f0;
+}
+.sf-theme-minimal .sf-price { color: #0f172a; font-size: 16px; }
+.sf-theme-minimal .sf-add-btn { background: #0f172a; border-radius: 8px; }
+.sf-theme-minimal .sf-add-btn:hover:not(:disabled) { background: #1e293b; }
+.sf-theme-minimal .sf-cat-btn.active { background: #0f172a; border-color: #0f172a; }
+.sf-theme-minimal .sf-cat-btn:hover:not(.active) { border-color: #0f172a; color: #0f172a; }
+.sf-theme-minimal .sf-search-input:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15,23,42,.08); }
+.sf-theme-minimal .sf-btn-primary { background: #0f172a; border-radius: 10px; }
+.sf-theme-minimal .sf-btn-primary:hover:not(:disabled) { background: #1e293b; }
+.sf-theme-minimal .sf-btn-outline { color: #0f172a; border-color: #cbd5e1; }
+.sf-theme-minimal .sf-btn-outline:hover { background: #0f172a; color: #fff; }
+.sf-theme-minimal .sf-product { border-color: #f1f5f9; border-radius: 12px; }
+.sf-theme-minimal .sf-product:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); transform: translateY(-2px); }
+.sf-theme-minimal .qty-ctrl { border-color: #e2e8f0; color: #0f172a; }
+.sf-theme-minimal .qty-ctrl:hover:not(:disabled) { background: #0f172a; color: #fff; border-color: #0f172a; }

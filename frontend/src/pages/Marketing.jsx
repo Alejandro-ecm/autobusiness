@@ -187,7 +187,7 @@ function buildStoreText(platform, businessName, storeUrl) {
 }
 
 function StoreInviteSection({ user, show }) {
-  const storeUrl = `${window.location.origin}/store/${user?.businessSlug || ''}`
+  const storeUrl = `${window.location.origin}/tienda/${user?.businessSlug || ''}`
   const [activePlatform, setActivePlatform] = useState('whatsapp')
   const [copied, setCopied] = useState(false)
   const text = buildStoreText(activePlatform, user?.businessName, storeUrl)

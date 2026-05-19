@@ -9,7 +9,7 @@ const DEFAULT_LOGO = '/skymarket-logo.jpg'
 
 function ShareButtons({ slug, businessName }) {
   const { show } = useToast()
-  const url = `${window.location.origin}/store/${slug}`
+  const url = `${window.location.origin}/tienda/${slug}`
   const msg = encodeURIComponent(`¡Visita la tienda online de ${businessName}! 🛒\n${url}`)
 
   const copy = () => {
@@ -136,6 +136,8 @@ export default function Storefront() {
   }
 
   const logoSrc = (!logoError && business?.logoUrl) ? business.logoUrl : DEFAULT_LOGO
+  const theme   = business?.storeTheme || 'modern'
+  const bannerUrl = business?.bannerUrl || ''
 
   if (loading) return (
     <div className="sf-loading">
@@ -233,10 +235,13 @@ export default function Storefront() {
   )
 
   return (
-    <div className="sf-page">
+    <div className={`sf-page sf-theme-${theme}`}>
       {/* ── HERO BANNER ─────────────────────────────────────────────────── */}
-      <div className="sf-hero">
-        <div className="sf-hero-bg" />
+      <div
+        className="sf-hero"
+        style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+      >
+        {!bannerUrl && <div className="sf-hero-bg" />}
         <div className="sf-hero-content">
           <div className="sf-hero-logo-wrap">
             <img

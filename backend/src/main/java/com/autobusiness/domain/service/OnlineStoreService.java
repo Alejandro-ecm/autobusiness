@@ -26,15 +26,14 @@ public class OnlineStoreService {
         Business business = businessRepo.findBySlug(businessSlug)
                 .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
         List<Product> products = productRepo.findByBusinessIdAndIsOnlineTrueAndIsActiveTrue(business.getId());
-        return Map.of(
-                "business", Map.of(
-                        "id", business.getId(),
-                        "name", business.getName(),
-                        "description", business.getDescription() != null ? business.getDescription() : "",
-                        "logoUrl", business.getLogoUrl() != null ? business.getLogoUrl() : ""
-                ),
-                "products", products
-        );
+        Map<String, Object> biz = new java.util.LinkedHashMap<>();
+        biz.put("id", business.getId());
+        biz.put("name", business.getName());
+        biz.put("description", business.getDescription() != null ? business.getDescription() : "");
+        biz.put("logoUrl", business.getLogoUrl() != null ? business.getLogoUrl() : "");
+        biz.put("bannerUrl", business.getBannerUrl() != null ? business.getBannerUrl() : "");
+        biz.put("storeTheme", business.getStoreTheme() != null ? business.getStoreTheme() : "modern");
+        return Map.of("business", biz, "products", products);
     }
 
     @Transactional

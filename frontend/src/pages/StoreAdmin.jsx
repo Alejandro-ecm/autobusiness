@@ -1,30 +1,63 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../store/AuthContext'
-import { inventory as inventoryApi, orders as ordersApi } from '../api'
+import { inventory as inventoryApi, orders as ordersApi, store as storeApi, business as businessApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import './StoreAdmin.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
 
 const STATUS_LABELS = {
-  pending: { label: 'Pendiente', cls: 'badge-yellow' },
+  pending:   { label: 'Pendiente',  cls: 'badge-yellow' },
   confirmed: { label: 'Confirmado', cls: 'badge-blue' },
-  shipped: { label: 'Enviado', cls: 'badge-blue' },
-  delivered: { label: 'Entregado', cls: 'badge-green' },
-  cancelled: { label: 'Cancelado', cls: 'badge-red' },
+  shipped:   { label: 'Enviado',    cls: 'badge-blue' },
+  delivered: { label: 'Entregado',  cls: 'badge-green' },
+  cancelled: { label: 'Cancelado',  cls: 'badge-red' },
 }
+
+const THEMES = [
+  {
+    id: 'modern',
+    name: 'Moderno',
+    desc: 'Fondo oscuro con estrellas, degradado índigo-teal. Elegante y llamativo.',
+    preview: '🌌',
+    bg: 'linear-gradient(135deg,#0d1b2e,#162744,#1a3560)',
+    text: '#fff',
+  },
+  {
+    id: 'classic',
+    name: 'Clásico',
+    desc: 'Fondo claro y cálido, tarjetas bien definidas. Limpio y confiable.',
+    preview: '☀️',
+    bg: 'linear-gradient(135deg,#fef9f0,#fff7ed)',
+    text: '#1e293b',
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    desc: 'Todo blanco, tipografía clara. Ultra-limpio y moderno.',
+    preview: '⬜',
+    bg: '#ffffff',
+    text: '#0f172a',
+  },
+]
 
 export default function StoreAdmin() {
   const { user } = useAuth()
   const { show } = useToast()
   const [products, setProducts] = useState([])
-  const [orders, setOrders] = useState([])
+  const [orders, setOrders]   = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('catalogo')
+  const [tab, setTab]         = useState('catalogo')
 
   const [showQr, setShowQr] = useState(false)
-  const storeUrl = user?.businessSlug ? `/tienda/${user.businessSlug}` : null
+  const storeUrl     = user?.businessSlug ? `/tienda/${user.businessSlug}` : null
   const fullStoreUrl = storeUrl ? `${window.location.origin}${storeUrl}` : null
+
+  // Diseño state
+  const [design, setDesign] = useState({ name: '', description: '', logoUrl: '', bannerUrl: '', storeTheme: 'modern' })
+  const [designLoading, setDesignLoading] = useState(false)
+  const [logoError, setLogoError]     = useState(false)
+  const [bannerError, setBannerError] = useState(false)
 
   const copyLink = () => {
     if (!fullStoreUrl) return
@@ -47,10 +80,25 @@ export default function StoreAdmin() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  const loadStorefront = async () => {
+    if (!user?.businessSlug) return
+    try {
+      const data = await storeApi.storefront(user.businessSlug)
+      const b = data?.business || {}
+      setDesign({
+        name:        b.name        || user?.businessName || '',
+        description: b.description || '',
+        logoUrl:     b.logoUrl     || '',
+        bannerUrl:   b.bannerUrl   || '',
+        storeTheme:  b.storeTheme  || 'modern',
+      })
+    } catch { /* ignore */ }
+  }
 
-  const onlineProducts = products.filter(p => p.isOnline)
-  const pendingOrders = orders.filter(o => o.status === 'pending')
+  useEffect(() => { load(); loadStorefront() }, [])
+
+  const onlineProducts   = products.filter(p => p.isOnline)
+  const pendingOrders    = orders.filter(o => o.status === 'pending')
   const totalOnlineRevenue = orders
     .filter(o => o.status !== 'cancelled')
     .reduce((s, o) => s + Number(o.total || 0), 0)
@@ -58,12 +106,8 @@ export default function StoreAdmin() {
   const toggleOnline = async (product) => {
     try {
       await inventoryApi.update(product.id, {
-        name: product.name,
-        price: product.price,
-        cost: product.cost || 0,
-        minStock: product.minStock || 5,
-        description: product.description,
-        isOnline: !product.isOnline,
+        name: product.name, price: product.price, cost: product.cost || 0,
+        minStock: product.minStock || 5, description: product.description, isOnline: !product.isOnline,
       })
       show(product.isOnline ? 'Quitado de la tienda' : 'Publicado en tienda', 'success')
       load()
@@ -79,6 +123,18 @@ export default function StoreAdmin() {
       load()
     } catch {
       show('Error al actualizar estado', 'error')
+    }
+  }
+
+  const saveDesign = async () => {
+    setDesignLoading(true)
+    try {
+      await businessApi.updateSettings(design)
+      show('Diseño guardado correctamente', 'success')
+    } catch (e) {
+      show(e?.error || 'Error al guardar diseño', 'error')
+    } finally {
+      setDesignLoading(false)
     }
   }
 
@@ -150,9 +206,13 @@ export default function StoreAdmin() {
 
       {/* Tabs */}
       <div className="store-tabs">
-        {['catalogo', 'pedidos'].map(t => (
-          <button key={t} className={`tab-btn ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
-            {t === 'catalogo' ? '🏪 Catálogo' : `📋 Pedidos ${pendingOrders.length > 0 ? `(${pendingOrders.length})` : ''}`}
+        {[
+          { id: 'catalogo', label: '🏪 Catálogo' },
+          { id: 'pedidos',  label: `📋 Pedidos${pendingOrders.length > 0 ? ` (${pendingOrders.length})` : ''}` },
+          { id: 'diseno',   label: '🎨 Diseño' },
+        ].map(t => (
+          <button key={t.id} className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
+            {t.label}
           </button>
         ))}
       </div>
@@ -274,6 +334,123 @@ export default function StoreAdmin() {
               )
             })
           )}
+        </div>
+      )}
+
+      {/* Diseño */}
+      {tab === 'diseno' && (
+        <div className="design-tab">
+          {/* Identidad */}
+          <div className="card design-section">
+            <h3 className="design-section-title">Identidad de la tienda</h3>
+
+            <div className="design-field">
+              <label className="design-label">Nombre del negocio</label>
+              <input
+                className="input"
+                value={design.name}
+                onChange={e => setDesign(d => ({ ...d, name: e.target.value }))}
+                placeholder="Ej: Sky Market"
+              />
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">Descripción</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={design.description}
+                onChange={e => setDesign(d => ({ ...d, description: e.target.value }))}
+                placeholder="Breve descripción de tu tienda o negocio…"
+                style={{ resize: 'vertical' }}
+              />
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">URL del logo</label>
+              <input
+                className="input"
+                value={design.logoUrl}
+                onChange={e => { setDesign(d => ({ ...d, logoUrl: e.target.value })); setLogoError(false) }}
+                placeholder="https://…/logo.png"
+              />
+              {design.logoUrl && !logoError && (
+                <div className="design-preview-wrap">
+                  <img
+                    src={design.logoUrl}
+                    alt="Logo preview"
+                    className="design-logo-preview"
+                    onError={() => setLogoError(true)}
+                  />
+                  <span className="design-preview-label">Vista previa del logo</span>
+                </div>
+              )}
+              {logoError && <p className="design-preview-error">No se pudo cargar la imagen. Verifica la URL.</p>}
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">URL de imagen de fondo (banner)</label>
+              <input
+                className="input"
+                value={design.bannerUrl}
+                onChange={e => { setDesign(d => ({ ...d, bannerUrl: e.target.value })); setBannerError(false) }}
+                placeholder="https://…/banner.jpg (opcional)"
+              />
+              {design.bannerUrl && !bannerError && (
+                <div className="design-banner-preview-wrap">
+                  <img
+                    src={design.bannerUrl}
+                    alt="Banner preview"
+                    className="design-banner-preview"
+                    onError={() => setBannerError(true)}
+                  />
+                  <span className="design-preview-label">Vista previa del banner</span>
+                </div>
+              )}
+              {bannerError && <p className="design-preview-error">No se pudo cargar la imagen. Verifica la URL.</p>}
+            </div>
+          </div>
+
+          {/* Tema */}
+          <div className="card design-section">
+            <h3 className="design-section-title">Estilo de la tienda</h3>
+            <p className="design-section-sub">Elige cómo se verá tu tienda para los clientes.</p>
+            <div className="design-themes">
+              {THEMES.map(t => (
+                <button
+                  key={t.id}
+                  className={`design-theme-card ${design.storeTheme === t.id ? 'active' : ''}`}
+                  onClick={() => setDesign(d => ({ ...d, storeTheme: t.id }))}
+                >
+                  <div className="design-theme-preview" style={{ background: t.bg }}>
+                    <span className="design-theme-emoji">{t.preview}</span>
+                    <div className="design-theme-bars" style={{ opacity: t.id === 'minimal' ? 0.2 : 0.4 }}>
+                      <div style={{ background: t.text, height: 6, borderRadius: 3, width: '60%', marginBottom: 4 }} />
+                      <div style={{ background: t.text, height: 4, borderRadius: 3, width: '40%', marginBottom: 4 }} />
+                      <div style={{ background: t.text, height: 4, borderRadius: 3, width: '50%' }} />
+                    </div>
+                  </div>
+                  <div className="design-theme-info">
+                    <div className="design-theme-name">{t.name}</div>
+                    <div className="design-theme-desc">{t.desc}</div>
+                  </div>
+                  {design.storeTheme === t.id && <div className="design-theme-check">✓</div>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Guardar */}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={saveDesign} disabled={designLoading}>
+              {designLoading ? 'Guardando…' : '💾 Guardar diseño'}
+            </button>
+            {storeUrl && (
+              <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="btn btn-outline">
+                👁 Ver tienda
+              </a>
+            )}
+          </div>
         </div>
       )}
     </div>

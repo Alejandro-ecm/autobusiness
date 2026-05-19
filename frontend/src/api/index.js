@@ -67,8 +67,13 @@ export const alerts = {
 }
 
 export const store = {
-  storefront: (slug) => client.get(`/store/${slug}`),
-  placeOrder: (slug, data) => client.post(`/store/${slug}/orders`, data),
+  storefront:    (slug)       => client.get(`/store/${slug}`),
+  placeOrder:    (slug, data) => client.post(`/store/${slug}/orders`, data),
+  createPayment: (slug, data) => client.post(`/store/${slug}/pay`, data),
+}
+
+export const business = {
+  updateSettings: (data) => client.patch('/business/settings', data),
 }
 
 export const subscription = {
@@ -83,6 +88,13 @@ export const payments = {
   createMPPreference: (data) => client.post('/payments/mercadopago/create-preference', data),
   list:               ()     => client.get('/payments'),
   byOrder:            (id)   => client.get(`/payments/order/${id}`),
+}
+
+export const mpSettings = {
+  status:      ()            => client.get('/settings/mp'),
+  connectUrl:  ()            => client.get('/settings/mp/connect-url'),
+  connectManual: (token)     => client.post('/settings/mp/manual', { accessToken: token }),
+  disconnect:  ()            => client.delete('/settings/mp'),
 }
 
 export const invoices = {

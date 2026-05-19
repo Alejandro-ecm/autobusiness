@@ -27,6 +27,12 @@ public class Business {
 
     private String description;
     private String logoUrl;
+    private String bannerUrl;
+
+    @Column(length = 30)
+    @Builder.Default
+    private String storeTheme = "modern";
+
     private String phone;
     private String email;
     private String address;
@@ -53,6 +59,17 @@ public class Business {
     @Column(nullable = false)
     @Builder.Default
     private boolean onboardingCompleted = false;
+
+    // Mercado Pago por negocio
+    @Column(length = 500)
+    private String mpAccessToken;
+    @Column(length = 500)
+    private String mpRefreshToken;
+    @Column(length = 100)
+    private String mpUserId;
+    @Column(length = 200)
+    private String mpPublicKey;
+    private Instant mpConnectedAt;
 
     @CreationTimestamp
     private Instant createdAt;
