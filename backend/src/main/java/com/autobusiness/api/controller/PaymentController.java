@@ -160,7 +160,7 @@ public class PaymentController {
                                       @PathVariable UUID orderId) {
         List<Payment> payments = paymentRepo.findByOrderIdOrderByCreatedAtDesc(orderId);
         return ResponseEntity.ok(payments.stream()
-                .filter(pay -> p.businessId().equals(pay.getBusinessId()))
+                .filter(pay -> pay.getBusiness() != null && p.businessId().equals(pay.getBusiness().getId()))
                 .map(pay -> Map.of(
                         "id",     pay.getId(),
                         "status", pay.getStatus(),
