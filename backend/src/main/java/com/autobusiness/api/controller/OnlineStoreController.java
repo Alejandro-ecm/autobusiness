@@ -86,6 +86,29 @@ public class OnlineStoreController {
         }
     }
 
+    // Público — procesar pago con tarjeta via Checkout Bricks
+    @PostMapping("/store/{slug}/process-payment")
+    public ResponseEntity<?> processPayment(
+            @PathVariable String slug,
+            @RequestBody Map<String, Object> body) {
+        try {
+            Business business = businessRepo.findBySlug(slug)
+                    .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
+
+            UUID orderId = body.containsKey("orderId") && body.get("orderId") != null
+                    ? UUID.fromString(body.get("orderId").toString()) : null;
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> formData = body.containsKey("formData")
+                    ? (Map<String, Object>) body.get("formData") : body;
+
+            Map<String, Object> result = mpService.processCardPayment(business.getId(), orderId, formData);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private static final java.util.Set<String> ALLOWED_THEMES = java.util.Set.of("modern", "classic", "minimal");
 
     // Autenticado — actualizar diseño/configuración de la tienda

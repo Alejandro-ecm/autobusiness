@@ -67,9 +67,10 @@ export const alerts = {
 }
 
 export const store = {
-  storefront:    (slug)       => client.get(`/store/${slug}`),
-  placeOrder:    (slug, data) => client.post(`/store/${slug}/orders`, data),
-  createPayment: (slug, data) => client.post(`/store/${slug}/pay`, data),
+  storefront:      (slug)       => client.get(`/store/${slug}`),
+  placeOrder:      (slug, data) => client.post(`/store/${slug}/orders`, data),
+  createPayment:   (slug, data) => client.post(`/store/${slug}/pay`, data),
+  processPayment:  (slug, data) => client.post(`/store/${slug}/process-payment`, data),
 }
 
 export const business = {

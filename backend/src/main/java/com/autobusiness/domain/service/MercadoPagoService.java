@@ -303,6 +303,78 @@ public class MercadoPagoService {
     }
 
     /**
+     * Procesa un pago con tarjeta usando el token generado por Checkout Bricks.
+     * Llamado desde el frontend en lugar de redirigir a Checkout Pro.
+     */
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> processCardPayment(UUID businessId, UUID orderId,
+                                                   Map<String, Object> formData) {
+        Business business = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        String effectiveToken = (business.getMpAccessToken() != null && !business.getMpAccessToken().isBlank())
+                ? business.getMpAccessToken() : accessToken;
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("transaction_amount",
+                new BigDecimal(formData.getOrDefault("transaction_amount", "0").toString()).doubleValue());
+        payload.put("token",              formData.get("token"));
+        payload.put("description",        "Pedido tienda online");
+        payload.put("installments",       Integer.parseInt(formData.getOrDefault("installments", "1").toString()));
+        payload.put("payment_method_id",  formData.get("payment_method_id"));
+        if (formData.containsKey("issuer_id") && formData.get("issuer_id") != null)
+            payload.put("issuer_id", formData.get("issuer_id"));
+        if (formData.containsKey("payer"))
+            payload.put("payer", formData.get("payer"));
+        if (orderId != null) payload.put("external_reference", orderId.toString());
+        payload.put("metadata", Map.of("business_id", businessId.toString(),
+                                       "order_id", orderId != null ? orderId.toString() : ""));
+
+        WebClient client = webClientBuilder.baseUrl(MP_API)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + effectiveToken)
+                .build();
+
+        Map<String, Object> result = client.post()
+                .uri("/v1/payments")
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (result == null) throw new IllegalStateException("Sin respuesta de Mercado Pago");
+
+        String status    = result.getOrDefault("status", "rejected").toString();
+        String mpId      = result.getOrDefault("id", "").toString();
+        BigDecimal amount = new BigDecimal(
+                formData.getOrDefault("transaction_amount", "0").toString());
+
+        if ("approved".equals(status) && orderId != null) {
+            orderRepo.findById(orderId).ifPresent(o -> {
+                o.setStatus("confirmed");
+                orderRepo.save(o);
+            });
+        }
+
+        Payment payment = Payment.builder()
+                .business(business)
+                .orderId(orderId)
+                .method("mercadopago_card")
+                .status(status)
+                .amount(amount)
+                .currency("MXN")
+                .transactionId(mpId)
+                .externalRef(orderId != null ? orderId.toString() : mpId)
+                .build();
+        paymentRepo.save(payment);
+
+        log.info("Card payment {} status={} for business {}", mpId, status, businessId);
+        return Map.of("status", status, "id", mpId,
+                "statusDetail", result.getOrDefault("status_detail", ""));
+    }
+
+    /**
      * Crea un link de pago para suscripción mensual.
      */
     public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {

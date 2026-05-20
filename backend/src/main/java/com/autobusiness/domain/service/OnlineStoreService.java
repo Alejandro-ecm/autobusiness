@@ -33,6 +33,7 @@ public class OnlineStoreService {
         biz.put("logoUrl", business.getLogoUrl() != null ? business.getLogoUrl() : "");
         biz.put("bannerUrl", business.getBannerUrl() != null ? business.getBannerUrl() : "");
         biz.put("storeTheme", business.getStoreTheme() != null ? business.getStoreTheme() : "modern");
+        biz.put("mpPublicKey", business.getMpPublicKey() != null ? business.getMpPublicKey() : "");
         return Map.of("business", biz, "products", products);
     }
 

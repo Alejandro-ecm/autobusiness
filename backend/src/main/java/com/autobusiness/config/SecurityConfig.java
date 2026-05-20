@@ -51,7 +51,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/subscription/plans",                      // precios públicos
                                 "/payments/mercadopago/webhook",            // webhook MP sin JWT
-                                "/settings/mp/oauth-callback"               // redirect de MP OAuth
+                                "/settings/mp/oauth-callback",              // redirect de MP OAuth
+                                "/store/*/process-payment"                  // Checkout Bricks card payment
                         ).permitAll()
                         // Super admin
                         .requestMatchers("/super-admin/**").hasRole("SUPER_ADMIN")

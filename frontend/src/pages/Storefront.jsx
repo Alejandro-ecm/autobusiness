@@ -1,8 +1,70 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { store as storeApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import './Storefront.css'
+
+let mpInitialized = false
+async function initMP(publicKey) {
+  if (mpInitialized) return
+  const { initMercadoPago } = await import('@mercadopago/sdk-react')
+  initMercadoPago(publicKey, { locale: 'es-MX' })
+  mpInitialized = true
+}
+
+function PaymentBrick({ amount, preferenceId, orderId, slug, onSuccess, onError }) {
+  const [BrickComponent, setBrickComponent] = useState(null)
+  const containerRef = useRef(null)
+
+  useEffect(() => {
+    import('@mercadopago/sdk-react').then(mod => {
+      setBrickComponent(() => mod.Payment)
+    })
+  }, [])
+
+  if (!BrickComponent) return (
+    <div style={{ textAlign: 'center', padding: 40 }}>
+      <div className="spinner" style={{ margin: '0 auto 12px' }} />
+      <p style={{ color: '#64748b' }}>Cargando métodos de pago...</p>
+    </div>
+  )
+
+  return (
+    <div ref={containerRef}>
+      <BrickComponent
+        initialization={{ amount, preferenceId }}
+        customization={{
+          paymentMethods: {
+            ticket: 'all',
+            creditCard: 'all',
+            debitCard: 'all',
+            mercadoPago: 'all',
+          },
+          visual: { style: { theme: 'default' } }
+        }}
+        onSubmit={async ({ selectedPaymentMethod, formData }) => {
+          try {
+            const result = await storeApi.processPayment(slug, { orderId, formData })
+            if (result.status === 'approved') {
+              onSuccess()
+              return { status: 'approved' }
+            } else if (result.status === 'pending' || result.status === 'in_process') {
+              onSuccess('pending')
+              return { status: 'pending' }
+            } else {
+              return { status: 'rejected' }
+            }
+          } catch (err) {
+            onError(err?.error || 'Error al procesar el pago')
+            return { status: 'rejected' }
+          }
+        }}
+        onReady={() => {}}
+        onError={(err) => { onError('Error en el formulario de pago') }}
+      />
+    </div>
+  )
+}
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const DEFAULT_LOGO = '/skymarket-logo.jpg'
@@ -59,6 +121,8 @@ export default function Storefront() {
   const [ordering, setOrdering] = useState(false)
   const [step, setStep] = useState('shop')
   const [orderResult, setOrderResult] = useState(null)
+  const [paymentData, setPaymentData] = useState(null)  // { preferenceId, orderId, amount, mpPublicKey }
+  const [paymentStatus, setPaymentStatus] = useState(null)
   const [customer, setCustomer] = useState({ name: '', phone: '', email: '' })
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
@@ -119,6 +183,8 @@ export default function Storefront() {
         items: cart.map(i => ({ productId: i.productId, quantity: i.qty }))
       })
       setOrderResult(res)
+
+      const mpPublicKey = business?.mpPublicKey
       try {
         const pay = await storeApi.createPayment(slug, {
           orderId: res.id,
@@ -126,10 +192,22 @@ export default function Storefront() {
           items: cart.map(i => ({ title: i.name, quantity: i.qty, unit_price: i.price })),
           payerEmail: customer.email || ''
         })
-        const url = pay.initPoint || pay.sandboxPoint
-        if (url) { window.location.href = url; return }
-      } catch { /* MP no configurado */ }
-      setStep('success')
+
+        if (mpPublicKey) {
+          // Checkout Bricks — formulario embebido
+          await initMP(mpPublicKey)
+          setPaymentData({ preferenceId: pay.preferenceId, orderId: res.id, amount: total, mpPublicKey })
+          setStep('payment')
+        } else {
+          // Fallback: abrir en nueva pestaña sin perder la app
+          const url = pay.initPoint || pay.sandboxPoint
+          if (url) { window.open(url, '_blank'); setStep('success'); return }
+          setStep('success')
+        }
+      } catch {
+        // MP no configurado → éxito sin pago online
+        setStep('success')
+      }
     } catch (err) {
       show(err?.error || err?.message || 'Error al procesar tu pedido. Intenta de nuevo.', 'error')
     } finally { setOrdering(false) }
@@ -171,6 +249,48 @@ export default function Storefront() {
             onClick={() => { setStep('shop'); setCart([]) }}>
             Seguir comprando
           </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (step === 'payment' && paymentData) return (
+    <div className="sf-page">
+      <header className="sf-header-bar">
+        <div className="sf-header-inner">
+          <img className="sf-header-logo" src={logoSrc} alt={business.name}
+            onError={() => setLogoError(true)} />
+          <span className="sf-header-name">{business.name}</span>
+        </div>
+      </header>
+      <div className="sf-checkout">
+        <div className="sf-checkout-box" style={{ maxWidth: 560 }}>
+          <button className="sf-back-btn" onClick={() => setStep('checkout')}>← Volver</button>
+          <h2 style={{ marginBottom: 4 }}>Método de pago</h2>
+          <p style={{ color: '#64748b', marginBottom: 20, fontSize: 14 }}>
+            Total a pagar: <strong>{fmt(paymentData.amount)}</strong>
+          </p>
+          {paymentStatus === 'pending' ? (
+            <div className="sf-success-box" style={{ textAlign: 'center', padding: 32 }}>
+              <div style={{ fontSize: 48 }}>⏳</div>
+              <h3>Pago en proceso</h3>
+              <p className="text-soft">Tu pago está siendo verificado. Te notificaremos cuando se confirme.</p>
+              <button className="sf-btn-primary" style={{ marginTop: 20 }}
+                onClick={() => { setStep('shop'); setCart([]) }}>Volver a la tienda</button>
+            </div>
+          ) : (
+            <PaymentBrick
+              amount={paymentData.amount}
+              preferenceId={paymentData.preferenceId}
+              orderId={paymentData.orderId}
+              slug={slug}
+              onSuccess={(status) => {
+                if (status === 'pending') { setPaymentStatus('pending') }
+                else { setStep('success'); setCart([]) }
+              }}
+              onError={(msg) => show(msg, 'error')}
+            />
+          )}
         </div>
       </div>
     </div>
