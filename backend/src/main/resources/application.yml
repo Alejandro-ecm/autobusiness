@@ -30,6 +30,10 @@ server:
   port: ${PORT:8080}
   servlet:
     context-path: /api
+  tomcat:
+    threads:
+      max: 25
+      min-spare: 5
 
 jwt:
   secret: ${JWT_SECRET:autobusiness_jwt_super_secret_key_2024_development}

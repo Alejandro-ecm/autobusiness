@@ -10,4 +10,8 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE ${PORT}
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", \
+  "-Xms64m", "-Xmx256m", \
+  "-XX:MaxMetaspaceSize=128m", \
+  "-XX:+UseG1GC", \
+  "-jar", "app.jar"]
