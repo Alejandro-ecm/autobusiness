@@ -19,9 +19,13 @@ export default function Login() {
     setLoading(true)
     try {
       const user = await login(form.email, form.password)
-      navigate(user.role === 'CASHIER' ? '/pos' : '/dashboard')
+      navigate(user.role === 'CASHIER' ? '/caja' : '/dashboard')
     } catch (err) {
-      show(err?.error || 'Error al iniciar sesión', 'error')
+      if (err?.error) {
+        show(err.error, 'error')
+      } else {
+        show('El servidor está iniciándose, espera 1-2 min e intenta de nuevo.', 'warning')
+      }
     } finally { setLoading(false) }
   }
 

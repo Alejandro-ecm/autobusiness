@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import { auth as authApi } from '../api'
 
 const AuthContext = createContext(null)
@@ -20,6 +20,11 @@ function safeLocalRemove(key) {
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => safeLocalGet('ab_user'))
+
+  // Warm up the Render backend on app load so it's ready by the time the user logs in
+  useEffect(() => {
+    fetch('/api/health').catch(() => {})
+  }, [])
 
   const _persist = (userData) => {
     safeLocalSet('ab_user', userData)
