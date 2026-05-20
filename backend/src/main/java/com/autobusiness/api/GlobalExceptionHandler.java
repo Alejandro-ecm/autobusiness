@@ -55,6 +55,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error("No tienes permiso para esta acción"));
     }
 
+    @ExceptionHandler(NumberFormatException.class)
+    public ResponseEntity<?> handleNumberFormat(NumberFormatException ex) {
+        log.warn("Número inválido en request: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(error("Valor numérico inválido en la petición"));
+    }
+
+    @ExceptionHandler(ClassCastException.class)
+    public ResponseEntity<?> handleClassCast(ClassCastException ex) {
+        log.warn("Tipo de dato incorrecto: {}", ex.getMessage());
+        return ResponseEntity.badRequest().body(error("Formato de datos inválido — revisa los tipos enviados"));
+    }
+
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<?> handleNullPointer(NullPointerException ex) {
+        log.error("Campo requerido faltante", ex);
+        return ResponseEntity.badRequest().body(error("Falta un campo requerido en la petición"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handleGeneric(Exception ex) {
         log.error("Unexpected error", ex);

@@ -5,20 +5,31 @@ import './AppLayout.css'
 
 export default function AppLayout({ children }) {
   const [open, setOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('sidebar_collapsed') === 'true' } catch { return false }
+  })
   const location = useLocation()
 
-  // Close sidebar whenever the route changes (user tapped a link)
   useEffect(() => { setOpen(false) }, [location.pathname])
 
+  const toggleCollapse = () => {
+    const next = !collapsed
+    setCollapsed(next)
+    try { localStorage.setItem('sidebar_collapsed', String(next)) } catch {}
+  }
+
   return (
-    <div className="app-layout">
-      {/* Dark backdrop — only visible on mobile when sidebar is open */}
+    <div className={`app-layout${collapsed ? ' sidebar-collapsed' : ''}`}>
       {open && <div className="sidebar-backdrop" onClick={() => setOpen(false)} />}
 
-      <Sidebar open={open} onClose={() => setOpen(false)} />
+      <Sidebar
+        open={open}
+        onClose={() => setOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapse={toggleCollapse}
+      />
 
       <div className="app-content">
-        {/* Mobile-only top bar with hamburger */}
         <header className="mobile-topbar">
           <button
             className={`hamburger${open ? ' is-open' : ''}`}

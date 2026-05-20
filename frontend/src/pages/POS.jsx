@@ -7,16 +7,26 @@ import './POS.css'
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const OFFLINE_KEY = 'ab_offline_sales'
 
-// Guarda venta pendiente en localStorage
+// Guarda venta pendiente en localStorage con manejo seguro de errores
 function saveOfflineSale(data) {
-  const pending = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]')
-  pending.push({ ...data, savedAt: Date.now() })
-  localStorage.setItem(OFFLINE_KEY, JSON.stringify(pending))
+  try {
+    const pending = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]')
+    pending.push({ ...data, savedAt: Date.now() })
+    localStorage.setItem(OFFLINE_KEY, JSON.stringify(pending))
+  } catch {
+    // Si el storage está lleno o bloqueado, la venta no se puede guardar offline
+    console.warn('No se pudo guardar la venta offline — storage no disponible')
+  }
 }
 
 // Intenta sincronizar ventas offline al recuperar conexión
 async function syncOfflineSales(checkoutFn, onSuccess) {
-  const pending = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]')
+  let pending
+  try {
+    pending = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]')
+  } catch {
+    return 0
+  }
   if (pending.length === 0) return 0
   let synced = 0
   const remaining = []
@@ -24,11 +34,11 @@ async function syncOfflineSales(checkoutFn, onSuccess) {
     try {
       await checkoutFn(sale)
       synced++
-    } catch (_) {
+    } catch {
       remaining.push(sale)
     }
   }
-  localStorage.setItem(OFFLINE_KEY, JSON.stringify(remaining))
+  try { localStorage.setItem(OFFLINE_KEY, JSON.stringify(remaining)) } catch {}
   if (synced > 0) onSuccess(synced)
   return synced
 }
@@ -58,6 +68,7 @@ export default function POS() {
   const [pendingCount, setPendingCount] = useState(
     () => JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]').length
   )
+  const [mobileTab, setMobileTab] = useState('products') // 'products' | 'cart'
   const searchRef = useRef()
 
   // Detectar conexión
@@ -199,15 +210,18 @@ export default function POS() {
     } finally { setLoading(false) }
   }
 
+  const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+
   const printTicket = (sale) => {
     const itemLines = sale.items.map(i =>
-      `<div class="tl"><span>${i.name} x${i.quantity}</span><span>${fmt(i.subtotal)}</span></div>`
+      `<div class="tl"><span>${esc(i.name)} x${i.quantity}</span><span>${fmt(i.subtotal)}</span></div>`
     ).join('')
     const discLine = sale.discountAmount > 0
       ? `<div class="tl" style="color:#059669"><span>Descuento</span><span>-${fmt(sale.discountAmount)}</span></div>` : ''
     const changeLine = (sale.change || 0) > 0
       ? `<div class="tl" style="color:#065f46;font-weight:bold"><span>Cambio</span><span>${fmt(sale.change)}</span></div>` : ''
     const w = window.open('', '_blank', 'width=380,height=600')
+    if (!w) { show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'); return }
     w.document.write(`<html><head><title>Ticket</title><style>
       body{font-family:'Courier New',monospace;font-size:13px;padding:20px;max-width:320px;margin:0 auto}
       h2{text-align:center;font-size:16px;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:12px}
@@ -215,7 +229,7 @@ export default function POS() {
       .tot{font-size:18px;font-weight:bold;border-top:2px dashed #000;padding-top:8px;margin-top:8px}
       .ft{text-align:center;margin-top:16px;font-size:11px;border-top:1px dashed #ccc;padding-top:8px;color:#555}
     </style></head><body>
-      <h2>${user.businessName || 'AutoBusiness'}</h2>
+      <h2>${esc(user.businessName) || 'AutoBusiness'}</h2>
       <div style="text-align:center;margin-bottom:10px;color:#555;font-size:11px">${new Date().toLocaleString('es-MX')}</div>
       ${itemLines}${discLine}
       <div class="tl tot"><span>TOTAL</span><span>${fmt(sale.total)}</span></div>
@@ -261,9 +275,193 @@ export default function POS() {
   const displayProducts = query ? products : (topProducts.length > 0 ? topProducts : products)
   const showingTop = !query && topProducts.length > 0
 
+  const productPanel = (
+    <div className="pos-products">
+      <div className="pos-search">
+        <input
+          ref={searchRef}
+          className="input pos-search-input"
+          placeholder="🔍 Buscar por nombre, SKU o código..."
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          autoComplete="off"
+        />
+        {query && (
+          <button className="pos-search-clear" onClick={() => setQuery('')}>✕</button>
+        )}
+      </div>
+
+      {showingTop && <div className="pos-section-label">⚡ Más vendidos esta semana</div>}
+      {!query && !showingTop && <div className="pos-section-label">📦 Todos los productos</div>}
+      {query && <div className="pos-section-label">Resultados para "{query}"</div>}
+
+      <div className="products-grid">
+        {displayProducts.length === 0 && (
+          <div className="pos-no-results">Sin resultados para "{query}"</div>
+        )}
+        {displayProducts.map(p => {
+          const stock = Number(p.stock)
+          const agotado = stock <= 0
+          return (
+            <button
+              key={p.id}
+              className={`product-card${agotado ? ' out-of-stock' : ''}`}
+              onClick={() => { if (!agotado) { addToCart(p); setMobileTab('cart') } }}
+              disabled={agotado}
+              title={agotado ? 'Sin stock' : `${stock} disponibles`}
+            >
+              <div className="product-thumb">
+                {p.imageUrl
+                  ? <img src={p.imageUrl} alt={p.name} />
+                  : <span className="product-thumb-placeholder">📦</span>}
+              </div>
+              <div className="product-info">
+                <div className="product-name">{p.name}</div>
+                <div className="product-price">{fmt(p.price)}</div>
+                <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
+                  {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {showingTop && products.length > topProducts.length && (
+        <button className="pos-show-all" onClick={() => setQuery(' ')}>
+          Ver todos los productos ({products.length}) →
+        </button>
+      )}
+    </div>
+  )
+
+  const cartPanel = (
+    <div className="pos-cart">
+      <div className="pos-cart-header">
+        <h2>Carrito {cart.length > 0 && <span className="cart-count">{cart.length}</span>}</h2>
+        {cart.length > 0 && (
+          <button className="btn btn-sm btn-outline" onClick={() => setCart([])}>Vaciar</button>
+        )}
+      </div>
+
+      {cart.length === 0 ? (
+        <div className="cart-empty">
+          <span>🛒</span>
+          <p>Toca un producto para agregar</p>
+        </div>
+      ) : (
+        <>
+          <div className="cart-items">
+            {cart.map(item => (
+              <div key={item.productId} className="cart-item">
+                <div className="cart-item-name">{item.name}</div>
+                <div className="cart-item-controls">
+                  <button className="qty-btn" onClick={() => updateQty(item.productId, item.quantity - 1)}>−</button>
+                  <span className="qty-value">{item.quantity}</span>
+                  <button
+                    className="qty-btn"
+                    onClick={() => updateQty(item.productId, item.quantity + 1)}
+                    disabled={item.quantity >= item.maxStock}
+                  >+</button>
+                  <span className="cart-item-price">{fmt(item.subtotal)}</span>
+                  <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>×</button>
+                </div>
+                {item.quantity >= item.maxStock && (
+                  <div className="cart-stock-warn">Máximo: {item.maxStock}</div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div className="cart-total-section">
+            <div className="pay-methods">
+              {PAY_METHODS.map(m => (
+                <button
+                  key={m.id}
+                  className={`pay-method-btn${payMethod === m.id ? ' active' : ''}`}
+                  onClick={() => setPayMethod(m.id)}
+                >
+                  <span>{m.icon}</span>
+                  <span>{m.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="discount-row">
+              <div className="discount-type">
+                <button
+                  className={`disc-type-btn${discountType === 'pct' ? ' active' : ''}`}
+                  onClick={() => setDiscountType('pct')}
+                >%</button>
+                <button
+                  className={`disc-type-btn${discountType === 'fixed' ? ' active' : ''}`}
+                  onClick={() => setDiscountType('fixed')}
+                >$</button>
+              </div>
+              <input
+                className="input discount-input"
+                type="number"
+                placeholder={discountType === 'pct' ? 'Descuento %' : 'Descuento $'}
+                value={discount}
+                onChange={e => setDiscount(e.target.value)}
+                min="0"
+                max={discountType === 'pct' ? 100 : subtotalRaw}
+                step="1"
+              />
+              {discount && (
+                <button className="disc-clear" onClick={() => setDiscount('')}>✕</button>
+              )}
+            </div>
+
+            {discountAmount > 0 && (
+              <div className="cart-total-row" style={{ color: '#059669', fontSize: 13, marginBottom: 4 }}>
+                <span>Descuento</span><span>−{fmt(discountAmount)}</span>
+              </div>
+            )}
+
+            <div className="cart-total-row">
+              <span>Total</span>
+              <strong className="cart-total-amount">{fmt(total)}</strong>
+            </div>
+
+            {payMethod === 'cash' && (
+              <>
+                <div className="input-group" style={{ marginBottom: 8 }}>
+                  <label>Efectivo recibido</label>
+                  <input
+                    className="input"
+                    type="number"
+                    placeholder="0.00"
+                    value={cashReceived}
+                    onChange={e => setCashReceived(e.target.value)}
+                    step="0.50"
+                  />
+                </div>
+                {cashReceived && change >= 0 && (
+                  <div className="cart-change positive">Cambio: <strong>{fmt(change)}</strong></div>
+                )}
+                {cashReceived && change < 0 && (
+                  <div className="cart-change negative">Faltan: <strong>{fmt(Math.abs(change))}</strong></div>
+                )}
+              </>
+            )}
+
+            <button
+              className="btn btn-primary btn-lg"
+              style={{ width: '100%', marginTop: 8 }}
+              onClick={checkout}
+              disabled={loading || (payMethod === 'cash' && cashReceived && change < 0)}
+            >
+              {loading ? <div className="spinner" /> : `${isOnline ? '💳' : '📴'} Cobrar ${fmt(total)}`}
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+
   return (
     <div className="pos-page">
-      {/* Banner offline */}
       {!isOnline && (
         <div className="pos-offline-bar">
           📴 Sin conexión — las ventas se guardarán localmente y sincronizarán al reconectar
@@ -275,198 +473,33 @@ export default function POS() {
         </div>
       )}
 
+      {/* Mobile tab bar */}
+      <div className="pos-mobile-tabs">
+        <button
+          className={`pos-tab${mobileTab === 'products' ? ' active' : ''}`}
+          onClick={() => setMobileTab('products')}
+        >
+          📦 Productos
+        </button>
+        <button
+          className={`pos-tab${mobileTab === 'cart' ? ' active' : ''}`}
+          onClick={() => setMobileTab('cart')}
+        >
+          🛒 Carrito
+          {cart.length > 0 && <span className="cart-count">{cart.length}</span>}
+        </button>
+      </div>
+
+      {/* Desktop: side by side. Mobile: tab panels */}
       <div className="pos-row">
-        <div className="pos-products">
-          <div className="pos-search">
-            <input
-              ref={searchRef}
-              className="input pos-search-input"
-              placeholder="🔍 Buscar por nombre, SKU o código de barras..."
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              autoComplete="off"
-            />
-            {query && (
-              <button className="pos-search-clear" onClick={() => setQuery('')}>✕</button>
-            )}
-          </div>
-
-          {showingTop && (
-            <div className="pos-section-label">⚡ Más vendidos esta semana</div>
-          )}
-          {!query && !showingTop && (
-            <div className="pos-section-label">📦 Todos los productos</div>
-          )}
-          {query && (
-            <div className="pos-section-label">Resultados para "{query}"</div>
-          )}
-
-          <div className="products-grid">
-            {displayProducts.length === 0 && (
-              <div className="pos-no-results">Sin resultados para "{query}"</div>
-            )}
-            {displayProducts.map(p => {
-              const stock = Number(p.stock)
-              const agotado = stock <= 0
-              return (
-                <button
-                  key={p.id}
-                  className={`product-card${agotado ? ' out-of-stock' : ''}`}
-                  onClick={() => !agotado && addToCart(p)}
-                  disabled={agotado}
-                  title={agotado ? 'Sin stock' : `${stock} disponibles`}
-                >
-                  <div className="product-thumb">
-                    {p.imageUrl
-                      ? <img src={p.imageUrl} alt={p.name} />
-                      : <span className="product-thumb-placeholder">📦</span>}
-                  </div>
-                  <div className="product-info">
-                    <div className="product-name">{p.name}</div>
-                    <div className="product-price">{fmt(p.price)}</div>
-                    <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
-                      {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          {showingTop && products.length > topProducts.length && (
-            <button className="pos-show-all" onClick={() => setQuery(' ')}>
-              Ver todos los productos ({products.length}) →
-            </button>
-          )}
+        <div className={`pos-panel${mobileTab === 'products' ? ' pos-panel--active' : ''}`}>
+          {productPanel}
         </div>
-
-        {/* Carrito */}
-        <div className="pos-cart">
-          <div className="pos-cart-header">
-            <h2>Carrito {cart.length > 0 && <span className="cart-count">{cart.length}</span>}</h2>
-            {cart.length > 0 && (
-              <button className="btn btn-sm btn-outline" onClick={() => setCart([])}>Vaciar</button>
-            )}
-          </div>
-
-          {cart.length === 0 ? (
-            <div className="cart-empty">
-              <span>🛒</span>
-              <p>Toca un producto para agregar</p>
-            </div>
-          ) : (
-            <>
-              <div className="cart-items">
-                {cart.map(item => (
-                  <div key={item.productId} className="cart-item">
-                    <div className="cart-item-name">{item.name}</div>
-                    <div className="cart-item-controls">
-                      <button className="qty-btn" onClick={() => updateQty(item.productId, item.quantity - 1)}>−</button>
-                      <span className="qty-value">{item.quantity}</span>
-                      <button
-                        className="qty-btn"
-                        onClick={() => updateQty(item.productId, item.quantity + 1)}
-                        disabled={item.quantity >= item.maxStock}
-                      >+</button>
-                      <span className="cart-item-price">{fmt(item.subtotal)}</span>
-                      <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>×</button>
-                    </div>
-                    {item.quantity >= item.maxStock && (
-                      <div className="cart-stock-warn">Máximo: {item.maxStock}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="cart-total-section">
-                {/* Método de pago */}
-                <div className="pay-methods">
-                  {PAY_METHODS.map(m => (
-                    <button
-                      key={m.id}
-                      className={`pay-method-btn${payMethod === m.id ? ' active' : ''}`}
-                      onClick={() => setPayMethod(m.id)}
-                    >
-                      {m.icon} {m.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Descuento */}
-                <div className="discount-row">
-                  <div className="discount-type">
-                    <button
-                      className={`disc-type-btn${discountType === 'pct' ? ' active' : ''}`}
-                      onClick={() => setDiscountType('pct')}
-                    >%</button>
-                    <button
-                      className={`disc-type-btn${discountType === 'fixed' ? ' active' : ''}`}
-                      onClick={() => setDiscountType('fixed')}
-                    >$</button>
-                  </div>
-                  <input
-                    className="input discount-input"
-                    type="number"
-                    placeholder={discountType === 'pct' ? 'Descuento %' : 'Descuento $'}
-                    value={discount}
-                    onChange={e => setDiscount(e.target.value)}
-                    min="0"
-                    max={discountType === 'pct' ? 100 : subtotalRaw}
-                    step="1"
-                  />
-                  {discount && (
-                    <button className="disc-clear" onClick={() => setDiscount('')}>✕</button>
-                  )}
-                </div>
-
-                {discountAmount > 0 && (
-                  <div className="cart-total-row" style={{ color: '#059669', fontSize: 13, marginBottom: 4 }}>
-                    <span>Descuento</span><span>−{fmt(discountAmount)}</span>
-                  </div>
-                )}
-
-                <div className="cart-total-row">
-                  <span>Total</span>
-                  <strong className="cart-total-amount">{fmt(total)}</strong>
-                </div>
-
-                {payMethod === 'cash' && (
-                  <>
-                    <div className="input-group" style={{ marginBottom: 8 }}>
-                      <label>Efectivo recibido</label>
-                      <input
-                        className="input"
-                        type="number"
-                        placeholder="0.00"
-                        value={cashReceived}
-                        onChange={e => setCashReceived(e.target.value)}
-                        step="0.50"
-                      />
-                    </div>
-                    {cashReceived && change >= 0 && (
-                      <div className="cart-change positive">Cambio: <strong>{fmt(change)}</strong></div>
-                    )}
-                    {cashReceived && change < 0 && (
-                      <div className="cart-change negative">Faltan: <strong>{fmt(Math.abs(change))}</strong></div>
-                    )}
-                  </>
-                )}
-
-                <button
-                  className="btn btn-primary btn-lg"
-                  style={{ width: '100%', marginTop: 8 }}
-                  onClick={checkout}
-                  disabled={loading || (payMethod === 'cash' && cashReceived && change < 0)}
-                >
-                  {loading ? <div className="spinner" /> : `${isOnline ? '💳' : '📴'} Cobrar ${fmt(total)}`}
-                </button>
-              </div>
-            </>
-          )}
+        <div className={`pos-panel pos-cart-panel${mobileTab === 'cart' ? ' pos-panel--active' : ''}`}>
+          {cartPanel}
         </div>
       </div>
 
-      {/* Historial sesión */}
       {sessionHistory.length > 0 && (
         <div className="pos-history">
           <div className="pos-history-title">Ventas esta sesión ({sessionHistory.length})</div>

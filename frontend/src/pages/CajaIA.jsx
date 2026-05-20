@@ -165,9 +165,13 @@ export default function CajaIA() {
 
   // ── Init ──────────────────────────────────────────────────────────────────
   useEffect(() => {
+    let mounted = true
     loadProducts()
-    initDetection()
-    return () => stopCamera()
+    initDetection(mounted)
+    return () => {
+      mounted = false
+      stopCamera()
+    }
   }, [])
 
   const loadProducts = () => {
@@ -177,7 +181,8 @@ export default function CajaIA() {
     }).catch(() => show('No se pudieron cargar los productos', 'error'))
   }
 
-  const initDetection = async () => {
+  const initDetection = async (mounted) => {
+    if (!mounted) return
     setModelStatus('loading')
 
     // 1. Init BarcodeDetector — native (Chrome/Android) or polyfill (iOS/Firefox)
@@ -185,18 +190,21 @@ export default function CajaIA() {
     try {
       let Detector = window.BarcodeDetector
       if (!Detector) {
-        // iOS Safari / Firefox: load WASM polyfill
         const mod = await import('@undecaf/barcode-detector-polyfill')
         Detector = mod.BarcodeDetectorPolyfill
       }
+      if (!mounted) return
       barcodeRef.current = new Detector({ formats: BARCODE_FORMATS })
       setBarcodeSupported(true)
     } catch { /* barcode detection not available */ }
+
+    if (!mounted) return
 
     // 2. Check if backend has a custom ONNX model
     try {
       const res  = await fetch('/ai-engine/detect-info')
       const info = await res.json()
+      if (!mounted) return
       if (info.model_available) {
         detModeRef.current = 'backend'
         setDetMode('backend')
@@ -206,21 +214,25 @@ export default function CajaIA() {
       }
     } catch { /* backend not available or no model */ }
 
+    if (!mounted) return
+
     // 3. Fallback: COCO-SSD from CDN
-    await loadCocoSSD()
+    await loadCocoSSD(mounted)
   }
 
-  const loadCocoSSD = async () => {
+  const loadCocoSSD = async (mounted = true) => {
     try {
       await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js')
       await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js')
+      if (!mounted) return
       modelRef.current = await window.cocoSsd.load()
+      if (!mounted) return
       detModeRef.current = 'coco'
       setDetMode('coco')
       setModelType('coco')
       setModelStatus('ready')
     } catch {
-      setModelStatus('error')
+      if (mounted) setModelStatus('error')
     }
   }
 

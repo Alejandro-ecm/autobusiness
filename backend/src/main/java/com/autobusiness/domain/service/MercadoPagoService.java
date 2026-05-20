@@ -25,6 +25,7 @@ public class MercadoPagoService {
     private final PaymentRepository paymentRepo;
     private final OrderRepository orderRepo;
     private final BusinessRepository businessRepo;
+    private final SubscriptionService subscriptionService;
     private final WebClient.Builder webClientBuilder;
 
     @Value("${mercadopago.access-token:TEST-placeholder}")
@@ -52,9 +53,28 @@ public class MercadoPagoService {
     public Map<String, Object> createPreference(UUID businessId, UUID orderId,
                                                  List<Map<String, Object>> items,
                                                  BigDecimal total,
-                                                 String payerEmail) {
+                                                 String payerEmail,
+                                                 String slugSuffix,
+                                                 String subscriptionPlan) {
+        return createPreference(businessId, orderId, items, total, payerEmail, slugSuffix, subscriptionPlan, null);
+    }
+
+    public Map<String, Object> createPreference(UUID businessId, UUID orderId,
+                                                 List<Map<String, Object>> items,
+                                                 BigDecimal total,
+                                                 String payerEmail,
+                                                 String slugSuffix,
+                                                 String subscriptionPlan,
+                                                 String tokenOverride) {
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        // Usar el token del negocio si está conectado, si no el token de la plataforma
+        String effectiveToken = (tokenOverride != null && !tokenOverride.isBlank())
+                ? tokenOverride
+                : (business.getMpAccessToken() != null && !business.getMpAccessToken().isBlank()
+                        ? business.getMpAccessToken()
+                        : accessToken);
 
         String externalRef = orderId != null ? orderId.toString() : UUID.randomUUID().toString();
 
@@ -71,20 +91,27 @@ public class MercadoPagoService {
         preference.put("items", mpItems);
         preference.put("external_reference", externalRef);
         preference.put("notification_url", notificationUrl);
+        String slugParam = (slugSuffix != null && !slugSuffix.isBlank()) ? "&slug=" + slugSuffix : "";
         preference.put("back_urls", Map.of(
-                "success", successUrl + "?ref=" + externalRef,
-                "failure", failureUrl + "?ref=" + externalRef,
-                "pending", pendingUrl + "?ref=" + externalRef
+                "success", successUrl + "?ref=" + externalRef + slugParam,
+                "failure", failureUrl + "?ref=" + externalRef + slugParam,
+                "pending", pendingUrl + "?ref=" + externalRef + slugParam
         ));
         preference.put("auto_return", "approved");
         if (payerEmail != null && !payerEmail.isBlank()) {
             preference.put("payer", Map.of("email", payerEmail));
         }
-        preference.put("metadata", Map.of("business_id", businessId.toString()));
+        var metaMap = new HashMap<String, Object>();
+        metaMap.put("business_id", businessId.toString());
+        if (subscriptionPlan != null && !subscriptionPlan.isBlank()) {
+            metaMap.put("type", "subscription");
+            metaMap.put("plan", subscriptionPlan);
+        }
+        preference.put("metadata", metaMap);
 
         WebClient client = webClientBuilder.baseUrl(MP_API)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + effectiveToken)
                 .build();
 
         @SuppressWarnings("unchecked")
@@ -178,7 +205,21 @@ public class MercadoPagoService {
 
         log.info("MP payment {} status={} extRef={}", paymentId, status, extRef);
 
-        // Buscar el payment pendiente por preferenceId o externalRef
+        // Extraer metadata del pago (business_id, type, plan)
+        String businessIdStr = "";
+        String mpType = "";
+        String mpPlan = "BASIC";
+        if (mpPayment.containsKey("metadata")) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> mpMeta = (Map<String, Object>) mpPayment.get("metadata");
+            if (mpMeta != null) {
+                businessIdStr = mpMeta.getOrDefault("business_id", "").toString();
+                mpType        = mpMeta.getOrDefault("type", "").toString();
+                mpPlan        = mpMeta.getOrDefault("plan", "BASIC").toString();
+            }
+        }
+
+        // Buscar el payment pendiente por externalRef
         Payment payment = null;
         if (!extRef.isBlank()) {
             payment = paymentRepo.findAll().stream()
@@ -187,13 +228,6 @@ public class MercadoPagoService {
         }
 
         if (payment == null) {
-            // Buscar el business por metadata
-            String businessIdStr = "";
-            if (mpPayment.containsKey("metadata")) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> meta = (Map<String, Object>) mpPayment.get("metadata");
-                businessIdStr = meta != null ? meta.getOrDefault("business_id", "").toString() : "";
-            }
             if (businessIdStr.isBlank()) {
                 log.warn("MP webhook: no business_id in metadata, payment_id={}", paymentId);
                 return;
@@ -219,8 +253,16 @@ public class MercadoPagoService {
 
         if ("approved".equals(status)) {
             payment.setStatus("approved");
-            // Marcar la orden como pagada si existe
-            if (!extRef.isBlank()) {
+            if ("subscription".equals(mpType) && !businessIdStr.isBlank()) {
+                // Activar suscripción del negocio
+                try {
+                    subscriptionService.upgradePlan(UUID.fromString(businessIdStr), mpPlan, paymentId);
+                    log.info("Subscription {} activated via MP payment {} for business {}", mpPlan, paymentId, businessIdStr);
+                } catch (Exception e) {
+                    log.error("Failed to activate subscription: {}", e.getMessage());
+                }
+            } else if (!extRef.isBlank()) {
+                // Marcar la orden de tienda online como confirmada
                 try {
                     UUID orderId = UUID.fromString(extRef);
                     payment.setOrderId(orderId);
@@ -230,7 +272,7 @@ public class MercadoPagoService {
                         orderRepo.save(order);
                         log.info("Order {} confirmed via MP payment {}", orderId, finalPaymentId);
                     });
-                } catch (IllegalArgumentException ignored) { /* extRef no es UUID */ }
+                } catch (IllegalArgumentException ignored) { /* extRef no es UUID de orden */ }
             }
         } else if ("rejected".equals(status) || "cancelled".equals(status)) {
             payment.setStatus(status);
@@ -274,6 +316,6 @@ public class MercadoPagoService {
         ));
 
         return createPreference(businessId, null, items,
-                BigDecimal.valueOf(price), null);
+                BigDecimal.valueOf(price), null, null, plan);
     }
 }

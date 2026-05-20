@@ -38,23 +38,42 @@ public class PosController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestBody Map<String, Object> body) {
 
+        Object rawItemsObj = body.get("items");
+        if (rawItemsObj == null) {
+            throw new IllegalArgumentException("El carrito no puede estar vacío");
+        }
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> rawItems = (List<Map<String, Object>>) body.get("items");
+        List<Map<String, Object>> rawItems = (List<Map<String, Object>>) rawItemsObj;
+        if (rawItems.isEmpty()) {
+            throw new IllegalArgumentException("El carrito no puede estar vacío");
+        }
 
         List<PosService.CartItemRequest> items = rawItems.stream()
-                .map(item -> new PosService.CartItemRequest(
-                        UUID.fromString(item.get("productId").toString()),
-                        new BigDecimal(item.get("quantity").toString()),
-                        item.get("variantName") != null ? item.get("variantName").toString() : null,
-                        item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT"
-                )).toList();
+                .map(item -> {
+                    Object pid = item.get("productId");
+                    Object qty = item.get("quantity");
+                    if (pid == null || qty == null) {
+                        throw new IllegalArgumentException("Cada ítem requiere productId y quantity");
+                    }
+                    return new PosService.CartItemRequest(
+                            UUID.fromString(pid.toString()),
+                            new BigDecimal(qty.toString()),
+                            item.get("variantName") != null ? item.get("variantName").toString() : null,
+                            item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT"
+                    );
+                }).toList();
 
         BigDecimal cashReceived = body.get("cashReceived") != null
                 ? new BigDecimal(body.get("cashReceived").toString()) : null;
 
+        Object branchIdObj = body.get("branchId");
+        if (branchIdObj == null) {
+            throw new IllegalArgumentException("Se requiere branchId");
+        }
+
         Sale sale = posService.checkout(new PosService.CheckoutRequest(
                 principal.businessId(),
-                UUID.fromString(body.get("branchId").toString()),
+                UUID.fromString(branchIdObj.toString()),
                 principal.userId(),
                 items,
                 body.getOrDefault("paymentMethod", "cash").toString(),

@@ -3,42 +3,53 @@ import { auth as authApi } from '../api'
 
 const AuthContext = createContext(null)
 
+function safeLocalGet(key, fallback = null) {
+  try {
+    const v = localStorage.getItem(key)
+    return v ? JSON.parse(v) : fallback
+  } catch { return fallback }
+}
+
+function safeLocalSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+}
+
+function safeLocalRemove(key) {
+  try { localStorage.removeItem(key) } catch {}
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('ab_user')
-    return stored ? JSON.parse(stored) : null
-  })
+  const [user, setUser] = useState(() => safeLocalGet('ab_user'))
 
   const _persist = (userData) => {
-    localStorage.setItem('ab_user', JSON.stringify(userData))
+    safeLocalSet('ab_user', userData)
     setUser(userData)
   }
 
   const login = useCallback(async (email, password) => {
     const res = await authApi.login(email, password)
-    localStorage.setItem('ab_token', res.token)
+    try { localStorage.setItem('ab_token', res.token) } catch {}
     _persist(res.user)
     return res.user
   }, [])
 
   const register = useCallback(async (data) => {
     const res = await authApi.register(data)
-    localStorage.setItem('ab_token', res.token)
+    try { localStorage.setItem('ab_token', res.token) } catch {}
     _persist(res.user)
     return res.user
   }, [])
 
   const logout = useCallback(() => {
-    localStorage.removeItem('ab_token')
-    localStorage.removeItem('ab_user')
+    safeLocalRemove('ab_token')
+    safeLocalRemove('ab_user')
     setUser(null)
   }, [])
 
-  // Actualiza campos del usuario en memoria y localStorage (ej: onboardingCompleted)
   const updateUser = useCallback((patch) => {
     setUser(prev => {
       const updated = { ...prev, ...patch }
-      localStorage.setItem('ab_user', JSON.stringify(updated))
+      safeLocalSet('ab_user', updated)
       return updated
     })
   }, [])

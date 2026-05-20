@@ -3,13 +3,18 @@
   min-height: 100vh;
 }
 
-/* The scrollable content area that sits to the right of the fixed sidebar */
 .app-content {
   margin-left: 220px;
   flex: 1;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: margin-left 0.25s cubic-bezier(.4,0,.2,1);
+}
+
+/* Collapsed sidebar: content shifts left */
+.sidebar-collapsed .app-content {
+  margin-left: 62px;
 }
 
 .app-main {
@@ -31,16 +36,25 @@
 }
 
 /* ═══════════════════════════════════
+   TABLET (769px – 1024px)
+   ═══════════════════════════════════ */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .app-main {
+    padding: 20px 20px 32px;
+  }
+}
+
+/* ═══════════════════════════════════
    MOBILE  (≤ 768 px)
    ═══════════════════════════════════ */
 @media (max-width: 768px) {
   .app-content {
-    margin-left: 0;          /* sidebar slides over, doesn't push */
+    margin-left: 0 !important;
     width: 100%;
   }
 
   .app-main {
-    padding: 14px 14px 24px;
+    padding: 12px 12px 80px;
   }
 
   /* ── Top bar ── */
@@ -70,8 +84,8 @@
     justify-content: center;
     align-items: center;
     gap: 5px;
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     background: none;
     border: none;
     cursor: pointer;
@@ -89,7 +103,6 @@
     transform-origin: center;
   }
 
-  /* × animation when open */
   .hamburger.is-open span:nth-child(1) {
     transform: translateY(7.5px) rotate(45deg);
   }

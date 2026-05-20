@@ -98,6 +98,7 @@ function parseRows(sheet, XLSX) {
 }
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 export default function Inventory() {
   const { show } = useToast()
@@ -180,9 +181,10 @@ export default function Inventory() {
   const printInventory = () => {
     const rows = filtered.map(p => {
       const margin = p.price > 0 ? ((p.price - p.cost) / p.price * 100).toFixed(1) : '0'
-      return `<tr><td>${p.name}</td><td>${p.sku || '—'}</td><td>$${p.price.toFixed(2)}</td><td>$${(p.cost || 0).toFixed(2)}</td><td>${margin}%</td><td>${p.stock}</td></tr>`
+      return `<tr><td>${esc(p.name)}</td><td>${esc(p.sku) || '—'}</td><td>$${p.price.toFixed(2)}</td><td>$${(p.cost || 0).toFixed(2)}</td><td>${margin}%</td><td>${p.stock}</td></tr>`
     }).join('')
     const w = window.open('', '_blank')
+    if (!w) { show('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes.', 'error'); return }
     w.document.write(`<html><head><title>Inventario</title><style>
       body { font-family: Arial, sans-serif; padding: 20px; }
       h2 { color: #6366f1; } table { width: 100%; border-collapse: collapse; margin-top: 16px; }
@@ -493,12 +495,13 @@ export default function Inventory() {
 
     const labels = svgList.map(({ name, price, svg }) => `
       <div class="label">
-        <div class="label-name">${name}</div>
+        <div class="label-name">${esc(name)}</div>
         <div class="label-svg">${svg}</div>
         <div class="label-price">$${Number(price).toFixed(2)}</div>
       </div>`).join('')
 
     const w = window.open('', '_blank')
+    if (!w) { show('El navegador bloqueó la ventana de impresión. Permite las ventanas emergentes.', 'error'); return }
     w.document.write(`<!DOCTYPE html><html><head><title>Etiquetas</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1088,7 +1091,7 @@ export default function Inventory() {
                 </thead>
                 <tbody>
                   {importRows.slice(0, 8).map((r, i) => (
-                    <tr key={i}>
+                    <tr key={`${r.name}-${i}`}>
                       <td>{r.name}</td>
                       <td>${parseFloat(r.price || 0).toFixed(2)}</td>
                       <td>${parseFloat(r.cost || 0).toFixed(2)}</td>

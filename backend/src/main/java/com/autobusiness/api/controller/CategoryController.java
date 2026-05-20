@@ -27,11 +27,12 @@ public class CategoryController {
     @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
     public ResponseEntity<?> create(@AuthenticationPrincipal AuthPrincipal p,
                                     @RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("El nombre de la categoría es requerido");
+        }
         return ResponseEntity.ok(categoryService.createCategory(
-                p.businessId(),
-                body.get("name"),
-                body.get("color"),
-                body.get("icon")));
+                p.businessId(), name, body.get("color"), body.get("icon")));
     }
 
     @PutMapping("/{id}")
@@ -39,8 +40,12 @@ public class CategoryController {
     public ResponseEntity<?> update(@AuthenticationPrincipal AuthPrincipal p,
                                     @PathVariable UUID id,
                                     @RequestBody Map<String, String> body) {
+        String name = body.get("name");
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("El nombre de la categoría es requerido");
+        }
         return ResponseEntity.ok(categoryService.updateCategory(
-                p.businessId(), id, body.get("name"), body.get("color"), body.get("icon")));
+                p.businessId(), id, name, body.get("color"), body.get("icon")));
     }
 
     @DeleteMapping("/{id}")

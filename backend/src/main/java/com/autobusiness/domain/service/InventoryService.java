@@ -176,22 +176,37 @@ public class InventoryService {
         try {
             StringBuilder sb = new StringBuilder("[");
             String[] parts = raw.split(",");
-            for (int i = 0; i < parts.length; i++) {
-                String[] tokens = parts[i].trim().split(":");
+            boolean first = true;
+            for (String part : parts) {
+                String[] tokens = part.trim().split(":");
                 if (tokens.length < 2) continue;
                 String vName = tokens[0].trim();
                 String mult  = tokens[1].trim();
-                sb.append("{\"name\":\"").append(vName).append("\",\"multiplier\":").append(mult);
-                if (tokens.length >= 3) sb.append(",\"priceOverride\":").append(tokens[2].trim());
-                else sb.append(",\"priceOverride\":null");
+                // Validate mult is numeric to prevent JSON injection
+                new java.math.BigDecimal(mult);
+                if (!first) sb.append(",");
+                first = false;
+                sb.append("{\"name\":\"").append(escapeJsonString(vName))
+                  .append("\",\"multiplier\":").append(mult);
+                if (tokens.length >= 3) {
+                    String priceOverride = tokens[2].trim();
+                    new java.math.BigDecimal(priceOverride); // validate numeric
+                    sb.append(",\"priceOverride\":").append(priceOverride);
+                } else {
+                    sb.append(",\"priceOverride\":null");
+                }
                 sb.append("}");
-                if (i < parts.length - 1) sb.append(",");
             }
             sb.append("]");
             return sb.toString().equals("[]") ? null : sb.toString();
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private static String escapeJsonString(String s) {
+        return s.replace("\\", "\\\\").replace("\"", "\\\"")
+                .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t");
     }
 
     @Transactional

@@ -6,6 +6,7 @@ export default function PaymentResult() {
   const status     = params.get('status') || detectStatus()
   const ref        = params.get('ref') || params.get('external_reference') || ''
   const paymentId  = params.get('payment_id') || ''
+  const slug       = params.get('slug') || ''
 
   function detectStatus() {
     const path = window.location.pathname
@@ -63,16 +64,23 @@ export default function PaymentResult() {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
-          <Link to="/orders" style={{
-            background: '#6366f1', color: '#fff', padding: '12px 24px',
-            borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: 15,
-          }}>Ver mis pedidos</Link>
-          <Link to="/" style={{
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {slug ? (
+            <Link to={`/tienda/${slug}`} style={{
+              background: '#6366f1', color: '#fff', padding: '12px 24px',
+              borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: 15,
+            }}>Volver a la tienda</Link>
+          ) : (
+            <Link to="/dashboard" style={{
+              background: '#6366f1', color: '#fff', padding: '12px 24px',
+              borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: 15,
+            }}>Ir al Dashboard</Link>
+          )}
+          <Link to={slug ? `/tienda/${slug}` : '/'} style={{
             background: 'transparent', color: '#6366f1', padding: '12px 24px',
             borderRadius: 10, textDecoration: 'none', fontWeight: 600, fontSize: 15,
             border: '1.5px solid #6366f1',
-          }}>Ir al inicio</Link>
+          }}>{slug ? 'Seguir comprando' : 'Ir al inicio'}</Link>
         </div>
       </div>
     </div>

@@ -52,7 +52,13 @@ public class CustomerController {
     public ResponseEntity<?> addFiado(@AuthenticationPrincipal AuthPrincipal p,
                                        @PathVariable UUID id,
                                        @RequestBody Map<String, Object> body) {
+        if (body.get("amount") == null) {
+            throw new IllegalArgumentException("El campo amount es requerido");
+        }
         BigDecimal amount = new BigDecimal(body.get("amount").toString());
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El monto debe ser mayor a cero");
+        }
         String desc = body.get("description") != null ? body.get("description").toString() : null;
         UUID saleId = body.get("saleId") != null ? UUID.fromString(body.get("saleId").toString()) : null;
         return ResponseEntity.ok(customerService.addFiado(p.businessId(), id, amount, desc, saleId));
@@ -62,7 +68,13 @@ public class CustomerController {
     public ResponseEntity<?> addPayment(@AuthenticationPrincipal AuthPrincipal p,
                                          @PathVariable UUID id,
                                          @RequestBody Map<String, Object> body) {
+        if (body.get("amount") == null) {
+            throw new IllegalArgumentException("El campo amount es requerido");
+        }
         BigDecimal amount = new BigDecimal(body.get("amount").toString());
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("El monto debe ser mayor a cero");
+        }
         String desc = body.get("description") != null ? body.get("description").toString() : null;
         return ResponseEntity.ok(customerService.addPayment(p.businessId(), id, amount, desc));
     }

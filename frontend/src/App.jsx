@@ -20,6 +20,7 @@ import Customers from './pages/Customers'
 import Users from './pages/Users'
 import Reports from './pages/Reports'
 import Subscription from './pages/Subscription'
+import PaymentSettings from './pages/PaymentSettings'
 import SuperAdmin from './pages/SuperAdmin'
 import Purchases from './pages/Purchases'
 import OnboardingWizard from './components/OnboardingWizard'
@@ -109,6 +110,10 @@ function AppRoutes() {
 
       <Route path="/subscription" element={
         <PrivateRoute ownerOnly><AppLayout><Subscription /></AppLayout></PrivateRoute>
+      } />
+
+      <Route path="/settings/payments" element={
+        <PrivateRoute ownerOnly><AppLayout><PaymentSettings /></AppLayout></PrivateRoute>
       } />
 
       <Route path="/purchases" element={

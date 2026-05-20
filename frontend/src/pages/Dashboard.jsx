@@ -18,6 +18,93 @@ const STATUS_CONFIG = {
 const INSIGHT_BG = { RED: '#fff1f0', YELLOW: '#fffbeb', GREEN: '#f0fdf4' }
 const INSIGHT_BORDER = { RED: '#ef4444', YELLOW: '#f59e0b', GREEN: '#10b981' }
 
+// Consejos que rotan diariamente — alineados con el eslogan del negocio
+const DAILY_TIPS = [
+  {
+    category: 'Libertad',
+    icon: '🕊️',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    title: 'Tu negocio trabaja para ti, no al revés',
+    tip: 'Cada producto en tu tienda online que se vende mientras descansas es un paso hacia la libertad real. Agrega hoy los productos que más vendes y deja que trabajen solos.',
+    action: 'Ir a Tienda Online',
+    route: '/store-admin',
+  },
+  {
+    category: 'Familia',
+    icon: '👨‍👩‍👧',
+    gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    title: 'Los mejores momentos no tienen precio de lista',
+    tip: 'Revisa tus horas pico en reportes. Si tu venta fuerte es por las mañanas, organiza tus tardes para estar con las personas que más importan. Ese tiempo vale más que cualquier venta.',
+    action: 'Ver mis reportes',
+    route: '/reports',
+  },
+  {
+    category: 'Crecimiento',
+    icon: '🌱',
+    gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    title: 'Un cliente que vuelve vale diez veces más',
+    tip: 'Tienes clientes en tu base de datos. Envíales un mensaje de WhatsApp personalizado hoy. Usa Marketing para generarlo en 30 segundos — sin esfuerzo, con resultados.',
+    action: 'Generar mensaje',
+    route: '/marketing',
+  },
+  {
+    category: 'Tranquilidad',
+    icon: '😌',
+    gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    title: 'El inventario no tiene que darte dolores de cabeza',
+    tip: 'Configura el stock mínimo en tus productos más vendidos. El sistema te avisa automáticamente antes de quedarte sin mercancía — tú solo te enteras cuando es necesario actuar.',
+    action: 'Ver inventario',
+    route: '/inventory',
+  },
+  {
+    category: 'Libertad',
+    icon: '💤',
+    gradient: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+    title: 'Vende mientras duermes',
+    tip: 'Tu tienda online está abierta 24/7 sin que tú estés presente. Asegúrate de que todos tus productos estrella tengan foto y descripción — cada visita nocturna es una venta potencial sin tu esfuerzo.',
+    action: 'Gestionar tienda',
+    route: '/store-admin',
+  },
+  {
+    category: 'Crecimiento',
+    icon: '📈',
+    gradient: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+    title: 'Conoce cuándo y qué te genera más dinero',
+    tip: 'Tus ventas tienen un patrón. Identificar tu hora y día pico te permite prepararte mejor — y delegar o descansar en los momentos de baja actividad.',
+    action: 'Ver finanzas',
+    route: '/finance',
+  },
+  {
+    category: 'Familia',
+    icon: '⏰',
+    gradient: 'linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%)',
+    title: 'Cada minuto ahorrado es tiempo con tu familia',
+    tip: 'Activar cobros con MercadoPago elimina el manejo de efectivo en cada venta. Menos riesgo, menos tiempo contando, más tiempo para lo que de verdad importa.',
+    action: 'Configurar cobros',
+    route: '/settings/payments',
+  },
+]
+
+function getMorningAnalysis(kpis) {
+  const hour = new Date().getHours()
+  if (hour < 6 || hour >= 13) return null
+
+  const revenue = Number(kpis?.todayRevenue || 0)
+  const sales = Number(kpis?.todaySales || 0)
+  const lowStock = Number(kpis?.lowStockCount || 0)
+
+  if (revenue > 0) {
+    return {
+      icon: '🌅',
+      message: `Mientras dormías, tu negocio generó ${fmt(revenue)} en ${sales} venta${sales !== 1 ? 's' : ''}. ${lowStock > 0 ? `Hay ${lowStock} producto${lowStock !== 1 ? 's' : ''} con stock bajo — revísalos antes de abrir.` : 'El inventario está en orden.'}`,
+    }
+  }
+  return {
+    icon: '🌅',
+    message: `Buenos días. Tu negocio está listo para arrancar. ${lowStock > 0 ? `Hay ${lowStock} producto${lowStock !== 1 ? 's' : ''} con stock bajo que deberías revisar primero.` : 'Todo el inventario está en orden — buen día por delante.'}`,
+  }
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -55,9 +142,11 @@ export default function Dashboard() {
         name: bizUser.name,
         token: res.token,
       }
-      const updated = [...accounts, newAcc]
-      setAccounts(updated)
-      localStorage.setItem('multi_accounts', JSON.stringify(updated))
+      setAccounts(prev => {
+        const updated = [...prev, newAcc]
+        try { localStorage.setItem('multi_accounts', JSON.stringify(updated)) } catch {}
+        return updated
+      })
       setShowAddBiz(false)
       setAddForm({ email: '', password: '' })
       show(`Negocio "${bizUser.businessName}" conectado`, 'success')
@@ -67,9 +156,11 @@ export default function Dashboard() {
   }
 
   const removeAccount = (businessId) => {
-    const updated = accounts.filter(a => a.businessId !== businessId)
-    setAccounts(updated)
-    localStorage.setItem('multi_accounts', JSON.stringify(updated))
+    setAccounts(prev => {
+      const updated = prev.filter(a => a.businessId !== businessId)
+      try { localStorage.setItem('multi_accounts', JSON.stringify(updated)) } catch {}
+      return updated
+    })
   }
 
   useEffect(() => {
@@ -88,18 +179,30 @@ export default function Dashboard() {
   const { kpis = {}, insights = [], lowStockProducts = [], topProducts = [], status = 'GREEN' } = data || {}
   const st = STATUS_CONFIG[status] || STATUS_CONFIG.GREEN
 
-  // Solo el insight #1 (mayor prioridad ya viene ordenado del backend)
   const topInsight = insights[0] || null
+
+  // Pick today's tip (rotates daily by day of year)
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000)
+  const todayTip = DAILY_TIPS[dayOfYear % DAILY_TIPS.length]
+  const morningMsg = getMorningAnalysis(kpis)
 
   return (
     <div className="dashboard-page">
-      {/* Header — estado del negocio */}
+      {/* Análisis de la mañana */}
+      {morningMsg && (
+        <div className="morning-banner">
+          <span className="morning-icon">{morningMsg.icon}</span>
+          <p>{morningMsg.message}</p>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Hola, {user?.name?.split(' ')[0]}</h1>
           <p className="page-subtitle">Resumen de hoy</p>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="page-header-actions">
           <div className={`status-pill status-pill--${st.cls}`}>
             {st.emoji} {st.label}
           </div>
@@ -115,7 +218,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* 3 KPIs — máximo, sin ruido */}
+      {/* KPIs */}
       <div className="kpi-grid">
         <KpiCard
           label="Ventas hoy"
@@ -138,7 +241,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* 1 Problema + 1 Acción — corazón del dashboard */}
+      {/* Top insight */}
       {topInsight && (
         <div
           className="main-insight"
@@ -165,16 +268,13 @@ export default function Dashboard() {
             <p>{topInsight.action}</p>
           </div>
           {topInsight.impact && (
-            <div className="main-insight-impact">
-              💵 {topInsight.impact}
-            </div>
+            <div className="main-insight-impact">💵 {topInsight.impact}</div>
           )}
         </div>
       )}
 
-      {/* Expanded insights */}
       {showAllInsights && insights.slice(1).map((ins, i) => (
-        <div key={i}
+        <div key={ins.id || `${ins.type}-${i}`}
           className="main-insight"
           style={{
             background: INSIGHT_BG[ins.status] || '#fff',
@@ -206,6 +306,22 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ── CONSEJO DEL DÍA ── */}
+      <div className="tip-card" style={{ background: todayTip.gradient }}>
+        <div className="tip-card-top">
+          <span className="tip-category">{todayTip.category}</span>
+          <span className="tip-icon">{todayTip.icon}</span>
+        </div>
+        <h3 className="tip-title">{todayTip.title}</h3>
+        <p className="tip-body">{todayTip.tip}</p>
+        <div className="tip-footer">
+          <button className="tip-action-btn" onClick={() => navigate(todayTip.route)}>
+            {todayTip.action} →
+          </button>
+          <p className="tip-slogan">No construiste tu negocio para vivir estresado.<br />Lo construiste para crecer, ser libre y estar con tu familia.</p>
+        </div>
+      </div>
+
       {/* Panel secundario */}
       <div className="dashboard-secondary">
         {lowStockProducts.length > 0 && (
@@ -226,7 +342,7 @@ export default function Dashboard() {
           <div className="card">
             <h3 className="section-title" style={{ marginBottom: 12 }}>🏆 Más vendidos este mes</h3>
             {topProducts.slice(0, 5).map((p, i) => (
-              <div key={p.id || i} className="list-item">
+              <div key={p.name || `top-${i}`} className="list-item">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span className="rank-badge">{i + 1}</span>
                   <span className="list-item-name">{p.name}</span>
@@ -240,7 +356,7 @@ export default function Dashboard() {
 
       {/* Multi-negocio */}
       <div className="card" style={{ padding: '16px 20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <h3 className="section-title" style={{ margin: 0 }}>🏢 Mis negocios</h3>
           <button className="btn btn-sm btn-outline" onClick={() => setShowAddBiz(v => !v)}>
             {showAddBiz ? 'Cancelar' : '+ Conectar negocio'}
@@ -262,7 +378,6 @@ export default function Dashboard() {
         )}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          {/* Current business */}
           <div style={{ padding: '10px 16px', background: '#ede9fe', borderRadius: 10, border: '2px solid #6366f1', minWidth: 160 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Activo</div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.businessName}</div>
@@ -298,21 +413,21 @@ export default function Dashboard() {
       {/* Acciones rápidas */}
       <div className="card" style={{ padding: '16px 20px' }}>
         <h3 className="section-title" style={{ marginBottom: 12 }}>Acciones rápidas</h3>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="quick-actions">
           <button className="btn btn-primary" onClick={() => navigate('/caja')}>
             💰 Nueva venta
           </button>
           <button className="btn btn-outline" onClick={() => navigate('/inventory')}>
-            📦 Ver inventario
+            📦 Inventario
           </button>
           <button className="btn btn-outline" onClick={() => navigate('/finance')}>
-            📊 Ver finanzas
+            📊 Finanzas
           </button>
           <button className="btn btn-outline" onClick={() => navigate('/orders')}>
-            📋 Ver pedidos
+            📋 Pedidos
           </button>
           <button className="btn btn-outline" onClick={() => navigate('/marketing')}>
-            📣 Generar marketing
+            📣 Marketing
           </button>
         </div>
       </div>

@@ -6,11 +6,15 @@ import com.autobusiness.domain.repository.PaymentRepository;
 import com.autobusiness.domain.service.MercadoPagoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -22,6 +26,9 @@ public class PaymentController {
 
     private final MercadoPagoService mpService;
     private final PaymentRepository paymentRepo;
+
+    @Value("${mercadopago.webhook-secret:}")
+    private String webhookSecret;
 
     /**
      * POST /api/payments/mercadopago/create-preference
@@ -49,7 +56,7 @@ public class PaymentController {
             }
 
             Map<String, Object> result = mpService.createPreference(
-                    p.businessId(), orderId, items, total, payerEmail);
+                    p.businessId(), orderId, items, total, payerEmail, null, null);
 
             return ResponseEntity.ok(result);
         } catch (Exception e) {
@@ -60,15 +67,34 @@ public class PaymentController {
 
     /**
      * POST /api/payments/mercadopago/webhook  — público, llamado por MP
-     * Acepta tanto IPN legacy (?id=&topic=) como Notifications v2 (body JSON)
+     * Acepta tanto IPN legacy (?id=&topic=) como Notifications v2 (body JSON).
+     * Valida firma HMAC-SHA256 cuando webhookSecret está configurado.
      */
     @PostMapping("/mercadopago/webhook")
     public ResponseEntity<?> webhook(
             @RequestParam(required = false) String id,
             @RequestParam(required = false) String topic,
+            @RequestHeader(value = "x-signature", required = false) String xSignature,
+            @RequestHeader(value = "x-request-id", required = false) String requestId,
             @RequestBody(required = false) Map<String, Object> body) {
         try {
-            log.info("MP webhook: id={} topic={} body={}", id, topic, body);
+            // Validar firma MP si el secret está configurado
+            if (webhookSecret != null && !webhookSecret.isBlank() && xSignature != null) {
+                String ts = extractSignaturePart(xSignature, "ts");
+                String v1 = extractSignaturePart(xSignature, "v1");
+                if (ts != null && v1 != null) {
+                    String manifest = "id:" + (id != null ? id : "") +
+                            ";request-id:" + (requestId != null ? requestId : "") +
+                            ";ts:" + ts + ";";
+                    String computed = hmacSha256(webhookSecret, manifest);
+                    if (!computed.equals(v1)) {
+                        log.warn("MP webhook: firma inválida — posible request falso");
+                        return ResponseEntity.ok().build(); // 200 para no revelar el rechazo
+                    }
+                }
+            }
+            // No loguear body completo — puede contener datos sensibles
+            log.info("MP webhook: id={} topic={}", id, topic);
             mpService.processWebhook(
                     topic != null ? topic : (body != null ? body.getOrDefault("type", "").toString() : ""),
                     id,
@@ -76,8 +102,28 @@ public class PaymentController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("MP webhook error: {}", e.getMessage());
-            // Siempre retornar 200 para que MP no reintente indefinidamente
             return ResponseEntity.ok().build();
+        }
+    }
+
+    private String extractSignaturePart(String signature, String key) {
+        for (String part : signature.split(";")) {
+            String[] kv = part.split("=", 2);
+            if (kv.length == 2 && kv[0].trim().equals(key)) return kv[1].trim();
+        }
+        return null;
+    }
+
+    private String hmacSha256(String secret, String data) {
+        try {
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            byte[] hash = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hash) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
         }
     }
 
@@ -107,16 +153,19 @@ public class PaymentController {
 
     /**
      * GET /api/payments/order/{orderId} — pagos de una orden específica
+     * Solo retorna pagos del negocio autenticado (previene acceso horizontal).
      */
     @GetMapping("/order/{orderId}")
     public ResponseEntity<?> byOrder(@AuthenticationPrincipal AuthPrincipal p,
                                       @PathVariable UUID orderId) {
         List<Payment> payments = paymentRepo.findByOrderIdOrderByCreatedAtDesc(orderId);
-        return ResponseEntity.ok(payments.stream().map(pay -> Map.of(
-                "id",     pay.getId(),
-                "status", pay.getStatus(),
-                "amount", pay.getAmount(),
-                "method", pay.getMethod()
-        )).toList());
+        return ResponseEntity.ok(payments.stream()
+                .filter(pay -> p.businessId().equals(pay.getBusinessId()))
+                .map(pay -> Map.of(
+                        "id",     pay.getId(),
+                        "status", pay.getStatus(),
+                        "amount", pay.getAmount(),
+                        "method", pay.getMethod()
+                )).toList());
     }
 }

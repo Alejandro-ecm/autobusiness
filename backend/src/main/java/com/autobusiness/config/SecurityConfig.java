@@ -2,6 +2,7 @@ package com.autobusiness.config;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +21,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -29,6 +32,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+
+    @Value("${app.allowed-origins:http://localhost:3000,http://localhost:5173,http://localhost:4173}")
+    private String allowedOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -44,7 +50,8 @@ public class SecurityConfig {
                                 "/health",
                                 "/actuator/**",
                                 "/subscription/plans",                      // precios públicos
-                                "/payments/mercadopago/webhook"             // webhook MP sin JWT
+                                "/payments/mercadopago/webhook",            // webhook MP sin JWT
+                                "/settings/mp/oauth-callback"               // redirect de MP OAuth
                         ).permitAll()
                         // Super admin
                         .requestMatchers("/super-admin/**").hasRole("SUPER_ADMIN")
@@ -81,8 +88,12 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsSource() {
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toList());
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

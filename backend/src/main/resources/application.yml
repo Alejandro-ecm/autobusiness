@@ -41,14 +41,21 @@ ai:
 
 mercadopago:
   access-token: ${MP_ACCESS_TOKEN:TEST-placeholder-change-me}
+  webhook-secret: ${MP_WEBHOOK_SECRET:}
   notification-url: ${MP_NOTIFICATION_URL:http://localhost:8080/api/payments/mercadopago/webhook}
   success-url: ${MP_SUCCESS_URL:http://localhost:3000/payment/success}
   failure-url: ${MP_FAILURE_URL:http://localhost:3000/payment/failure}
   pending-url: ${MP_PENDING_URL:http://localhost:3000/payment/pending}
+  client-id: ${MP_CLIENT_ID:}
+  client-secret: ${MP_CLIENT_SECRET:}
+  oauth-redirect-uri: ${MP_OAUTH_REDIRECT_URI:http://localhost:8080/api/settings/mp/oauth-callback}
 
 app:
   base-url: ${APP_BASE_URL:http://localhost:3000}
   base-domain: ${APP_BASE_DOMAIN:localhost}
+  # En producción: lista separada por comas con tu dominio real
+  # Ejemplo: https://app.tudominio.com,https://tudominio.com
+  allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:4173}
 
 management:
   endpoints:
