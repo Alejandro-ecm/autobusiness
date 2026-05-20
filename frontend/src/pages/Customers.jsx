@@ -92,6 +92,17 @@ export default function Customers() {
     finally { setSaving(false) }
   }
 
+  const handleDelete = async (c, e) => {
+    e.stopPropagation()
+    if (!window.confirm(`¿Eliminar a ${c.name}? Esta acción no se puede deshacer.`)) return
+    try {
+      await api.remove(c.id)
+      show('Cliente eliminado', 'success')
+      if (selected?.id === c.id) setSelected(null)
+      load(search)
+    } catch (err) { show(err?.error || 'Error al eliminar', 'error') }
+  }
+
   const totalFiado   = customers.reduce((s, c) => s + Number(c.totalCredit || 0), 0)
   const withDebt     = customers.filter(c => Number(c.totalCredit) > 0).length
 
@@ -163,10 +174,16 @@ export default function Customers() {
                     ? <span className="badge badge-yellow">{fmt(c.totalCredit)}</span>
                     : <span className="badge badge-green">Al corriente</span>}
                 </td>
-                <td>
+                <td style={{ display:'flex', gap: 6 }}>
                   <button className="btn btn-sm btn-outline" onClick={() => openCustomer(c)}>
                     Ver / Fiado
                   </button>
+                  {isOwner && (
+                    <button className="btn btn-sm" style={{ background:'#fee2e2', color:'#dc2626', border:'1px solid #fca5a5' }}
+                      onClick={(e) => handleDelete(c, e)}>
+                      Eliminar
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

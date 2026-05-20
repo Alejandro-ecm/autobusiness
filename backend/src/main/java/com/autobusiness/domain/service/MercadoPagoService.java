@@ -315,7 +315,8 @@ public class MercadoPagoService {
                 "unit_price", price
         ));
 
+        // Use platform token so subscription revenue goes to the platform, not the business
         return createPreference(businessId, null, items,
-                BigDecimal.valueOf(price), null, null, plan);
+                BigDecimal.valueOf(price), null, null, plan, accessToken);
     }
 }
