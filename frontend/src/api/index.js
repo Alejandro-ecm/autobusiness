@@ -78,11 +78,12 @@ export const business = {
 }
 
 export const subscription = {
-  status:   ()           => client.get('/subscription'),
-  plans:    ()           => client.get('/subscription/plans'),
-  upgrade:  (plan)       => client.post('/subscription/upgrade', { plan }),
-  cancel:   ()           => client.post('/subscription/cancel'),
-  activate: ()           => client.post('/subscription/activate'),
+  status:         ()              => client.get('/subscription'),
+  plans:          ()              => client.get('/subscription/plans'),
+  upgrade:        (plan)          => client.post('/subscription/upgrade', { plan }),
+  processPayment: (plan, formData) => client.post('/subscription/process-payment', { plan, formData }),
+  cancel:         ()              => client.post('/subscription/cancel'),
+  activate:       ()              => client.post('/subscription/activate'),
 }
 
 export const payments = {

@@ -45,6 +45,7 @@ ai:
 
 mercadopago:
   access-token: ${MP_ACCESS_TOKEN:TEST-placeholder-change-me}
+  public-key: ${MP_PUBLIC_KEY:}
   webhook-secret: ${MP_WEBHOOK_SECRET:}
   notification-url: ${MP_NOTIFICATION_URL:http://localhost:8080/api/payments/mercadopago/webhook}
   success-url: ${MP_SUCCESS_URL:http://localhost:3000/payment/success}

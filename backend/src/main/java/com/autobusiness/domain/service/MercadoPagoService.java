@@ -31,6 +31,11 @@ public class MercadoPagoService {
     @Value("${mercadopago.access-token:TEST-placeholder}")
     private String accessToken;
 
+    @Value("${mercadopago.public-key:}")
+    private String platformPublicKey;
+
+    public String getPlatformPublicKey() { return platformPublicKey; }
+
     @Value("${mercadopago.notification-url:http://localhost:8080/api/payments/mercadopago/webhook}")
     private String notificationUrl;
 
@@ -370,6 +375,66 @@ public class MercadoPagoService {
         paymentRepo.save(payment);
 
         log.info("Card payment {} status={} for business {}", mpId, status, businessId);
+        return Map.of("status", status, "id", mpId,
+                "statusDetail", result.getOrDefault("status_detail", ""));
+    }
+
+    /**
+     * Procesa pago de suscripción con tarjeta via Bricks.
+     * Siempre usa el token de la plataforma para que el dinero vaya al dueño del SaaS.
+     */
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> processSubscriptionCardPayment(UUID businessId, String plan,
+                                                               Map<String, Object> formData) {
+        Map<String, Integer> prices = Map.of("BASIC", 29, "PRO", 49, "PREMIUM", 89);
+        int price = prices.getOrDefault(plan.toUpperCase(), 29);
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("transaction_amount", (double) price);
+        payload.put("token",             formData.get("token"));
+        payload.put("description",       "AutoBusiness " + plan + " — mensual");
+        payload.put("installments",      Integer.parseInt(formData.getOrDefault("installments", "1").toString()));
+        payload.put("payment_method_id", formData.get("payment_method_id"));
+        if (formData.containsKey("issuer_id") && formData.get("issuer_id") != null)
+            payload.put("issuer_id", formData.get("issuer_id"));
+        if (formData.containsKey("payer")) payload.put("payer", formData.get("payer"));
+        payload.put("metadata", Map.of("business_id", businessId.toString(),
+                                       "type", "subscription", "plan", plan));
+
+        WebClient client = webClientBuilder.baseUrl(MP_API)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .build();
+
+        Map<String, Object> result = client.post()
+                .uri("/v1/payments")
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (result == null) throw new IllegalStateException("Sin respuesta de Mercado Pago");
+
+        String status = result.getOrDefault("status", "rejected").toString();
+        String mpId   = result.getOrDefault("id", "").toString();
+
+        if ("approved".equals(status)) {
+            subscriptionService.upgradePlan(businessId, plan, mpId);
+            log.info("Subscription {} activated via Bricks payment {} for business {}", plan, mpId, businessId);
+        }
+
+        Business business = businessRepo.findById(businessId).orElseThrow();
+        Payment payment = Payment.builder()
+                .business(business)
+                .method("mercadopago_subscription")
+                .status(status)
+                .amount(BigDecimal.valueOf(price))
+                .currency("MXN")
+                .transactionId(mpId)
+                .build();
+        paymentRepo.save(payment);
+
         return Map.of("status", status, "id", mpId,
                 "statusDetail", result.getOrDefault("status_detail", ""));
     }

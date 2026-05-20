@@ -4,6 +4,67 @@ import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
 import './Subscription.css'
 
+let mpSubInitialized = false
+async function initMP(publicKey) {
+  if (mpSubInitialized || !publicKey) return
+  const { initMercadoPago } = await import('@mercadopago/sdk-react')
+  initMercadoPago(publicKey, { locale: 'es-MX' })
+  mpSubInitialized = true
+}
+
+function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClose }) {
+  const [BrickComponent, setBrickComponent] = useState(null)
+
+  useEffect(() => {
+    import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
+  }, [])
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box card" style={{ maxWidth: 540, width: '95%' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3>Suscripción {plan}</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Total: ${amount}/mes</p>
+          </div>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div style={{ padding: '0 8px 8px' }}>
+          {!BrickComponent ? (
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <div className="spinner" style={{ margin: '0 auto 12px' }} />
+              <p style={{ color: '#64748b' }}>Cargando métodos de pago...</p>
+            </div>
+          ) : (
+            <BrickComponent
+              initialization={{ amount, preferenceId }}
+              customization={{
+                paymentMethods: { creditCard: 'all', debitCard: 'all', mercadoPago: 'all' },
+                visual: { style: { theme: 'default' } }
+              }}
+              onSubmit={async ({ formData }) => {
+                try {
+                  const result = await subApi.processPayment(plan, formData)
+                  if (result.status === 'approved') { onSuccess(plan); return { status: 'approved' } }
+                  if (result.status === 'pending' || result.status === 'in_process') {
+                    onSuccess(plan, 'pending'); return { status: 'pending' }
+                  }
+                  return { status: 'rejected' }
+                } catch (err) {
+                  onError(err?.error || 'Error al procesar el pago')
+                  return { status: 'rejected' }
+                }
+              }}
+              onReady={() => {}}
+              onError={() => onError('Error en el formulario de pago')}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const PLAN_INFO = {
   FREE:    { color: '#64748b', features: ['50 productos', '2 usuarios', 'POS básico', 'Inventario'] },
   BASIC:   { color: '#3b82f6', features: ['500 productos', '5 usuarios', 'Tienda online + QR', 'Reportes'] },
@@ -27,10 +88,15 @@ export default function Subscription() {
   const [plans, setPlans] = useState({})
   const [loading, setLoading] = useState(true)
   const [upgrading, setUpgrading] = useState(null)
+  const [brickData, setBrickData] = useState(null)   // { plan, amount, preferenceId }
 
   useEffect(() => {
     Promise.all([subApi.status(), subApi.plans()])
-      .then(([s, p]) => { setData(s); setPlans(p) })
+      .then(([s, p]) => {
+        setData(s)
+        setPlans(p)
+        if (s.mpPublicKey) initMP(s.mpPublicKey)
+      })
       .catch(() => show('Error al cargar suscripción', 'error'))
       .finally(() => setLoading(false))
   }, [])
@@ -39,17 +105,35 @@ export default function Subscription() {
     setUpgrading(plan)
     try {
       const res = await subApi.upgrade(plan)
-      const url = res.initPoint || res.sandboxPoint
-      // Abrir Mercado Pago en ventana modal centrada
-      const w = 520, h = 720
-      const left = Math.round(window.screenX + (window.outerWidth - w) / 2)
-      const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)
-      window.open(url, 'mercadopago_checkout',
-        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes,resizable=no`)
-      show('Completa el pago en la ventana de Mercado Pago', 'success')
+      const prices = { BASIC: 29, PRO: 49, PREMIUM: 89 }
+
+      if (data?.mpPublicKey) {
+        // Checkout Bricks — formulario embebido
+        setBrickData({ plan, amount: prices[plan] || 29, preferenceId: res.preferenceId })
+      } else {
+        // Fallback ventana centrada si no hay public key
+        const url = res.initPoint || res.sandboxPoint
+        const w = 520, h = 720
+        const left = Math.round(window.screenX + (window.outerWidth - w) / 2)
+        const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)
+        window.open(url, 'mp_checkout',
+          `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`)
+        show('Completa el pago en la ventana de Mercado Pago', 'success')
+      }
     } catch (err) {
       show(err?.error || 'Error al generar enlace de pago', 'error')
     } finally { setUpgrading(null) }
+  }
+
+  const handlePaymentSuccess = (plan, status) => {
+    setBrickData(null)
+    if (status === 'pending') {
+      show('Pago en proceso. Tu plan se activará cuando se confirme.', 'success')
+    } else {
+      show(`¡Plan ${plan} activado!`, 'success')
+      // Recargar estado de suscripción
+      subApi.status().then(s => setData(s)).catch(() => {})
+    }
   }
 
   if (loading) return <div className="page-loading"><div className="spinner" /></div>
@@ -64,6 +148,16 @@ export default function Subscription() {
 
   return (
     <div className="sub-page">
+      {brickData && (
+        <SubPaymentBrick
+          plan={brickData.plan}
+          amount={brickData.amount}
+          preferenceId={brickData.preferenceId}
+          onSuccess={handlePaymentSuccess}
+          onError={(msg) => show(msg, 'error')}
+          onClose={() => setBrickData(null)}
+        />
+      )}
       <div className="page-header">
         <div>
           <h1 className="page-title">Suscripción</h1>
@@ -116,7 +210,7 @@ export default function Subscription() {
       {/* Planes disponibles */}
       <h2 style={{ fontSize: 20, fontWeight: 700, margin: '8px 0 4px' }}>Cambiar plan</h2>
       <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 16px' }}>
-        Al pagar serás redirigido a Mercado Pago. El plan se activa automáticamente.
+        Paga con tarjeta directo aquí. El plan se activa automáticamente.
       </p>
       <div className="sub-plans">
         {['BASIC', 'PRO', 'PREMIUM'].map(plan => {

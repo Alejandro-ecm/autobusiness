@@ -22,7 +22,10 @@ public class SubscriptionController {
     /** GET /api/subscription — estado actual de la suscripción */
     @GetMapping
     public ResponseEntity<?> status(@AuthenticationPrincipal AuthPrincipal p) {
-        return ResponseEntity.ok(subscriptionService.getStatus(p.businessId()));
+        Map<String, Object> result = new java.util.HashMap<>(subscriptionService.getStatus(p.businessId()));
+        String pk = mpService.getPlatformPublicKey();
+        result.put("mpPublicKey", pk != null ? pk : "");
+        return ResponseEntity.ok(result);
     }
 
     /** GET /api/subscription/plans — todos los planes disponibles */
@@ -45,6 +48,24 @@ public class SubscriptionController {
                     "sandboxPoint", paymentLink.get("sandboxPoint"),
                     "paymentId",  paymentLink.get("paymentId")
             ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /** POST /api/subscription/process-payment — procesar pago con tarjeta via Bricks */
+    @PostMapping("/process-payment")
+    @PreAuthorize("hasAnyRole('OWNER')")
+    public ResponseEntity<?> processPayment(@AuthenticationPrincipal AuthPrincipal p,
+                                             @RequestBody Map<String, Object> body) {
+        String plan = body.getOrDefault("plan", "BASIC").toString().toUpperCase();
+        try {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> formData = body.containsKey("formData")
+                    ? (Map<String, Object>) body.get("formData") : body;
+            Map<String, Object> result = mpService.processSubscriptionCardPayment(
+                    p.businessId(), plan, formData);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
