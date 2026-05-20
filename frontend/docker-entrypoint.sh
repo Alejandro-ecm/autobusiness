@@ -1,14 +1,14 @@
 #!/bin/sh
 set -e
 
-# ── Railway / producción: HTTP, puerto dinámico ────────────────────────────
-# Detecta Railway por la var RAILWAY_ENVIRONMENT o por BACKEND_URL explícita
-if [ -n "$RAILWAY_ENVIRONMENT" ] || [ "$NGINX_MODE" = "railway" ]; then
-  echo "[AutoBusiness] Modo Railway — HTTP en puerto ${PORT:-80}"
+# ── Railway / Render / producción: HTTP, puerto dinámico ──────────────────
+# Detecta Railway (RAILWAY_ENVIRONMENT), Render (RENDER=true) o modo manual
+if [ -n "$RAILWAY_ENVIRONMENT" ] || [ -n "$RENDER" ] || [ "$NGINX_MODE" = "railway" ]; then
+  echo "[AutoBusiness] Modo producción — HTTP en puerto ${PORT:-80}"
 
-  # Valores por defecto
+  # Valores por defecto — BACKEND_URL apunta al backend en Render
   export PORT="${PORT:-80}"
-  export BACKEND_URL="${BACKEND_URL:-http://backend:8080}"
+  export BACKEND_URL="${BACKEND_URL:-https://autobusiness-backend.onrender.com}"
 
   # Sustituir variables en el template y escribir config activa
   envsubst '${PORT} ${BACKEND_URL}' \

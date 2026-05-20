@@ -20,7 +20,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 ENV PORT=80
-ENV BACKEND_URL=http://backend:8080
+ENV BACKEND_URL=https://autobusiness-backend.onrender.com
 EXPOSE ${PORT}
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
