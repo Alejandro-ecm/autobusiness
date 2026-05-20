@@ -8,9 +8,6 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:autobusiness_secret}
     driver-class-name: org.postgresql.Driver
 
-  main:
-    lazy-initialization: true
-
   jpa:
     hibernate:
       ddl-auto: validate
