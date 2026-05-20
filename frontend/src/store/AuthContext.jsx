@@ -23,7 +23,8 @@ export function AuthProvider({ children }) {
 
   // Warm up the Render backend on app load so it's ready by the time the user logs in
   useEffect(() => {
-    fetch('/api/health').catch(() => {})
+    const base = import.meta.env.VITE_API_URL || '/api'
+    fetch(`${base}/health`).catch(() => {})
   }, [])
 
   const _persist = (userData) => {

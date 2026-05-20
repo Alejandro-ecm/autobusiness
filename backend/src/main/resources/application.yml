@@ -59,7 +59,7 @@ app:
   base-domain: ${APP_BASE_DOMAIN:localhost}
   # En producción: lista separada por comas con tu dominio real
   # Ejemplo: https://app.tudominio.com,https://tudominio.com
-  allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:4173}
+  allowed-origins: ${APP_ALLOWED_ORIGINS:https://*.onrender.com,http://localhost:3000,http://localhost:5173,http://localhost:4173}
 
 management:
   endpoints:
