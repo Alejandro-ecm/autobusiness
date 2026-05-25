@@ -89,10 +89,15 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsSource() {
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+        List<String> origins = new java.util.ArrayList<>(Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()));
+        // Allow Capacitor (Android/iOS app) and *.onrender.com always
+        origins.add("capacitor://localhost");
+        origins.add("https://localhost");
+        origins.add("http://localhost");
+        origins.add("*.onrender.com");
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
