@@ -29,7 +29,7 @@ export default function PrivacyPolicy() {
               empresas en México, disponible en web y como aplicación móvil en Google Play Store.
             </p>
             <p>
-              Sitio web: <a href="https://skytechnologieslatam.com" style={styles.link}>skytechnologieslatam.com</a><br />
+              Sitio web: <a href="https://autobusiness.skytechnologieslatam.com" style={styles.link}>autobusiness.skytechnologieslatam.com</a><br />
               Contacto de privacidad: <a href="mailto:soporte@skytechnologieslatam.com" style={styles.link}>soporte@skytechnologieslatam.com</a>
             </p>
           </Section>
@@ -194,7 +194,7 @@ export default function PrivacyPolicy() {
             <div style={styles.contactBox}>
               <p><strong>Sky Technologies Latam</strong></p>
               <p>Email: <a href="mailto:soporte@skytechnologieslatam.com" style={styles.link}>soporte@skytechnologieslatam.com</a></p>
-              <p>Sitio: <a href="https://skytechnologieslatam.com" style={styles.link}>skytechnologieslatam.com</a></p>
+              <p>Sitio: <a href="https://autobusiness.skytechnologieslatam.com" style={styles.link}>autobusiness.skytechnologieslatam.com</a></p>
             </div>
           </Section>
 

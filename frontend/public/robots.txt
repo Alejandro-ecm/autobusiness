@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /caja
+Disallow: /inventory
+Disallow: /orders
+Disallow: /finance
+Disallow: /marketing
+Disallow: /customers
+Disallow: /users
+Disallow: /reports
+Disallow: /subscription
+Disallow: /settings
+Disallow: /purchases
+Disallow: /contabilidad
+Disallow: /caja-ia
+Disallow: /store-admin
+Disallow: /super-admin
+
+Sitemap: https://autobusiness.skytechnologieslatam.com/sitemap.xml

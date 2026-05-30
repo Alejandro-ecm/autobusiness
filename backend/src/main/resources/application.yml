@@ -52,13 +52,13 @@ mercadopago:
   access-token: ${MP_ACCESS_TOKEN:TEST-placeholder-change-me}
   public-key: ${MP_PUBLIC_KEY:}
   webhook-secret: ${MP_WEBHOOK_SECRET:}
-  notification-url: ${MP_NOTIFICATION_URL:http://localhost:8080/api/payments/mercadopago/webhook}
-  success-url: ${MP_SUCCESS_URL:http://localhost:3000/payment/success}
-  failure-url: ${MP_FAILURE_URL:http://localhost:3000/payment/failure}
-  pending-url: ${MP_PENDING_URL:http://localhost:3000/payment/pending}
+  notification-url: ${MP_NOTIFICATION_URL:https://autobusiness-production-ccbc.up.railway.app/api/payments/mercadopago/webhook}
+  success-url: ${MP_SUCCESS_URL:https://autobusiness.skytechnologieslatam.com/payment/success}
+  failure-url: ${MP_FAILURE_URL:https://autobusiness.skytechnologieslatam.com/payment/failure}
+  pending-url: ${MP_PENDING_URL:https://autobusiness.skytechnologieslatam.com/payment/pending}
   client-id: ${MP_CLIENT_ID:}
   client-secret: ${MP_CLIENT_SECRET:}
-  oauth-redirect-uri: ${MP_OAUTH_REDIRECT_URI:http://localhost:8080/api/settings/mp/oauth-callback}
+  oauth-redirect-uri: ${MP_OAUTH_REDIRECT_URI:https://autobusiness-production-ccbc.up.railway.app/api/settings/mp/oauth-callback}
 
 cloudinary:
   cloud-name: ${CLOUDINARY_CLOUD_NAME:}
@@ -66,11 +66,11 @@ cloudinary:
   api-secret: ${CLOUDINARY_API_SECRET:}
 
 app:
-  base-url: ${APP_BASE_URL:http://localhost:3000}
-  base-domain: ${APP_BASE_DOMAIN:localhost}
+  base-url: ${APP_BASE_URL:https://autobusiness.skytechnologieslatam.com}
+  base-domain: ${APP_BASE_DOMAIN:autobusiness.skytechnologieslatam.com}
   # En producción: lista separada por comas con tu dominio real
   # Ejemplo: https://app.tudominio.com,https://tudominio.com
-  allowed-origins: ${APP_ALLOWED_ORIGINS:https://*.onrender.com,http://localhost:3000,http://localhost:5173,http://localhost:4173}
+  allowed-origins: ${APP_ALLOWED_ORIGINS:https://autobusiness.skytechnologieslatam.com,https://app.skytechnologieslatam.com,https://skytechnologieslatam.com,http://localhost:3000,http://localhost:5173,http://localhost:4173}
 
 management:
   endpoints:

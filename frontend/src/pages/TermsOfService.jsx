@@ -217,7 +217,7 @@ export default function TermsOfService() {
             <div style={styles.contactBox}>
               <p><strong>Sky Technologies Latam</strong></p>
               <p>Email: <a href="mailto:soporte@skytechnologieslatam.com" style={styles.link}>soporte@skytechnologieslatam.com</a></p>
-              <p>Sitio: <a href="https://skytechnologieslatam.com" style={styles.link}>skytechnologieslatam.com</a></p>
+              <p>Sitio: <a href="https://autobusiness.skytechnologieslatam.com" style={styles.link}>autobusiness.skytechnologieslatam.com</a></p>
             </div>
           </Section>
 

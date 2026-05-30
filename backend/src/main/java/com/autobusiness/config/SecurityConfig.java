@@ -109,6 +109,8 @@ public class SecurityConfig {
         origins.add("capacitor://localhost");
         origins.add("https://localhost");
         origins.add("http://localhost");
+        origins.add("https://autobusiness.skytechnologieslatam.com");
+        origins.add("https://app.skytechnologieslatam.com");
         origins.add("https://skytechnologieslatam.com");
         origins.add("https://www.skytechnologieslatam.com");
         origins.add("https://*.vercel.app");
