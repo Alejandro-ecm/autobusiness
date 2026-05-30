@@ -430,8 +430,8 @@ public class MercadoPagoService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> processSubscriptionCardPayment(UUID businessId, String plan,
                                                                Map<String, Object> formData) {
-        Map<String, Integer> prices = Map.of("BASIC", 49, "PRO", 100, "PREMIUM", 180);
-        int price = prices.getOrDefault(plan.toUpperCase(), 29);
+        Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
+        int price = prices.getOrDefault(plan.toUpperCase(), 60);
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("transaction_amount", (double) price);
@@ -486,8 +486,8 @@ public class MercadoPagoService {
      * Crea un link de pago para suscripción mensual.
      */
     public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {
-        Map<String, Integer> prices = Map.of("BASIC", 49, "PRO", 100, "PREMIUM", 180);
-        int price = prices.getOrDefault(plan.toUpperCase(), 29);
+        Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
+        int price = prices.getOrDefault(plan.toUpperCase(), 60);
 
         var items = List.of(Map.<String, Object>of(
                 "title",      "AutoBusiness " + plan + " — mensual",

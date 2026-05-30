@@ -145,15 +145,18 @@ public class AuthService {
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         if (!"OWNER".equals(user.getRole()))
             throw new IllegalStateException("Solo el dueño puede eliminar la cuenta");
+        if (!user.getBusiness().getId().equals(businessId))
+            throw new IllegalStateException("No tienes permiso para eliminar este negocio");
 
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
 
+        String tombstone = UUID.randomUUID().toString();
         // Anonymize all users in the business
         userRepo.findByBusinessId(businessId).forEach(u -> {
             u.setEmail("deleted-" + u.getId() + "@deleted.autobusiness");
             u.setName("[Cuenta Eliminada]");
-            u.setPasswordHash("");
+            u.setPasswordHash(tombstone);
             u.setActive(false);
             userRepo.save(u);
         });
