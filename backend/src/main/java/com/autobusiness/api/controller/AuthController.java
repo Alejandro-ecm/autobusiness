@@ -45,6 +45,17 @@ public class AuthController {
         return ResponseEntity.ok(authService.completeOnboarding(p.businessId(), body.get("profileType")));
     }
 
+    @DeleteMapping("/account")
+    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthPrincipal p) {
+        try {
+            return ResponseEntity.ok(authService.deleteAccount(p.userId(), p.businessId()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al eliminar cuenta"));
+        }
+    }
+
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of("status", "ok", "service", "AutoBusiness AI"));

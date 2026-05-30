@@ -140,6 +140,35 @@ public class AuthService {
     }
 
     @Transactional
+    public Map<String, Object> deleteAccount(UUID userId, UUID businessId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (!"OWNER".equals(user.getRole()))
+            throw new IllegalStateException("Solo el dueño puede eliminar la cuenta");
+
+        Business business = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        // Anonymize all users in the business
+        userRepo.findByBusinessId(businessId).forEach(u -> {
+            u.setEmail("deleted-" + u.getId() + "@deleted.autobusiness");
+            u.setName("[Cuenta Eliminada]");
+            u.setPasswordHash("");
+            u.setActive(false);
+            userRepo.save(u);
+        });
+
+        // Mark business as deleted
+        business.setActive(false);
+        business.setSuspended(true);
+        business.setName("[Eliminado] " + business.getName());
+        businessRepo.save(business);
+
+        log.info("Account deleted: business={}", businessId);
+        return Map.of("message", "Cuenta eliminada correctamente");
+    }
+
+    @Transactional
     public Map<String, Object> completeOnboarding(UUID businessId, String profileType) {
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
