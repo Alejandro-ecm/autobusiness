@@ -32,12 +32,20 @@ public class Order {
     private String customerName;
     private String customerEmail;
     private String customerPhone;
+    private String deliveryAddress;
+    private String mapsUrl;
+    private Double deliveryLat;
+    private Double deliveryLng;
 
     @Column(precision = 12, scale = 2)
     private BigDecimal subtotal;
 
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String paymentMethod = "cash_on_delivery";
 
     @Column(nullable = false)
     @Builder.Default

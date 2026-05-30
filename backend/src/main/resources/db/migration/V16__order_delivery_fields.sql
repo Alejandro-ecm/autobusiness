@@ -1,0 +1,2 @@
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address TEXT;
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS maps_url       TEXT;

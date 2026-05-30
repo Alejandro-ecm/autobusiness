@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { store as storeApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import './Storefront.css'
+import 'leaflet/dist/leaflet.css'
 
 let mpInitialized = false
 async function initMP(publicKey) {
@@ -69,6 +70,186 @@ function PaymentBrick({ amount, preferenceId, orderId, slug, onSuccess, onError 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const DEFAULT_LOGO = '/skymarket-logo.jpg'
 
+function MapPicker({ initialLat, initialLng, onConfirm, onCancel }) {
+  const mapDivRef = useRef(null)
+  const leafletMapRef = useRef(null)
+  const markerRef = useRef(null)
+  const [pinPos, setPinPos] = useState({ lat: initialLat, lng: initialLng })
+  const [dragged, setDragged] = useState(false)
+
+  useEffect(() => {
+    if (!mapDivRef.current || leafletMapRef.current) return
+    import('leaflet').then(({ default: L }) => {
+      const map = L.map(mapDivRef.current, {
+        center: [initialLat, initialLng],
+        zoom: 18,
+        zoomControl: false,
+      })
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap',
+        maxZoom: 20,
+      }).addTo(map)
+
+      L.control.zoom({ position: 'bottomright' }).addTo(map)
+
+      const pinIcon = L.divIcon({
+        html: `
+          <div style="position:relative;width:36px;height:52px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.45))">
+            <div style="
+              width:36px;height:36px;
+              background:linear-gradient(135deg,#ef4444,#dc2626);
+              border:3px solid #fff;
+              border-radius:50% 50% 50% 0;
+              transform:rotate(-45deg);
+              position:absolute;top:0;left:0">
+            </div>
+            <div style="
+              width:12px;height:12px;
+              background:#fff;
+              border-radius:50%;
+              position:absolute;
+              top:9px;left:9px;
+              opacity:.9">
+            </div>
+          </div>`,
+        iconSize: [36, 52],
+        iconAnchor: [18, 52],
+        className: '',
+      })
+
+      const marker = L.marker([initialLat, initialLng], { draggable: true, icon: pinIcon }).addTo(map)
+
+      const updatePos = (latlng) => {
+        setPinPos({ lat: latlng.lat, lng: latlng.lng })
+        setDragged(true)
+      }
+
+      marker.on('dragend', () => updatePos(marker.getLatLng()))
+      map.on('click', (e) => { marker.setLatLng(e.latlng); updatePos(e.latlng) })
+
+      leafletMapRef.current = map
+      markerRef.current = marker
+      setTimeout(() => map.invalidateSize(), 150)
+    })
+
+    return () => {
+      if (leafletMapRef.current) { leafletMapRef.current.remove(); leafletMapRef.current = null }
+    }
+  }, [])
+
+  const handleConfirm = () => {
+    const mapsUrl = `https://www.google.com/maps?q=${pinPos.lat},${pinPos.lng}`
+    onConfirm(pinPos.lat, pinPos.lng, mapsUrl)
+  }
+
+  const recenter = () => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const latlng = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+      if (leafletMapRef.current && markerRef.current) {
+        leafletMapRef.current.setView([latlng.lat, latlng.lng], 18)
+        markerRef.current.setLatLng([latlng.lat, latlng.lng])
+        setPinPos(latlng)
+        setDragged(false)
+      }
+    }, () => {}, { enableHighAccuracy: true, timeout: 8000 })
+  }
+
+  return (
+    <div style={{
+      borderRadius: 20, overflow: 'hidden', marginTop: 10,
+      boxShadow: '0 8px 32px rgba(99,102,241,.25), 0 2px 8px rgba(0,0,0,.12)',
+      border: '2px solid rgba(99,102,241,.4)',
+    }}>
+      {/* Header */}
+      <div style={{
+        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+        padding: '14px 18px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <div style={{ color: '#fff', fontWeight: 800, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 20 }}>📍</span> Marca tu ubicación exacta
+          </div>
+          <div style={{ color: 'rgba(255,255,255,.75)', fontSize: 12, marginTop: 2 }}>
+            Arrastra el pin rojo o toca cualquier punto del mapa
+          </div>
+        </div>
+        <button type="button" onClick={onCancel}
+          style={{
+            background: 'rgba(255,255,255,.15)', border: '1px solid rgba(255,255,255,.3)',
+            color: '#fff', borderRadius: 10, width: 34, height: 34, cursor: 'pointer',
+            fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>×</button>
+      </div>
+
+      {/* Mapa */}
+      <div style={{ position: 'relative' }}>
+        <div ref={mapDivRef} style={{ height: 360, width: '100%' }} />
+
+        {/* Tip flotante */}
+        {!dragged && (
+          <div style={{
+            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+            background: 'rgba(15,23,42,.85)', color: '#fff', borderRadius: 20,
+            padding: '7px 16px', fontSize: 12, fontWeight: 600, zIndex: 1000,
+            backdropFilter: 'blur(8px)', whiteSpace: 'nowrap', pointerEvents: 'none',
+            boxShadow: '0 4px 12px rgba(0,0,0,.3)',
+          }}>
+            Mueve el pin a tu puerta exacta
+          </div>
+        )}
+
+        {/* Botón recentrar GPS */}
+        <button type="button" onClick={recenter}
+          style={{
+            position: 'absolute', bottom: 52, right: 10, zIndex: 1000,
+            background: '#fff', border: 'none', borderRadius: 10,
+            width: 38, height: 38, cursor: 'pointer', fontSize: 18,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,.25)',
+          }} title="Recentrar en mi ubicación">
+          🎯
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div style={{ background: '#fff', padding: '14px 16px', borderTop: '1px solid #e2e8f0' }}>
+        {/* Coordenadas */}
+        <div style={{
+          background: dragged ? '#f0fdf4' : '#f8fafc',
+          border: `1px solid ${dragged ? '#bbf7d0' : '#e2e8f0'}`,
+          borderRadius: 12, padding: '10px 14px', marginBottom: 12,
+          display: 'flex', alignItems: 'center', gap: 10, transition: 'all .3s',
+        }}>
+          <span style={{ fontSize: 22 }}>{dragged ? '✅' : '📌'}</span>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: dragged ? '#16a34a' : '#374151' }}>
+              {dragged ? 'Ubicación ajustada' : 'Ubicación GPS inicial'}
+            </div>
+            <div style={{ fontSize: 11, color: '#6b7280', fontFamily: 'monospace', marginTop: 1 }}>
+              {pinPos.lat.toFixed(6)}, {pinPos.lng.toFixed(6)}
+            </div>
+          </div>
+        </div>
+
+        {/* Botones */}
+        <button type="button" onClick={handleConfirm}
+          style={{
+            width: '100%', padding: '15px', borderRadius: 14, border: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #16a34a, #15803d)',
+            color: '#fff', fontWeight: 800, fontSize: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            boxShadow: '0 4px 14px rgba(22,163,74,.4)',
+          }}>
+          <span style={{ fontSize: 20 }}>✓</span> Confirmar esta ubicación
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ShareButtons({ slug, businessName }) {
   const { show } = useToast()
   const url = `${window.location.origin}/tienda/${slug}`
@@ -112,6 +293,32 @@ function ShareButtons({ slug, businessName }) {
   )
 }
 
+function AdminBar() {
+  const user = (() => { try { return JSON.parse(localStorage.getItem('ab_user')) } catch { return null } })()
+  if (!user) return null
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+      background: '#0f172a', borderBottom: '1px solid rgba(99,102,241,.4)',
+      display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px',
+      fontSize: 13
+    }}>
+      <a href="/dashboard" style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        color: '#818cf8', fontWeight: 700, textDecoration: 'none',
+        background: 'rgba(99,102,241,.15)', borderRadius: 6,
+        padding: '5px 12px', border: '1px solid rgba(99,102,241,.3)',
+        transition: 'background .15s'
+      }}>
+        ← Dashboard
+      </a>
+      <span style={{ color: 'rgba(255,255,255,.4)', fontSize: 12 }}>
+        Vista de tu tienda pública · {user.businessName || user.name}
+      </span>
+    </div>
+  )
+}
+
 export default function Storefront() {
   const { slug } = useParams()
   const { show } = useToast()
@@ -122,8 +329,14 @@ export default function Storefront() {
   const [step, setStep] = useState('shop')
   const [orderResult, setOrderResult] = useState(null)
   const [paymentData, setPaymentData] = useState(null)  // { preferenceId, orderId, amount, mpPublicKey }
+  const isAdmin = (() => { try { return !!JSON.parse(localStorage.getItem('ab_user')) } catch { return false } })()
   const [paymentStatus, setPaymentStatus] = useState(null)
-  const [customer, setCustomer] = useState({ name: '', phone: '', email: '' })
+  const [paymentMethod, setPaymentMethod] = useState('online')
+  const [customer, setCustomer] = useState({ name: '', phone: '', email: '', address: '', mapsUrl: '', lat: null, lng: null })
+  const [locating, setLocating] = useState(false)
+  const [locationAccuracy, setLocationAccuracy] = useState(null)
+  const [showMap, setShowMap] = useState(false)
+  const [mapCenter, setMapCenter] = useState({ lat: 19.4326, lng: -99.1332 })
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [logoError, setLogoError] = useState(false)
@@ -172,17 +385,54 @@ export default function Storefront() {
     setCart(prev => prev.map(i => i.productId === productId ? { ...i, qty } : i))
   }
 
+  const getLocation = () => {
+    if (!navigator.geolocation) {
+      setShowMap(true)
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setMapCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocating(false)
+        setShowMap(true)
+      },
+      () => {
+        setLocating(false)
+        setShowMap(true)
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    )
+  }
+
+  const handleMapConfirm = (lat, lng, mapsUrl) => {
+    setCustomer(c => ({ ...c, lat, lng, mapsUrl }))
+    setShowMap(false)
+    setLocationAccuracy(null)
+    show('Ubicación exacta confirmada', 'success')
+  }
+
   const placeOrder = async (e) => {
     e.preventDefault()
     setOrdering(true)
     try {
       const res = await storeApi.placeOrder(slug, {
-        customerName: customer.name,
-        customerPhone: customer.phone,
-        customerEmail: customer.email,
+        customerName:    customer.name,
+        customerPhone:   customer.phone,
+        customerEmail:   customer.email,
+        deliveryAddress: customer.address,
+        mapsUrl:         customer.mapsUrl,
+        deliveryLat:     customer.lat,
+        deliveryLng:     customer.lng,
         items: cart.map(i => ({ productId: i.productId, quantity: i.qty }))
       })
       setOrderResult(res)
+
+      // Pago físico → termina aquí, sin pasar por MercadoPago
+      if (paymentMethod === 'physical') {
+        setStep('success')
+        return
+      }
 
       const mpPublicKey = business?.mpPublicKey
       try {
@@ -194,18 +444,15 @@ export default function Storefront() {
         })
 
         if (mpPublicKey) {
-          // Checkout Bricks — formulario embebido
           await initMP(mpPublicKey)
           setPaymentData({ preferenceId: pay.preferenceId, orderId: res.id, amount: total, mpPublicKey })
           setStep('payment')
         } else {
-          // Fallback: abrir en nueva pestaña sin perder la app
           const url = pay.initPoint || pay.sandboxPoint
           if (url) { window.open(url, '_blank'); setStep('success'); return }
           setStep('success')
         }
       } catch {
-        // MP no configurado → éxito sin pago online
         setStep('success')
       }
     } catch (err) {
@@ -244,7 +491,11 @@ export default function Storefront() {
           <div style={{ fontSize: 64 }}>✅</div>
           <h2>¡Pedido enviado!</h2>
           <p>Orden: <strong>{orderResult?.orderNumber}</strong></p>
-          <p className="text-soft">Te contactaremos pronto para confirmar y coordinar la entrega.</p>
+          <p className="text-soft">
+            {paymentMethod === 'physical'
+              ? 'Pagarás en efectivo o transferencia al recibir tu pedido. Te contactaremos para coordinar la entrega.'
+              : 'Te contactaremos pronto para confirmar y coordinar la entrega.'}
+          </p>
           <button className="sf-btn-primary" style={{ marginTop: 24 }}
             onClick={() => { setStep('shop'); setCart([]) }}>
             Seguir comprando
@@ -328,23 +579,126 @@ export default function Storefront() {
           <div className="sf-total">Total: <strong>{fmt(total)}</strong></div>
           <div className="divider" />
           <form onSubmit={placeOrder} className="sf-form">
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 12, marginTop: -4 }}>
+              Necesitamos tus datos para coordinar la entrega
+            </p>
+
             <div className="input-group">
-              <label>Tu nombre *</label>
-              <input className="input" value={customer.name}
+              <label>Tu nombre completo *</label>
+              <input className="input" value={customer.name} placeholder="Ej: Juan Pérez"
                 onChange={e => setCustomer(c => ({ ...c, name: e.target.value }))} required />
             </div>
+
             <div className="input-group">
-              <label>WhatsApp / Teléfono</label>
-              <input className="input" value={customer.phone}
+              <label>WhatsApp / Teléfono *</label>
+              <input className="input" value={customer.phone} required
                 onChange={e => setCustomer(c => ({ ...c, phone: e.target.value }))}
                 placeholder="+52 55 0000 0000" />
             </div>
+
             <div className="input-group">
-              <label>Email (opcional)</label>
-              <input className="input" type="email" value={customer.email}
-                onChange={e => setCustomer(c => ({ ...c, email: e.target.value }))} />
+              <label>Correo electrónico *</label>
+              <input className="input" type="email" value={customer.email} required
+                onChange={e => setCustomer(c => ({ ...c, email: e.target.value }))}
+                placeholder="tucorreo@gmail.com" />
             </div>
-            <button type="submit" className="sf-btn-primary" style={{ width: '100%', marginTop: 8 }}
+
+            <div className="input-group">
+              <label>Calle y número *</label>
+              <input className="input" value={customer.address} required
+                onChange={e => setCustomer(c => ({ ...c, address: e.target.value }))}
+                placeholder="Ej: Av. Reforma 123, Col. Centro" />
+            </div>
+
+            <div className="input-group">
+              <label>Ubicación exacta de entrega</label>
+
+              {showMap ? (
+                <MapPicker
+                  initialLat={mapCenter.lat}
+                  initialLng={mapCenter.lng}
+                  onConfirm={handleMapConfirm}
+                  onCancel={() => setShowMap(false)}
+                />
+              ) : customer.lat && customer.lng ? (
+                <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '12px 14px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: '#16a34a' }}>Ubicación exacta confirmada</div>
+                      <div style={{ fontSize: 11, color: '#4b5563', marginTop: 3 }}>
+                        {customer.lat.toFixed(6)}, {customer.lng.toFixed(6)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <a href={customer.mapsUrl} target="_blank" rel="noreferrer"
+                        style={{ fontSize: 12, color: '#4285f4', fontWeight: 600, textDecoration: 'none' }}>Ver mapa</a>
+                      <button type="button"
+                        onClick={() => setShowMap(true)}
+                        style={{ fontSize: 11, color: '#6366f1', fontWeight: 600, background: 'rgba(99,102,241,.1)', border: '1px solid rgba(99,102,241,.3)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>
+                        Editar
+                      </button>
+                      <button type="button"
+                        onClick={() => { setCustomer(c => ({ ...c, mapsUrl: '', lat: null, lng: null })) }}
+                        style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <button type="button" onClick={getLocation} disabled={locating}
+                    style={{
+                      width: '100%', padding: '13px', borderRadius: 10, cursor: locating ? 'wait' : 'pointer',
+                      background: 'linear-gradient(135deg,#6366f1,#818cf8)', color: '#fff',
+                      border: 'none', fontWeight: 700, fontSize: 14, display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', gap: 8,
+                      boxShadow: '0 2px 8px rgba(99,102,241,.35)'
+                    }}>
+                    {locating
+                      ? <><div className="spinner" style={{ width: 16, height: 16, borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Obteniendo ubicación...</>
+                      : <><span style={{ fontSize: 18 }}>📍</span> Abrir mapa y marcar mi ubicación</>}
+                  </button>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6, textAlign: 'center' }}>
+                    Podrás arrastrar el pin exactamente a tu puerta
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="input-group" style={{ marginTop: 4 }}>
+              <label>Método de pago</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+                <button type="button"
+                  onClick={() => setPaymentMethod('online')}
+                  style={{
+                    padding: '14px 10px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+                    border: paymentMethod === 'online' ? '2px solid #6366f1' : '2px solid #e2e8f0',
+                    background: paymentMethod === 'online' ? 'rgba(99,102,241,.08)' : '#fff',
+                    transition: 'all .15s'
+                  }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>💳</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: paymentMethod === 'online' ? '#6366f1' : '#374151' }}>
+                    Pagar en línea
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Tarjeta / MercadoPago</div>
+                </button>
+                <button type="button"
+                  onClick={() => setPaymentMethod('physical')}
+                  style={{
+                    padding: '14px 10px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+                    border: paymentMethod === 'physical' ? '2px solid #16a34a' : '2px solid #e2e8f0',
+                    background: paymentMethod === 'physical' ? 'rgba(22,163,74,.08)' : '#fff',
+                    transition: 'all .15s'
+                  }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>💵</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: paymentMethod === 'physical' ? '#16a34a' : '#374151' }}>
+                    Pagar al recibir
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Efectivo / transferencia</div>
+                </button>
+              </div>
+            </div>
+
+            <button type="submit" className="sf-btn-primary" style={{ width: '100%', marginTop: 12 }}
               disabled={ordering}>
               {ordering ? <div className="spinner" /> : `Confirmar pedido — ${fmt(total)}`}
             </button>
@@ -355,7 +709,8 @@ export default function Storefront() {
   )
 
   return (
-    <div className={`sf-page sf-theme-${theme}`}>
+    <div className={`sf-page sf-theme-${theme}`} style={isAdmin ? { paddingTop: 41 } : {}}>
+      <AdminBar />
       {/* ── HERO BANNER ─────────────────────────────────────────────────── */}
       <div
         className="sf-hero"

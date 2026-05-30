@@ -4,7 +4,6 @@ import { dashboard as dashboardApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import KpiCard from '../components/ui/KpiCard'
-import client from '../api/client'
 import './Dashboard.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`
@@ -106,7 +105,7 @@ function getMorningAnalysis(kpis) {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, switchBusiness } = useAuth()
   const navigate = useNavigate()
   const { show } = useToast()
   const [data, setData] = useState(null)
@@ -121,11 +120,28 @@ export default function Dashboard() {
   const [addForm, setAddForm] = useState({ email: '', password: '' })
   const [addLoading, setAddLoading] = useState(false)
 
+  // Vista global multi-negocio
+  const [showGlobal, setShowGlobal] = useState(false)
+  const [globalData, setGlobalData] = useState([])
+  const [globalLoading, setGlobalLoading] = useState(false)
+
+  const BIZ_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
+
   const addBusiness = async (e) => {
     e.preventDefault()
     setAddLoading(true)
     try {
-      const res = await client.post('/auth/login', { email: addForm.email, password: addForm.password })
+      const BASE = import.meta.env.VITE_API_URL || '/api'
+      const raw = await fetch(`${BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: addForm.email, password: addForm.password }),
+      })
+      const res = await raw.json()
+      if (!raw.ok) {
+        show(res?.error || 'Credenciales incorrectas', 'error')
+        return
+      }
       const bizUser = res.user
       if (bizUser.businessId === user.businessId) {
         show('Este negocio ya está activo', 'error')
@@ -136,10 +152,13 @@ export default function Dashboard() {
         return
       }
       const newAcc = {
+        id: bizUser.id,
         businessId: bizUser.businessId,
         businessName: bizUser.businessName,
         businessSlug: bizUser.businessSlug,
         name: bizUser.name,
+        email: bizUser.email,
+        role: bizUser.role,
         token: res.token,
       }
       setAccounts(prev => {
@@ -151,7 +170,7 @@ export default function Dashboard() {
       setAddForm({ email: '', password: '' })
       show(`Negocio "${bizUser.businessName}" conectado`, 'success')
     } catch {
-      show('Credenciales incorrectas o negocio no encontrado', 'error')
+      show('No se pudo conectar el negocio', 'error')
     } finally { setAddLoading(false) }
   }
 
@@ -161,6 +180,33 @@ export default function Dashboard() {
       try { localStorage.setItem('multi_accounts', JSON.stringify(updated)) } catch {}
       return updated
     })
+    setGlobalData([])
+  }
+
+  const loadGlobal = async () => {
+    setGlobalLoading(true)
+    const BASE = import.meta.env.VITE_API_URL || '/api'
+    const fetchFor = async (token, bizInfo) => {
+      try {
+        const res = await fetch(`${BASE}/dashboard`, { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok) return null
+        const d = await res.json()
+        return { ...d, _biz: bizInfo }
+      } catch { return null }
+    }
+    const currentToken = localStorage.getItem('ab_token')
+    const jobs = [
+      fetchFor(currentToken, { businessId: user.businessId, businessName: user.businessName, current: true }),
+      ...accounts.map(acc => fetchFor(acc.token, { businessId: acc.businessId, businessName: acc.businessName, current: false })),
+    ]
+    const results = (await Promise.all(jobs)).filter(Boolean)
+    setGlobalData(results)
+    setGlobalLoading(false)
+  }
+
+  const toggleGlobal = () => {
+    if (!showGlobal && globalData.length === 0) loadGlobal()
+    setShowGlobal(v => !v)
   }
 
   useEffect(() => {
@@ -393,18 +439,124 @@ export default function Dashboard() {
               <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Otro negocio</div>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{acc.businessName}</div>
               <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{acc.name}</div>
-              {acc.businessSlug && (
-                <a href={`/tienda/${acc.businessSlug}`} target="_blank" rel="noopener noreferrer"
-                  className="btn btn-sm btn-outline" style={{ fontSize: 11 }}>
-                  Ver tienda
-                </a>
-              )}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button
+                  className="btn btn-sm btn-primary"
+                  style={{ fontSize: 11 }}
+                  onClick={() => { switchBusiness(acc); window.location.reload() }}
+                >
+                  Cambiar
+                </button>
+                {acc.businessSlug && (
+                  <a href={`/tienda/${acc.businessSlug}`} target="_blank" rel="noopener noreferrer"
+                    className="btn btn-sm btn-outline" style={{ fontSize: 11 }}>
+                    Ver tienda
+                  </a>
+                )}
+              </div>
             </div>
           ))}
 
           {accounts.length === 0 && !showAddBiz && (
             <div style={{ fontSize: 13, color: '#94a3b8', padding: '10px 0', alignSelf: 'center' }}>
               Conecta tus otros negocios para verlos aquí
+            </div>
+          )}
+        </div>
+
+        {/* Vista global — siempre visible */}
+        <div style={{ marginTop: 14 }}>
+          <button
+            onClick={toggleGlobal}
+            style={{ width: '100%', background: 'linear-gradient(135deg,#ede9fe,#eff6ff)', border: '1px solid #c7d2fe', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', color: '#4f46e5', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            {globalLoading
+              ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Cargando datos...</>
+              : <>{showGlobal ? '▲' : '▼'} Datos globales — resumen financiero de todos los negocios</>
+            }
+          </button>
+
+          {showGlobal && !globalLoading && globalData.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              {/* Totales consolidados */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                <div style={{ flex: 1, background: '#f0fdf4', borderRadius: 8, padding: '12px 14px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 2 }}>Ingresos hoy (total)</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: '#15803d' }}>
+                    {fmt(globalData.reduce((s, d) => s + (d.kpis?.todayRevenue || 0), 0))}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                    {globalData.reduce((s, d) => s + (d.kpis?.todaySales || 0), 0)} ventas entre todos
+                  </div>
+                </div>
+                <div style={{ flex: 1, background: '#eff6ff', borderRadius: 8, padding: '12px 14px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 11, color: '#2563eb', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 2 }}>Ingresos este mes (total)</div>
+                  <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8' }}>
+                    {fmt(globalData.reduce((s, d) => s + (d.kpis?.monthRevenue || 0), 0))}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                    {globalData.reduce((s, d) => s + (d.kpis?.monthSales || 0), 0)} ventas entre todos
+                  </div>
+                </div>
+              </div>
+
+              {/* Desglose por negocio */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {globalData.map((d, i) => {
+                  const color = BIZ_COLORS[i % BIZ_COLORS.length]
+                  const st = STATUS_CONFIG[d.status] || STATUS_CONFIG.GREEN
+                  const totalHoy = globalData.reduce((s, x) => s + (x.kpis?.todayRevenue || 0), 0)
+                  const pct = totalHoy > 0 ? Math.round(((d.kpis?.todayRevenue || 0) / totalHoy) * 100) : 0
+                  return (
+                    <div key={d._biz.businessId} style={{
+                      padding: '12px 16px',
+                      background: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderLeft: `5px solid ${color}`,
+                      borderRadius: 8,
+                    }}>
+                      {/* Nombre del negocio */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                          {d._biz.businessName}
+                          {d._biz.current && (
+                            <span style={{ fontSize: 10, background: '#ede9fe', color: '#7c3aed', padding: '2px 7px', borderRadius: 4, fontWeight: 700 }}>activo</span>
+                          )}
+                        </div>
+                        <span style={{ fontSize: 18 }}>{st.emoji}</span>
+                      </div>
+                      {/* Barra de aporte */}
+                      <div style={{ marginBottom: 6 }}>
+                        <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3 }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width .4s' }} />
+                        </div>
+                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{pct}% del total de hoy</div>
+                      </div>
+                      {/* Datos financieros */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div style={{ background: '#f8fafc', borderRadius: 6, padding: '8px 10px' }}>
+                          <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Ingresos hoy</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: color }}>{fmt(d.kpis?.todayRevenue)}</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8' }}>{d.kpis?.todaySales || 0} ventas</div>
+                        </div>
+                        <div style={{ background: '#f8fafc', borderRadius: 6, padding: '8px 10px' }}>
+                          <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Ingresos del mes</div>
+                          <div style={{ fontSize: 18, fontWeight: 800, color: color }}>{fmt(d.kpis?.monthRevenue)}</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8' }}>{d.kpis?.monthSales || 0} ventas</div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={loadGlobal}
+                style={{ marginTop: 10, background: 'none', border: 'none', color: '#94a3b8', fontSize: 11, cursor: 'pointer', width: '100%', textAlign: 'center' }}
+              >
+                Actualizar datos
+              </button>
             </div>
           )}
         </div>

@@ -60,6 +60,9 @@ public class Business {
     @Builder.Default
     private boolean onboardingCompleted = false;
 
+    @Column(length = 20, unique = true)
+    private String deliveryCode;
+
     // Mercado Pago por negocio
     @Column(length = 500)
     private String mpAccessToken;

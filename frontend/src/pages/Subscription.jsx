@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { subscription as subApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
+import { trackRevenue, trackEvent } from '../lib/alejandria'
 import './Subscription.css'
 
 let mpSubInitialized = false
@@ -45,7 +46,7 @@ function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClo
               onSubmit={async ({ formData }) => {
                 try {
                   const result = await subApi.processPayment(plan, formData)
-                  if (result.status === 'approved') { onSuccess(plan); return { status: 'approved' } }
+                  if (result.status === 'approved') { trackRevenue(amount, 'MXN', `Suscripcion ${plan}`); trackEvent('suscripcion_activada', { plan, monto: amount }); onSuccess(plan); return { status: 'approved' } }
                   if (result.status === 'pending' || result.status === 'in_process') {
                     onSuccess(plan, 'pending'); return { status: 'pending' }
                   }
@@ -66,8 +67,8 @@ function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClo
 }
 
 const PLAN_INFO = {
-  FREE:    { color: '#64748b', features: ['50 productos', '2 usuarios', 'POS básico', 'Inventario'] },
-  BASIC:   { color: '#3b82f6', features: ['500 productos', '5 usuarios', 'Tienda online + QR', 'Reportes'] },
+  FREE:    { color: '#64748b', features: ['20 productos', '2 usuarios', 'POS básico', 'Inventario'] },
+  BASIC:   { color: '#3b82f6', features: ['100 productos', '5 usuarios', 'Tienda online + QR', 'Reportes'] },
   PRO:     { color: '#6366f1', features: ['Productos ilimitados', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Mercado Pago'] },
   PREMIUM: { color: '#8b5cf6', features: ['Todo ilimitado', 'Usuarios ilimitados', 'CFDI', 'Soporte prioritario', 'Multi-sucursal'] },
 }
@@ -105,7 +106,7 @@ export default function Subscription() {
     setUpgrading(plan)
     try {
       const res = await subApi.upgrade(plan)
-      const prices = { BASIC: 29, PRO: 49, PREMIUM: 89 }
+      const prices = { BASIC: 49, PRO: 100, PREMIUM: 180 }
 
       if (data?.mpPublicKey) {
         // Checkout Bricks — formulario embebido

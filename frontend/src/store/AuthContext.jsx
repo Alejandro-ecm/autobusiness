@@ -60,6 +60,37 @@ export function AuthProvider({ children }) {
     })
   }, [])
 
+  const switchBusiness = useCallback((acc) => {
+    const currentUser = safeLocalGet('ab_user')
+    const currentToken = localStorage.getItem('ab_token')
+    if (currentUser && currentToken) {
+      let accounts = []
+      try { accounts = JSON.parse(localStorage.getItem('multi_accounts') || '[]') } catch {}
+      const filtered = accounts.filter(a => a.businessId !== acc.businessId)
+      filtered.push({
+        id: currentUser.id,
+        businessId: currentUser.businessId,
+        businessName: currentUser.businessName,
+        businessSlug: currentUser.businessSlug,
+        name: currentUser.name,
+        email: currentUser.email,
+        role: currentUser.role,
+        token: currentToken,
+      })
+      try { localStorage.setItem('multi_accounts', JSON.stringify(filtered)) } catch {}
+    }
+    try { localStorage.setItem('ab_token', acc.token) } catch {}
+    _persist({
+      id: acc.id,
+      name: acc.name,
+      email: acc.email,
+      role: acc.role || 'OWNER',
+      businessId: acc.businessId,
+      businessName: acc.businessName,
+      businessSlug: acc.businessSlug,
+    })
+  }, [])
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -67,6 +98,7 @@ export function AuthProvider({ children }) {
       register,
       logout,
       updateUser,
+      switchBusiness,
       isOwner: user?.role === 'OWNER' || user?.role === 'ADMIN',
     }}>
       {children}

@@ -6,17 +6,17 @@ import { useToast } from '../store/ToastContext'
 export default function PaymentSettings() {
   const { show } = useToast()
   const [params] = useSearchParams()
-  const [status, setStatus] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState(false)
+  const [status, setStatus]         = useState(null)
+  const [loading, setLoading]       = useState(true)
   const [disconnecting, setDisconnecting] = useState(false)
-  const [manualOpen, setManualOpen] = useState(false)
-  const [manualToken, setManualToken] = useState('')
-  const [savingManual, setSavingManual] = useState(false)
+  const [updateOpen, setUpdateOpen] = useState(false)
+  const [manualToken, setManualToken]     = useState('')
+  const [manualPublicKey, setManualPublicKey] = useState('')
+  const [saving, setSaving]         = useState(false)
 
   const loadStatus = () =>
     mpSettings.status()
-      .then(setStatus)
+      .then(s => { setStatus(s); if (s?.connected && !s?.mpPublicKey) setUpdateOpen(true) })
       .catch(() => show('Error al cargar configuración', 'error'))
       .finally(() => setLoading(false))
 
@@ -26,65 +26,84 @@ export default function PaymentSettings() {
     if (params.get('mp_error') === 'true')     show('Error al conectar Mercado Pago. Intenta de nuevo.', 'error')
   }, [])
 
-  const handleOAuth = async () => {
-    setConnecting(true)
-    try {
-      const { url } = await mpSettings.connectUrl()
-      const w = 520, h = 700
-      const left = Math.round(window.screenX + (window.outerWidth - w) / 2)
-      const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)
-      const popup = window.open(url, 'mp_oauth',
-        `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no`)
-      // Escuchar cuando el popup cierre para refrescar el estado
-      const timer = setInterval(() => {
-        if (popup?.closed) {
-          clearInterval(timer)
-          setConnecting(false)
-          loadStatus()
-        }
-      }, 800)
-    } catch (err) {
-      show(err?.error || 'Error al obtener URL de conexión', 'error')
-      setConnecting(false)
-    }
-  }
-
-  const handleManual = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault()
-    setSavingManual(true)
+    setSaving(true)
     try {
-      await mpSettings.connectManual(manualToken.trim())
-      show('Mercado Pago conectado correctamente', 'success')
+      await mpSettings.connectManual(manualToken.trim() || null, manualPublicKey.trim() || null)
+      show('Credenciales guardadas correctamente', 'success')
       setManualToken('')
-      setManualOpen(false)
+      setManualPublicKey('')
+      setUpdateOpen(false)
       loadStatus()
     } catch (err) {
-      show(err?.error || 'Token inválido', 'error')
-    } finally { setSavingManual(false) }
+      show(err?.error || 'Token inválido. Verifica tus credenciales.', 'error')
+    } finally { setSaving(false) }
   }
 
   const handleDisconnect = async () => {
-    if (!window.confirm('¿Desconectar tu cuenta de Mercado Pago? Los clientes no podrán pagar online hasta que la reconectes.')) return
+    if (!window.confirm('¿Desconectar Mercado Pago? Los cobros online se pausarán hasta que lo reconectes.')) return
     setDisconnecting(true)
     try {
       await mpSettings.disconnect()
-      show('Cuenta de Mercado Pago desconectada', 'success')
+      show('Cuenta desconectada', 'success')
+      setUpdateOpen(false)
       loadStatus()
     } catch { show('Error al desconectar', 'error') }
     finally { setDisconnecting(false) }
   }
+
+  const needsPublicKey = status?.connected && !status?.mpPublicKey
 
   return (
     <div style={{ maxWidth: 720, margin: '0 auto', padding: '0 16px 40px' }}>
       <div className="page-header">
         <div>
           <h1 className="page-title">Configuración de Cobros</h1>
-          <p className="page-subtitle">Conecta métodos de pago para recibir dinero directamente en tu cuenta</p>
+          <p className="page-subtitle">Configura cómo recibes pagos con tarjeta en tu negocio</p>
         </div>
+      </div>
+
+      {/* ── Guía rápida (siempre visible) ── */}
+      <div className="card" style={{ marginBottom: 20, background: 'linear-gradient(135deg,#f0f9ff,#e0f2fe)', border: '1px solid #bae6fd' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, color: '#0369a1', marginBottom: 12 }}>
+          ¿Cómo funciona?
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[
+            { num: '1', txt: 'Entra a tu cuenta de Mercado Pago en mercadopago.com.mx', icon: '🌐' },
+            { num: '2', txt: 'Ve a Tu app → Credenciales de producción', icon: '🔑' },
+            { num: '3', txt: 'Copia el Access Token y el Public Key y pégalos abajo', icon: '📋' },
+            { num: '4', txt: '¡Listo! Tus clientes podrán pagar con tarjeta directo en la caja', icon: '✅' },
+          ].map(s => (
+            <div key={s.num} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{
+                minWidth: 28, height: 28, borderRadius: '50%', background: '#0369a1',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontWeight: 700, fontSize: 13
+              }}>{s.num}</div>
+              <div style={{ fontSize: 13, color: '#0c4a6e', paddingTop: 4, lineHeight: 1.5 }}>
+                {s.icon} {s.txt}
+              </div>
+            </div>
+          ))}
+        </div>
+        <a
+          href="https://www.mercadopago.com.mx/developers/panel/app"
+          target="_blank" rel="noopener noreferrer"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            marginTop: 14, padding: '8px 16px', borderRadius: 8,
+            background: '#0369a1', color: '#fff', fontSize: 13, fontWeight: 600,
+            textDecoration: 'none'
+          }}>
+          Ir al panel de Mercado Pago →
+        </a>
       </div>
 
       {/* ── Mercado Pago ── */}
       <div className="card" style={{ marginBottom: 20 }}>
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
           <div style={{
             width: 52, height: 52, borderRadius: 14,
@@ -95,20 +114,17 @@ export default function PaymentSettings() {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17, color: '#0f172a' }}>Mercado Pago</div>
             <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
-              Tarjetas, transferencia SPEI, OXXO, CoDi y más
+              Cobra con tarjeta, OXXO, transferencia y más
             </div>
           </div>
-          {!loading && status?.connected && (
+          {!loading && (
             <span style={{
-              background: '#dcfce7', color: '#16a34a', borderRadius: 20,
-              padding: '4px 12px', fontSize: 12, fontWeight: 600
-            }}>Conectado</span>
-          )}
-          {!loading && !status?.connected && (
-            <span style={{
-              background: '#fee2e2', color: '#dc2626', borderRadius: 20,
-              padding: '4px 12px', fontSize: 12, fontWeight: 600
-            }}>Sin conectar</span>
+              background: status?.connected ? '#dcfce7' : '#fee2e2',
+              color: status?.connected ? '#16a34a' : '#dc2626',
+              borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 600
+            }}>
+              {status?.connected ? 'Conectado' : 'Sin conectar'}
+            </span>
           )}
         </div>
 
@@ -118,102 +134,202 @@ export default function PaymentSettings() {
           </div>
         ) : status?.connected ? (
           <div>
+            {/* Estado Access Token */}
             <div style={{
               background: '#f0fdf4', border: '1px solid #bbf7d0',
-              borderRadius: 12, padding: '12px 16px', marginBottom: 16,
+              borderRadius: 10, padding: '10px 14px', marginBottom: 10,
               display: 'flex', alignItems: 'center', gap: 10
             }}>
-              <span style={{ fontSize: 20 }}>✅</span>
+              <span style={{ fontSize: 18 }}>✅</span>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#166534' }}>
-                  Cuenta conectada — ID: {status.mpUserId}
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#166534' }}>
+                  Access Token activo — cobros de tienda online funcionando
                 </div>
-                <div style={{ fontSize: 12, color: '#16a34a' }}>
-                  Los pagos de tu tienda llegan directo a tu cuenta de Mercado Pago
-                </div>
+                {status.mpUserId && (
+                  <div style={{ fontSize: 11, color: '#16a34a', marginTop: 2 }}>
+                    Cuenta MP: {status.mpUserId}
+                  </div>
+                )}
               </div>
             </div>
-            <button
-              onClick={handleDisconnect}
-              disabled={disconnecting}
-              style={{
-                background: 'transparent', color: '#dc2626',
-                border: '1.5px solid #fca5a5', borderRadius: 8,
-                padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 13
+
+            {/* Estado Public Key */}
+            {status?.mpPublicKey ? (
+              <div style={{
+                background: '#f0fdf4', border: '1px solid #bbf7d0',
+                borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+                display: 'flex', alignItems: 'center', gap: 10
               }}>
-              {disconnecting ? 'Desconectando...' : 'Desconectar cuenta'}
+                <span style={{ fontSize: 18 }}>✅</span>
+                <div style={{ fontWeight: 600, fontSize: 13, color: '#166534' }}>
+                  Public Key activa — cobro con tarjeta en caja habilitado
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                background: '#fff7ed', border: '1.5px solid #fed7aa',
+                borderRadius: 10, padding: '12px 14px', marginBottom: 16,
+                display: 'flex', alignItems: 'flex-start', gap: 10
+              }}>
+                <span style={{ fontSize: 20 }}>⚠️</span>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#c2410c' }}>
+                    Falta tu Public Key — la caja no puede cobrar con tarjeta aún
+                  </div>
+                  <div style={{ fontSize: 12, color: '#9a3412', marginTop: 3, lineHeight: 1.5 }}>
+                    Agrega tu Public Key de producción para activar el cobro con tarjeta en el punto de venta.
+                    En el panel de MP la encuentras junto al Access Token.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Sección actualizar credenciales */}
+            <button
+              onClick={() => setUpdateOpen(o => !o)}
+              style={{
+                background: 'none', border: '1.5px solid #e2e8f0', borderRadius: 8,
+                padding: '8px 14px', cursor: 'pointer', fontWeight: 600, fontSize: 13,
+                color: '#334155', width: '100%', textAlign: 'left',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+              }}>
+              <span>{needsPublicKey ? '➕ Agregar Public Key' : '✏️ Actualizar credenciales'}</span>
+              <span style={{ fontSize: 10, color: '#94a3b8' }}>{updateOpen ? '▲' : '▼'}</span>
             </button>
+
+            {updateOpen && (
+              <form onSubmit={handleSave} style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{
+                  background: '#f8fafc', borderRadius: 8, padding: '10px 14px',
+                  fontSize: 12, color: '#475569', lineHeight: 1.6
+                }}>
+                  Obtén tus claves en{' '}
+                  <a href="https://www.mercadopago.com.mx/developers/panel/app"
+                    target="_blank" rel="noopener noreferrer" style={{ color: '#009ee3', fontWeight: 600 }}>
+                    mercadopago.com.mx → Tu app → Credenciales de producción
+                  </a>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                    Access Token de producción
+                    <span style={{ fontWeight: 400, color: '#94a3b8' }}> (deja vacío para no cambiar)</span>
+                  </label>
+                  <input
+                    className="input"
+                    value={manualToken}
+                    onChange={e => setManualToken(e.target.value)}
+                    placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-..."
+                    style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
+                    Public Key de producción
+                    <span style={{ color: '#ef4444' }}> *</span>
+                    <span style={{ fontWeight: 400, color: '#64748b' }}> — necesaria para cobrar con tarjeta en caja</span>
+                  </label>
+                  <input
+                    className="input"
+                    value={manualPublicKey}
+                    onChange={e => setManualPublicKey(e.target.value)}
+                    placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-..."
+                    style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={saving || (!manualToken && !manualPublicKey)}
+                    style={{ flex: 1 }}>
+                    {saving ? <div className="spinner" /> : 'Guardar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setUpdateOpen(false)}
+                    style={{
+                      padding: '8px 16px', borderRadius: 8, border: '1px solid #e2e8f0',
+                      background: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13
+                    }}>
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 16, paddingTop: 12 }}>
+              <button
+                onClick={handleDisconnect}
+                disabled={disconnecting}
+                style={{
+                  background: 'transparent', color: '#dc2626',
+                  border: '1.5px solid #fca5a5', borderRadius: 8,
+                  padding: '7px 14px', cursor: 'pointer', fontWeight: 600, fontSize: 12
+                }}>
+                {disconnecting ? 'Desconectando...' : 'Desconectar cuenta'}
+              </button>
+            </div>
           </div>
         ) : (
+          /* ── No conectado: flujo inicial ── */
           <div>
             <p style={{ fontSize: 14, color: '#475569', marginBottom: 16, lineHeight: 1.6 }}>
-              Conecta tu cuenta de Mercado Pago para que cuando tus clientes compren en tu tienda,
-              el dinero llegue directo a ti — sin intermediarios.
+              Conecta tu cuenta de Mercado Pago para cobrar con tarjeta en tu caja y recibir
+              pagos online — el dinero llega directo a ti.
             </p>
 
-            {/* Botón OAuth (si está habilitado en la plataforma) */}
-            {status?.oauthEnabled ? (
+            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>
+                  1. Access Token de producción <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
+                  Empieza con APP_USR-... — en el panel de MP en "Credenciales de producción"
+                </div>
+                <input
+                  className="input"
+                  value={manualToken}
+                  onChange={e => setManualToken(e.target.value)}
+                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-..."
+                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>
+                  2. Public Key de producción <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
+                  También en "Credenciales de producción" — necesaria para que tus clientes ingresen su tarjeta en la caja
+                </div>
+                <input
+                  className="input"
+                  value={manualPublicKey}
+                  onChange={e => setManualPublicKey(e.target.value)}
+                  placeholder="APP_USR-xxxxxxxx-xxxx-xxxx-..."
+                  style={{ width: '100%', fontFamily: 'monospace', fontSize: 12 }}
+                />
+              </div>
+
               <button
-                onClick={handleOAuth}
-                disabled={connecting}
+                type="submit"
+                disabled={saving || !manualToken}
                 style={{
                   background: 'linear-gradient(135deg,#009ee3,#0077b6)',
                   color: '#fff', border: 'none', borderRadius: 10,
-                  padding: '12px 24px', cursor: 'pointer',
-                  fontWeight: 700, fontSize: 15, width: '100%',
+                  padding: '13px 24px', cursor: 'pointer',
+                  fontWeight: 700, fontSize: 15,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  boxShadow: '0 4px 14px rgba(0,158,227,0.4)',
-                  transition: 'opacity .2s', opacity: connecting ? .6 : 1
+                  boxShadow: '0 4px 14px rgba(0,158,227,0.35)',
+                  opacity: (saving || !manualToken) ? 0.6 : 1
                 }}>
-                {connecting
-                  ? <><div className="spinner" style={{ borderTopColor: '#fff' }} /> Conectando...</>
-                  : <><span>💳</span> Conectar con Mercado Pago</>}
+                {saving ? <><div className="spinner" style={{ borderTopColor: '#fff' }} /> Guardando...</> : '💳 Conectar Mercado Pago'}
               </button>
-            ) : (
-              /* Token manual (cuando OAuth no está configurado en Render) */
-              <div>
-                <button
-                  onClick={() => setManualOpen(o => !o)}
-                  style={{
-                    background: 'linear-gradient(135deg,#009ee3,#0077b6)',
-                    color: '#fff', border: 'none', borderRadius: 10,
-                    padding: '12px 24px', cursor: 'pointer',
-                    fontWeight: 700, fontSize: 15, width: '100%',
-                    boxShadow: '0 4px 14px rgba(0,158,227,0.4)'
-                  }}>
-                  💳 Conectar Mercado Pago
-                </button>
-                {manualOpen && (
-                  <form onSubmit={handleManual} style={{ marginTop: 16 }}>
-                    <div style={{ marginBottom: 8, fontSize: 13, color: '#475569' }}>
-                      Ve a{' '}
-                      <a href="https://www.mercadopago.com.mx/developers/panel/credentials"
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#009ee3' }}>
-                        mercadopago.com.mx → Credenciales
-                      </a>
-                      {' '}y copia tu <strong>Access Token de producción</strong> (empieza con APP_USR-)
-                    </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <input
-                        className="input"
-                        value={manualToken}
-                        onChange={e => setManualToken(e.target.value)}
-                        placeholder="APP_USR-xxxxxxxxxxxxxxxx"
-                        style={{ flex: 1, fontFamily: 'monospace', fontSize: 13 }}
-                        required
-                      />
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={savingManual || !manualToken}>
-                        {savingManual ? <div className="spinner" /> : 'Guardar'}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
-            )}
+            </form>
           </div>
         )}
       </div>

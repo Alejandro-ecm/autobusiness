@@ -29,6 +29,15 @@ export default function AppLayout({ children }) {
         onToggleCollapse={toggleCollapse}
       />
 
+      {/* Collapse toggle — desktop only, outside sidebar so it's never clipped */}
+      <button
+        className="sidebar-collapse-btn"
+        onClick={toggleCollapse}
+        title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+      >
+        {collapsed ? '▶' : '◀'}
+      </button>
+
       <div className="app-content">
         <header className="mobile-topbar">
           <button

@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
+    "@capacitor/android": "^8.3.4",
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
     "@mercadopago/sdk-react": "^1.0.7",
     "@undecaf/barcode-detector-polyfill": "^0.9.21",
     "axios": "^1.6.5",
     "jsbarcode": "^3.11.6",
+    "leaflet": "^1.9.4",
     "qrcode": "^1.5.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -15,11 +19,16 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
+    "typescript": "^6.0.3",
     "vite": "^5.0.11"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:android": "vite build --mode android",
+    "android:sync": "npm run build:android && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:run": "npx cap run android"
   }
 }

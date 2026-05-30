@@ -77,8 +77,9 @@ public class MpSettingsController {
     public ResponseEntity<?> connectManual(@AuthenticationPrincipal AuthPrincipal p,
                                             @RequestBody Map<String, String> body) {
         try {
-            String token = body.getOrDefault("accessToken", "").trim();
-            return ResponseEntity.ok(mpSettingsService.connectManual(p.businessId(), token));
+            String token     = body.getOrDefault("accessToken", "").trim();
+            String publicKey = body.getOrDefault("publicKey", "").trim();
+            return ResponseEntity.ok(mpSettingsService.connectManual(p.businessId(), token, publicKey));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

@@ -7,6 +7,71 @@ import './POS.css'
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const OFFLINE_KEY = 'ab_offline_sales'
 
+let mpPosInitialized = false
+async function initMPPos(publicKey) {
+  if (mpPosInitialized || !publicKey) return
+  const { initMercadoPago } = await import('@mercadopago/sdk-react')
+  initMercadoPago(publicKey, { locale: 'es-MX' })
+  mpPosInitialized = true
+}
+
+function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, onSuccess, onError, onClose }) {
+  const [BrickComponent, setBrickComponent] = useState(null)
+
+  useEffect(() => {
+    import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
+  }, [])
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box card" style={{ maxWidth: 540, width: '95%' }} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <h3>Pago con tarjeta</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Total a cobrar: {fmt(amount)}</p>
+          </div>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+        <div style={{ padding: '0 8px 8px' }}>
+          {!BrickComponent ? (
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <div className="spinner" style={{ margin: '0 auto 12px' }} />
+              <p style={{ color: '#64748b' }}>Cargando métodos de pago...</p>
+            </div>
+          ) : (
+            <BrickComponent
+              initialization={{ amount, preferenceId }}
+              customization={{
+                paymentMethods: { creditCard: 'all', debitCard: 'all', mercadoPago: 'all' },
+                visual: { style: { theme: 'default' } }
+              }}
+              onSubmit={async ({ formData }) => {
+                try {
+                  const result = await posApi.processCardPayment({
+                    formData,
+                    items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
+                    branchId,
+                  })
+                  if (result.status === 'approved') { onSuccess(result); return { status: 'approved' } }
+                  if (result.status === 'pending' || result.status === 'in_process') {
+                    onSuccess(result, 'pending'); return { status: 'pending' }
+                  }
+                  return { status: 'rejected' }
+                } catch (err) {
+                  onError(err?.error || err?.message || 'Error al procesar el pago')
+                  return { status: 'rejected' }
+                }
+              }}
+              onReady={() => {}}
+              onError={() => onError('Error en el formulario de pago')}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Guarda venta pendiente en localStorage con manejo seguro de errores
 function saveOfflineSale(data) {
   try {
@@ -47,7 +112,6 @@ const PAY_METHODS = [
   { id: 'cash',     label: 'Efectivo', icon: '💵' },
   { id: 'card',     label: 'Tarjeta',  icon: '💳' },
   { id: 'transfer', label: 'Transfer', icon: '📲' },
-  { id: 'mp',       label: 'MercadoPago', icon: '🟦' },
 ]
 
 export default function POS() {
@@ -69,6 +133,8 @@ export default function POS() {
     () => JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]').length
   )
   const [mobileTab, setMobileTab] = useState('products') // 'products' | 'cart'
+  const [payBrick, setPayBrick] = useState({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })
+  const [cardConfirm, setCardConfirm] = useState(false)
   const searchRef = useRef()
 
   // Detectar conexión
@@ -194,9 +260,53 @@ export default function POS() {
     posApi.topProducts().then(setTopProducts).catch(() => {})
   }
 
+  const handleCardPaymentSuccess = (result, status = 'approved') => {
+    setPayBrick({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })
+    const saleEntry = {
+      saleId: result.saleId || null,
+      items: cart,
+      discountAmount,
+      total,
+      change: 0,
+      time: new Date(),
+      payMethod: 'card',
+    }
+    setLastSale(saleEntry)
+    setSessionHistory(prev => [saleEntry, ...prev].slice(0, 20))
+    setCart([]); setCashReceived(''); setDiscount('')
+    posApi.products().then(setProducts)
+    posApi.topProducts().then(setTopProducts).catch(() => {})
+    show(status === 'approved' ? '💳 Pago con tarjeta aprobado' : '⏳ Pago pendiente de confirmación', status === 'approved' ? 'success' : 'warning')
+  }
+
   const checkout = async () => {
     if (cart.length === 0) { show('El carrito está vacío', 'error'); return }
     if (payMethod === 'cash' && cashReceived && change < 0) { show('Efectivo insuficiente', 'error'); return }
+
+    // Tarjeta → intentar Checkout Bricks si el negocio tiene MP conectado
+    if (payMethod === 'card') {
+      setLoading(true)
+      try {
+        const res = await posApi.createCardPayment({
+          items: cart.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+          total,
+          branchId: user.branchId,
+        })
+        if (res.mpPublicKey) {
+          await initMPPos(res.mpPublicKey)
+          setPayBrick({ open: true, preferenceId: res.preferenceId, mpPublicKey: res.mpPublicKey, amount: total })
+        } else {
+          // Sin MP conectado → confirmación simple (terminal física)
+          setCardConfirm(true)
+        }
+      } catch {
+        // Fallback: confirmación simple
+        setCardConfirm(true)
+      } finally { setLoading(false) }
+      return
+    }
+
+
     setLoading(true)
     try {
       if (!isOnline) { await doCheckout(true); return }
@@ -515,6 +625,66 @@ export default function POS() {
                 <strong style={{ fontSize: 12, flexShrink: 0 }}>{fmt(s.total)}</strong>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {payBrick.open && (
+        <PosPaymentBrick
+          amount={payBrick.amount}
+          preferenceId={payBrick.preferenceId}
+          cartItems={cart}
+          branchId={user.branchId}
+          onSuccess={handleCardPaymentSuccess}
+          onError={(msg) => { show(msg, 'error') }}
+          onClose={() => setPayBrick({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })}
+        />
+      )}
+
+      {cardConfirm && (
+        <div className="modal-overlay" onClick={() => setCardConfirm(false)}>
+          <div className="modal-box card" style={{ maxWidth: 400, width: '95%' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>💳 Pago con tarjeta</h3>
+              <button className="modal-close" onClick={() => setCardConfirm(false)}>×</button>
+            </div>
+            <div style={{ padding: '8px 4px 4px', textAlign: 'center' }}>
+              <div style={{ fontSize: 36, fontWeight: 800, color: '#1e293b', marginBottom: 4 }}>{fmt(total)}</div>
+              <div style={{
+                background: '#fffbeb', border: '1px solid #fde68a',
+                borderRadius: 8, padding: '10px 14px', margin: '12px 0', textAlign: 'left'
+              }}>
+                <p style={{ margin: 0, color: '#92400e', fontSize: 13, lineHeight: 1.5 }}>
+                  Para cobrar con tarjeta de forma digital (el cliente ingresa su número, CVV y fecha),
+                  conecta tu cuenta de MercadoPago en{' '}
+                  <a href="/settings/payments" style={{ color: '#b45309', fontWeight: 700 }}>
+                    Configuración → Pagos
+                  </a>.
+                </p>
+              </div>
+              <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+                Por ahora puedes cobrar con tu terminal física y registrar el pago aquí.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setCardConfirm(false)}>
+                  Cancelar
+                </button>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  disabled={loading}
+                  onClick={async () => {
+                    setCardConfirm(false)
+                    setLoading(true)
+                    try { await doCheckout(false) }
+                    catch (err) { show(err?.error || err?.message || 'Error al registrar venta', 'error') }
+                    finally { setLoading(false) }
+                  }}
+                >
+                  {loading ? <div className="spinner" /> : '✓ Confirmar cobro'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

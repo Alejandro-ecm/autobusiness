@@ -7,6 +7,7 @@ import com.autobusiness.domain.model.User;
 import com.autobusiness.domain.repository.BusinessRepository;
 import com.autobusiness.domain.repository.BranchRepository;
 import com.autobusiness.domain.repository.UserRepository;
+import com.autobusiness.infrastructure.analytics.AlejandriaClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +30,7 @@ public class AuthService {
     private final SubscriptionService subscriptionService;
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtil;
+    private final AlejandriaClient alejandria;
 
     public Map<String, Object> login(String email, String password) {
         User user = userRepo.findByEmail(email)
@@ -91,6 +93,7 @@ public class AuthService {
         Business business = businessRepo.save(Business.builder()
                 .name(businessName.trim())
                 .slug(slug)
+                .deliveryCode(generateDeliveryCode())
                 .build());
 
         Branch mainBranch = branchRepo.save(Branch.builder()
@@ -110,6 +113,9 @@ public class AuthService {
 
         // Crear suscripción trial de 14 días automáticamente
         subscriptionService.createTrialSubscription(business);
+
+        long totalUsuarios = userRepo.count();
+        alejandria.trackMetric("total_usuarios", totalUsuarios, "count");
 
         String token = jwtUtil.generate(owner.getId(), owner.getEmail(),
                 owner.getRole(), business.getId(), false);
@@ -142,6 +148,18 @@ public class AuthService {
         businessRepo.save(business);
         log.info("onboarding.completed business={} profileType={}", businessId, profileType);
         return Map.of("onboardingCompleted", true, "profileType", profileType);
+    }
+
+    private String generateDeliveryCode() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        java.security.SecureRandom rng = new java.security.SecureRandom();
+        String code;
+        do {
+            StringBuilder sb = new StringBuilder(10);
+            for (int i = 0; i < 10; i++) sb.append(chars.charAt(rng.nextInt(chars.length())));
+            code = sb.toString();
+        } while (businessRepo.existsByDeliveryCode(code));
+        return code;
     }
 
     private String generateSlug(String name) {

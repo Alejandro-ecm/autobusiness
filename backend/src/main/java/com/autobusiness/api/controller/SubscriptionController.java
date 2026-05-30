@@ -43,10 +43,12 @@ public class SubscriptionController {
         try {
             Map<String, Object> paymentLink = mpService.createSubscriptionLink(p.businessId(), plan);
             return ResponseEntity.ok(Map.of(
-                    "plan",       plan,
-                    "initPoint",  paymentLink.get("initPoint"),
+                    "plan",         plan,
+                    "preferenceId", paymentLink.getOrDefault("preferenceId", ""),
+                    "initPoint",    paymentLink.get("initPoint"),
                     "sandboxPoint", paymentLink.get("sandboxPoint"),
-                    "paymentId",  paymentLink.get("paymentId")
+                    "paymentId",    paymentLink.get("paymentId"),
+                    "mpPublicKey",  mpService.getPlatformPublicKey() != null ? mpService.getPlatformPublicKey() : ""
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

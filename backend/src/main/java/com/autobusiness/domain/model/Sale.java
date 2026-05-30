@@ -63,6 +63,9 @@ public class Sale {
 
     private String notes;
 
+    @Column(name = "source_order_id")
+    private UUID sourceOrderId;
+
     @CreationTimestamp
     private Instant createdAt;
 

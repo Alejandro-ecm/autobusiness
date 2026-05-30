@@ -24,6 +24,7 @@ import PaymentSettings from './pages/PaymentSettings'
 import SuperAdmin from './pages/SuperAdmin'
 import Purchases from './pages/Purchases'
 import OnboardingWizard from './components/OnboardingWizard'
+import Marketplace from './pages/Marketplace'
 
 function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
   const { user } = useAuth()
@@ -48,6 +49,7 @@ function AppRoutes() {
       <Route path="/login" element={user ? <Navigate to={home} /> : <Login />} />
       <Route path="/register" element={user ? <Navigate to={home} /> : <Register />} />
       <Route path="/tienda/:slug" element={<Storefront />} />
+      <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/payment/success" element={<PaymentResult />} />
       <Route path="/payment/failure" element={<PaymentResult />} />
       <Route path="/payment/pending" element={<PaymentResult />} />

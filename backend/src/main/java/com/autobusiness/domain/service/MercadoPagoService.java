@@ -26,6 +26,7 @@ public class MercadoPagoService {
     private final OrderRepository orderRepo;
     private final BusinessRepository businessRepo;
     private final SubscriptionService subscriptionService;
+    private final OnlineStoreService onlineStoreService;
     private final WebClient.Builder webClientBuilder;
 
     @Value("${mercadopago.access-token:TEST-placeholder}")
@@ -35,6 +36,13 @@ public class MercadoPagoService {
     private String platformPublicKey;
 
     public String getPlatformPublicKey() { return platformPublicKey; }
+
+    public String getEffectivePublicKey(UUID businessId) {
+        return businessRepo.findById(businessId)
+                .map(b -> (b.getMpPublicKey() != null && !b.getMpPublicKey().isBlank())
+                        ? b.getMpPublicKey() : platformPublicKey)
+                .orElse(platformPublicKey);
+    }
 
     @Value("${mercadopago.notification-url:http://localhost:8080/api/payments/mercadopago/webhook}")
     private String notificationUrl;
@@ -102,7 +110,10 @@ public class MercadoPagoService {
                 "failure", failureUrl + "?ref=" + externalRef + slugParam,
                 "pending", pendingUrl + "?ref=" + externalRef + slugParam
         ));
-        preference.put("auto_return", "approved");
+        // auto_return only valid with public (non-localhost) back_urls
+        if (!successUrl.contains("localhost") && !successUrl.contains("127.0.0.1")) {
+            preference.put("auto_return", "approved");
+        }
         if (payerEmail != null && !payerEmail.isBlank()) {
             preference.put("payer", Map.of("email", payerEmail));
         }
@@ -267,15 +278,23 @@ public class MercadoPagoService {
                     log.error("Failed to activate subscription: {}", e.getMessage());
                 }
             } else if (!extRef.isBlank()) {
-                // Marcar la orden de tienda online como confirmada
+                // Marcar la orden de tienda online como confirmada y registrar venta
                 try {
-                    UUID orderId = UUID.fromString(extRef);
-                    payment.setOrderId(orderId);
+                    UUID oid = UUID.fromString(extRef);
+                    payment.setOrderId(oid);
                     final String finalPaymentId = paymentId;
-                    orderRepo.findById(orderId).ifPresent(order -> {
+                    final Payment finalPayment = payment;
+                    orderRepo.findById(oid).ifPresent(order -> {
                         order.setStatus("confirmed");
                         orderRepo.save(order);
-                        log.info("Order {} confirmed via MP payment {}", orderId, finalPaymentId);
+                        try {
+                            var sale = onlineStoreService.createSaleFromOrder(order);
+                            finalPayment.setSaleId(sale.getId());
+                            log.info("Order {} confirmed + sale {} created via MP payment {}",
+                                    oid, sale.getId(), finalPaymentId);
+                        } catch (Exception e) {
+                            log.error("Could not create sale for order {}: {}", oid, e.getMessage());
+                        }
                     });
                 } catch (IllegalArgumentException ignored) { /* extRef no es UUID de orden */ }
             }
@@ -311,10 +330,16 @@ public class MercadoPagoService {
      * Procesa un pago con tarjeta usando el token generado por Checkout Bricks.
      * Llamado desde el frontend en lugar de redirigir a Checkout Pro.
      */
+    public Map<String, Object> processCardPayment(UUID businessId, UUID orderId,
+                                                   Map<String, Object> formData) {
+        return processCardPayment(businessId, orderId, formData, "Pedido tienda online");
+    }
+
     @Transactional
     @SuppressWarnings("unchecked")
     public Map<String, Object> processCardPayment(UUID businessId, UUID orderId,
-                                                   Map<String, Object> formData) {
+                                                   Map<String, Object> formData,
+                                                   String description) {
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
 
@@ -325,7 +350,7 @@ public class MercadoPagoService {
         payload.put("transaction_amount",
                 new BigDecimal(formData.getOrDefault("transaction_amount", "0").toString()).doubleValue());
         payload.put("token",              formData.get("token"));
-        payload.put("description",        "Pedido tienda online");
+        payload.put("description",        description);
         payload.put("installments",       Integer.parseInt(formData.getOrDefault("installments", "1").toString()));
         payload.put("payment_method_id",  formData.get("payment_method_id"));
         if (formData.containsKey("issuer_id") && formData.get("issuer_id") != null)
@@ -356,9 +381,18 @@ public class MercadoPagoService {
                 formData.getOrDefault("transaction_amount", "0").toString());
 
         if ("approved".equals(status) && orderId != null) {
+            final String finalMpId = mpId;
             orderRepo.findById(orderId).ifPresent(o -> {
                 o.setStatus("confirmed");
                 orderRepo.save(o);
+                try {
+                    var sale = onlineStoreService.createSaleFromOrder(o);
+                    linkSaleToPayment(finalMpId, sale.getId());
+                    log.info("Order {} confirmed + sale {} created via Bricks payment {}",
+                            o.getId(), sale.getId(), finalMpId);
+                } catch (Exception e) {
+                    log.error("Could not create sale for order {}: {}", o.getId(), e.getMessage());
+                }
             });
         }
 
@@ -379,6 +413,15 @@ public class MercadoPagoService {
                 "statusDetail", result.getOrDefault("status_detail", ""));
     }
 
+    @Transactional
+    public void linkSaleToPayment(String transactionId, UUID saleId) {
+        if (transactionId == null || transactionId.isBlank()) return;
+        paymentRepo.findByTransactionId(transactionId).ifPresent(p -> {
+            p.setSaleId(saleId);
+            paymentRepo.save(p);
+        });
+    }
+
     /**
      * Procesa pago de suscripción con tarjeta via Bricks.
      * Siempre usa el token de la plataforma para que el dinero vaya al dueño del SaaS.
@@ -387,7 +430,7 @@ public class MercadoPagoService {
     @SuppressWarnings("unchecked")
     public Map<String, Object> processSubscriptionCardPayment(UUID businessId, String plan,
                                                                Map<String, Object> formData) {
-        Map<String, Integer> prices = Map.of("BASIC", 29, "PRO", 49, "PREMIUM", 89);
+        Map<String, Integer> prices = Map.of("BASIC", 49, "PRO", 100, "PREMIUM", 180);
         int price = prices.getOrDefault(plan.toUpperCase(), 29);
 
         Map<String, Object> payload = new HashMap<>();
@@ -443,7 +486,7 @@ public class MercadoPagoService {
      * Crea un link de pago para suscripción mensual.
      */
     public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {
-        Map<String, Integer> prices = Map.of("BASIC", 29, "PRO", 49, "PREMIUM", 89);
+        Map<String, Integer> prices = Map.of("BASIC", 49, "PRO", 100, "PREMIUM", 180);
         int price = prices.getOrDefault(plan.toUpperCase(), 29);
 
         var items = List.of(Map.<String, Object>of(

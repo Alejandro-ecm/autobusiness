@@ -1,6 +1,31 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../store/AuthContext'
+import { useEffect, useState } from 'react'
+import { orders as ordersApi } from '../../api'
 import './Sidebar.css'
+
+const ACTIVE = new Set(['pending', 'confirmed', 'preparing', 'ready'])
+
+function usePendingOrdersCount() {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    const load = () =>
+      ordersApi.list().then(r => {
+        // el interceptor ya hace res.data, r es el array directamente
+        const n = (Array.isArray(r) ? r : []).filter(o => ACTIVE.has(o.status)).length
+        setCount(prev => {
+          if (n > prev && prev > 0 && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('Nuevo pedido', { body: `Tienes ${n} pedidos pendientes`, icon: '/skymarket-logo.jpg' })
+          }
+          return n
+        })
+      }).catch(() => {})
+    load()
+    const id = setInterval(load, 15_000)
+    return () => clearInterval(id)
+  }, [])
+  return count
+}
 
 const ownerNav = [
   { to: '/dashboard',        icon: '⚡', label: 'Resumen' },
@@ -31,6 +56,13 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
   const { user, logout, isOwner } = useAuth()
   const navigate = useNavigate()
   const nav = isOwner ? ownerNav : cashierNav
+  const pendingOrders = isOwner ? usePendingOrdersCount() : 0
+
+  useEffect(() => {
+    if (isOwner && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+  }, [isOwner])
 
   return (
     <aside className={`sidebar${open ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
@@ -55,6 +87,9 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
           >
             <span className="sidebar-icon">{item.icon}</span>
             {!collapsed && <span className="sidebar-label">{item.label}</span>}
+            {item.to === '/orders' && pendingOrders > 0 && (
+              <span className="sidebar-badge">{pendingOrders > 99 ? '99+' : pendingOrders}</span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -92,15 +127,6 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
         )}
       </div>
 
-      {/* Collapse toggle — desktop only */}
-      <button
-        className="sidebar-collapse-btn"
-        onClick={onToggleCollapse}
-        title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-        aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
-      >
-        {collapsed ? '▶' : '◀'}
-      </button>
     </aside>
   )
 }

@@ -111,12 +111,29 @@ public class MpSettingsService {
     }
 
     @Transactional
-    public Map<String, Object> connectManual(UUID businessId, String accessToken) {
-        if (accessToken == null || accessToken.isBlank()) {
-            throw new IllegalArgumentException("Token inválido");
+    public Map<String, Object> connectManual(UUID businessId, String accessToken, String publicKey) {
+        Business biz = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
+        boolean hasNewToken = accessToken != null && !accessToken.isBlank();
+
+        // If no new token provided, require the business to already have one
+        if (!hasNewToken) {
+            if (biz.getMpAccessToken() == null || biz.getMpAccessToken().isBlank()) {
+                throw new IllegalArgumentException("Access Token requerido para conectar Mercado Pago.");
+            }
+            // Only updating public key
+            if (publicKey != null && !publicKey.isBlank()) {
+                biz.setMpPublicKey(publicKey);
+                businessRepo.save(biz);
+                log.info("MP public key updated for business {}", businessId);
+            } else {
+                throw new IllegalArgumentException("Ingresa al menos el Access Token o el Public Key.");
+            }
+            return Map.of("connected", true, "mpUserId", biz.getMpUserId() != null ? biz.getMpUserId() : "");
         }
 
-        // Validar el token consultando la API de MP
+        // Validate new access token against MP API
         WebClient client = webClientBuilder.baseUrl("https://api.mercadopago.com")
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .build();
@@ -133,21 +150,18 @@ public class MpSettingsService {
             throw new IllegalArgumentException("Token de Mercado Pago inválido. Verifica que sea un Access Token de producción.");
         }
 
-        Business biz = businessRepo.findById(businessId)
-                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
-
         biz.setMpAccessToken(accessToken);
         biz.setMpUserId(me.getOrDefault("id", "").toString());
-        biz.setMpPublicKey(me.getOrDefault("public_key", "").toString());
+        String resolvedKey = (publicKey != null && !publicKey.isBlank())
+                ? publicKey
+                : me.getOrDefault("public_key", "").toString();
+        if (!resolvedKey.isBlank()) biz.setMpPublicKey(resolvedKey);
         biz.setMpConnectedAt(Instant.now());
         biz.setMpRefreshToken(null);
         businessRepo.save(biz);
 
         log.info("MP manual token connected for business {} user {}", businessId, biz.getMpUserId());
-        return Map.of(
-                "connected", true,
-                "mpUserId",  biz.getMpUserId()
-        );
+        return Map.of("connected", true, "mpUserId", biz.getMpUserId());
     }
 
     @Transactional

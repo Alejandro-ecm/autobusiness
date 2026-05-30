@@ -23,8 +23,10 @@ export default function Login() {
     } catch (err) {
       if (err?.error) {
         show(err.error, 'error')
+      } else if (err?.status === 401 || err?.response?.status === 401) {
+        show('Email o contraseña incorrectos', 'error')
       } else {
-        show('El servidor está iniciándose, espera 1-2 min e intenta de nuevo.', 'warning')
+        show('No se pudo conectar. Verifica tu conexión e intenta de nuevo.', 'error')
       }
     } finally { setLoading(false) }
   }
@@ -42,7 +44,20 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-box card">
+      {/* Banner marketplace */}
+      <div
+        onClick={() => navigate('/marketplace')}
+        style={{
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10,
+          background: 'linear-gradient(90deg,#6366f1,#8b5cf6)',
+          color: '#fff', textAlign: 'center', padding: '10px',
+          cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+        }}>
+        🛍️ ¿Buscas una tienda? Ver tiendas en línea →
+      </div>
+
+      <div className="login-box card" style={{ marginTop: 48 }}>
         <div className="login-logo">
           <div className="login-logo-icon">AB</div>
           <h1 className="login-title">AutoBusiness AI</h1>
@@ -71,9 +86,6 @@ export default function Login() {
             <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
               {loading ? <div className="spinner" /> : 'Entrar'}
             </button>
-            <p className="login-demo">
-              Demo: <code>dueno@demo.com</code> / <code>demo1234</code>
-            </p>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="login-form">
@@ -98,6 +110,15 @@ export default function Login() {
             </button>
           </form>
         )}
+
+        {/* Link marketplace abajo */}
+        <div style={{ textAlign: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
+          <span
+            onClick={() => navigate('/marketplace')}
+            style={{ color: '#6366f1', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
+            🛍️ Ver tiendas en línea
+          </span>
+        </div>
       </div>
     </div>
   )

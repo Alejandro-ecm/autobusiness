@@ -41,12 +41,20 @@ public class OnlineStoreController {
         try {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
+            Double lat = body.get("deliveryLat") != null ? Double.parseDouble(body.get("deliveryLat").toString()) : null;
+            Double lng = body.get("deliveryLng") != null ? Double.parseDouble(body.get("deliveryLng").toString()) : null;
+            String paymentMethod = body.get("paymentMethod") != null
+                    ? body.get("paymentMethod").toString() : "cash_on_delivery";
             return ResponseEntity.ok(storeService.placeOrder(
                     slug,
-                    body.get("customerName") != null ? body.get("customerName").toString() : "Cliente",
-                    body.get("customerEmail") != null ? body.get("customerEmail").toString() : null,
-                    body.get("customerPhone") != null ? body.get("customerPhone").toString() : null,
-                    items
+                    body.get("customerName")    != null ? body.get("customerName").toString()    : "Cliente",
+                    body.get("customerEmail")   != null ? body.get("customerEmail").toString()   : null,
+                    body.get("customerPhone")   != null ? body.get("customerPhone").toString()   : null,
+                    body.get("deliveryAddress") != null ? body.get("deliveryAddress").toString() : null,
+                    body.get("mapsUrl")         != null ? body.get("mapsUrl").toString()         : null,
+                    lat, lng,
+                    items,
+                    paymentMethod
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -140,6 +148,14 @@ public class OnlineStoreController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    // Autenticado — código de sincronización para app delivery
+    @GetMapping("/business/delivery-code")
+    public ResponseEntity<?> getDeliveryCode(@AuthenticationPrincipal AuthPrincipal principal) {
+        return businessRepo.findById(principal.businessId())
+                .map(b -> ResponseEntity.ok(Map.of("deliveryCode", b.getDeliveryCode() != null ? b.getDeliveryCode() : "")))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Autenticado — gestionar órdenes

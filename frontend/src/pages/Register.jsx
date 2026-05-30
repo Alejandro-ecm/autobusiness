@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
+import { trackEvent } from '../lib/alejandria'
 import './Register.css'
 
 export default function Register() {
@@ -29,6 +30,10 @@ export default function Register() {
         ownerName:    form.ownerName.trim(),
         email:        form.email.trim().toLowerCase(),
         password:     form.password,
+      })
+      trackEvent('usuario_registro', {
+        nombre: form.ownerName.trim(),
+        plan: planHint,
       })
       navigate('/dashboard')
     } catch (err) {

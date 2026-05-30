@@ -369,3 +369,7 @@
 .sf-theme-minimal .sf-product:hover { box-shadow: 0 4px 20px rgba(0,0,0,.07); transform: translateY(-2px); }
 .sf-theme-minimal .qty-ctrl { border-color: #e2e8f0; color: #0f172a; }
 .sf-theme-minimal .qty-ctrl:hover:not(:disabled) { background: #0f172a; color: #fff; border-color: #0f172a; }
+
+/* Leaflet map picker */
+.leaflet-container { font-family: inherit; }
+.leaflet-control-attribution { font-size: 9px; }
