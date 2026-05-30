@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../store/AuthContext'
-import { inventory as inventoryApi, orders as ordersApi, store as storeApi, business as businessApi } from '../api'
+import { inventory as inventoryApi, orders as ordersApi, store as storeApi, business as businessApi, upload as uploadApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import './StoreAdmin.css'
+
+const BASE_API = (import.meta.env.VITE_API_URL || '/api')
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
 
@@ -56,8 +58,37 @@ export default function StoreAdmin() {
   // Diseño state
   const [design, setDesign] = useState({ name: '', description: '', logoUrl: '', bannerUrl: '', storeTheme: 'modern' })
   const [designLoading, setDesignLoading] = useState(false)
-  const [logoError, setLogoError]     = useState(false)
-  const [bannerError, setBannerError] = useState(false)
+  const [logoError, setLogoError]         = useState(false)
+  const [bannerError, setBannerError]     = useState(false)
+  const [logoUploading, setLogoUploading]     = useState(false)
+  const [bannerUploading, setBannerUploading] = useState(false)
+  const logoInputRef   = useRef(null)
+  const bannerInputRef = useRef(null)
+  const [deliveryCode, setDeliveryCode] = useState('')
+
+  const handleLogoUpload = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return
+    if (file.size > 5 * 1024 * 1024) { show('Imagen demasiado grande (máx 5 MB)', 'error'); return }
+    setLogoUploading(true)
+    try {
+      const result = await uploadApi.image(file, 'logos')
+      setDesign(d => ({ ...d, logoUrl: result.url }))
+      setLogoError(false)
+    } catch { show('Error al subir logo', 'error') }
+    finally { setLogoUploading(false) }
+  }
+
+  const handleBannerUpload = async (file) => {
+    if (!file || !file.type.startsWith('image/')) return
+    if (file.size > 5 * 1024 * 1024) { show('Imagen demasiado grande (máx 5 MB)', 'error'); return }
+    setBannerUploading(true)
+    try {
+      const result = await uploadApi.image(file, 'banners')
+      setDesign(d => ({ ...d, bannerUrl: result.url }))
+      setBannerError(false)
+    } catch { show('Error al subir banner', 'error') }
+    finally { setBannerUploading(false) }
+  }
 
   const copyLink = () => {
     if (!fullStoreUrl) return
@@ -95,7 +126,11 @@ export default function StoreAdmin() {
     } catch { /* ignore */ }
   }
 
-  useEffect(() => { load(); loadStorefront() }, [])
+  useEffect(() => {
+    load()
+    loadStorefront()
+    businessApi.deliveryCode().then(d => setDeliveryCode(d.deliveryCode || '')).catch(() => {})
+  }, [])
 
   const onlineProducts   = products.filter(p => p.isOnline)
   const pendingOrders    = orders.filter(o => o.status === 'pending')
@@ -209,6 +244,7 @@ export default function StoreAdmin() {
         {[
           { id: 'catalogo', label: '🏪 Catálogo' },
           { id: 'pedidos',  label: `📋 Pedidos${pendingOrders.length > 0 ? ` (${pendingOrders.length})` : ''}` },
+          { id: 'delivery', label: '🛵 Delivery' },
           { id: 'diseno',   label: '🎨 Diseño' },
         ].map(t => (
           <button key={t.id} className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
@@ -337,6 +373,11 @@ export default function StoreAdmin() {
         </div>
       )}
 
+      {/* Delivery */}
+      {tab === 'delivery' && (
+        <DeliveryCodePanel code={deliveryCode} baseApi={BASE_API} show={show} />
+      )}
+
       {/* Diseño */}
       {tab === 'diseno' && (
         <div className="design-tab">
@@ -367,47 +408,57 @@ export default function StoreAdmin() {
             </div>
 
             <div className="design-field">
-              <label className="design-label">URL del logo</label>
-              <input
-                className="input"
-                value={design.logoUrl}
-                onChange={e => { setDesign(d => ({ ...d, logoUrl: e.target.value })); setLogoError(false) }}
-                placeholder="https://…/logo.png"
-              />
+              <label className="design-label">Logo del negocio</label>
+              <input ref={logoInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => handleLogoUpload(e.target.files[0])} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  className="input"
+                  value={design.logoUrl}
+                  onChange={e => { setDesign(d => ({ ...d, logoUrl: e.target.value })); setLogoError(false) }}
+                  placeholder="https://…/logo.png  o sube una imagen"
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-secondary" style={{ whiteSpace: 'nowrap' }}
+                  onClick={() => logoInputRef.current?.click()} disabled={logoUploading}>
+                  {logoUploading ? 'Subiendo...' : '📷 Subir'}
+                </button>
+              </div>
               {design.logoUrl && !logoError && (
                 <div className="design-preview-wrap">
-                  <img
-                    src={design.logoUrl}
-                    alt="Logo preview"
-                    className="design-logo-preview"
-                    onError={() => setLogoError(true)}
-                  />
+                  <img src={design.logoUrl} alt="Logo preview" className="design-logo-preview"
+                    onError={() => setLogoError(true)} />
                   <span className="design-preview-label">Vista previa del logo</span>
                 </div>
               )}
-              {logoError && <p className="design-preview-error">No se pudo cargar la imagen. Verifica la URL.</p>}
+              {logoError && <p className="design-preview-error">No se pudo cargar la imagen.</p>}
             </div>
 
             <div className="design-field">
-              <label className="design-label">URL de imagen de fondo (banner)</label>
-              <input
-                className="input"
-                value={design.bannerUrl}
-                onChange={e => { setDesign(d => ({ ...d, bannerUrl: e.target.value })); setBannerError(false) }}
-                placeholder="https://…/banner.jpg (opcional)"
-              />
+              <label className="design-label">Imagen de fondo (banner)</label>
+              <input ref={bannerInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+                onChange={e => handleBannerUpload(e.target.files[0])} />
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  className="input"
+                  value={design.bannerUrl}
+                  onChange={e => { setDesign(d => ({ ...d, bannerUrl: e.target.value })); setBannerError(false) }}
+                  placeholder="https://…/banner.jpg  o sube una imagen (opcional)"
+                  style={{ flex: 1 }}
+                />
+                <button className="btn btn-secondary" style={{ whiteSpace: 'nowrap' }}
+                  onClick={() => bannerInputRef.current?.click()} disabled={bannerUploading}>
+                  {bannerUploading ? 'Subiendo...' : '🖼️ Subir'}
+                </button>
+              </div>
               {design.bannerUrl && !bannerError && (
                 <div className="design-banner-preview-wrap">
-                  <img
-                    src={design.bannerUrl}
-                    alt="Banner preview"
-                    className="design-banner-preview"
-                    onError={() => setBannerError(true)}
-                  />
+                  <img src={design.bannerUrl} alt="Banner preview" className="design-banner-preview"
+                    onError={() => setBannerError(true)} />
                   <span className="design-preview-label">Vista previa del banner</span>
                 </div>
               )}
-              {bannerError && <p className="design-preview-error">No se pudo cargar la imagen. Verifica la URL.</p>}
+              {bannerError && <p className="design-preview-error">No se pudo cargar la imagen.</p>}
             </div>
           </div>
 
@@ -453,6 +504,165 @@ export default function StoreAdmin() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function DeliveryCodePanel({ code, baseApi, show }) {
+  const copyCode = () => {
+    navigator.clipboard.writeText(code)
+    show('Código copiado', 'success')
+  }
+  const copyEndpoint = () => {
+    const url = `${baseApi}/delivery/orders?code=${code}`
+    navigator.clipboard.writeText(url)
+    show('Endpoint copiado', 'success')
+  }
+
+  return (
+    <div style={{ display: 'grid', gap: 20 }}>
+
+      {/* Código */}
+      <div className="card" style={{ textAlign: 'center', padding: '32px 24px' }}>
+        <div style={{ fontSize: 40, marginBottom: 8 }}>🛵</div>
+        <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4, color: '#0f172a' }}>
+          Código de sincronización Delivery
+        </h2>
+        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>
+          Comparte este código con tu app de repartidores para que reciban los pedidos automáticamente.
+        </p>
+
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 16,
+          background: '#0f172a', borderRadius: 16, padding: '18px 28px',
+          marginBottom: 20
+        }}>
+          <span style={{
+            fontFamily: 'monospace', fontSize: 32, fontWeight: 900,
+            color: '#6366f1', letterSpacing: 6
+          }}>
+            {code || '—'}
+          </span>
+          <button onClick={copyCode}
+            style={{
+              background: '#6366f1', color: '#fff', border: 'none',
+              borderRadius: 10, padding: '8px 16px', cursor: 'pointer',
+              fontWeight: 700, fontSize: 13
+            }}>
+            Copiar
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: '#f0fdf4', color: '#16a34a', borderRadius: 20,
+            padding: '4px 12px', fontSize: 12, fontWeight: 600
+          }}>
+            🔒 Solo tú ves este código
+          </span>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: '#eff6ff', color: '#2563eb', borderRadius: 20,
+            padding: '4px 12px', fontSize: 12, fontWeight: 600
+          }}>
+            🔄 Se sincroniza en tiempo real
+          </span>
+        </div>
+      </div>
+
+      {/* Endpoint para desarrollador */}
+      <div className="card">
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>🔌 Endpoint para tu app</div>
+        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+          Tu app de delivery hace una petición GET a esta URL para obtener los pedidos activos con ubicación GPS.
+        </p>
+        <div style={{
+          background: '#0f172a', borderRadius: 10, padding: '14px 16px',
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'
+        }}>
+          <code style={{ color: '#a5f3fc', fontSize: 12, wordBreak: 'break-all', flex: 1 }}>
+            GET {baseApi}/delivery/orders?code=<span style={{ color: '#fb923c', fontWeight: 700 }}>{code}</span>
+          </code>
+          <button onClick={copyEndpoint}
+            style={{
+              background: '#6366f1', color: '#fff', border: 'none',
+              borderRadius: 8, padding: '6px 14px', cursor: 'pointer',
+              fontWeight: 600, fontSize: 12, flexShrink: 0
+            }}>
+            Copiar
+          </button>
+        </div>
+
+        <div style={{ marginTop: 16, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: '#374151', marginBottom: 8 }}>Respuesta JSON por pedido:</div>
+          <div style={{ display: 'grid', gap: 5 }}>
+            {[
+              ['customerName',     'Nombre del cliente'],
+              ['customerPhone',    'WhatsApp / teléfono'],
+              ['deliveryAddress',  'Calle y número escrita'],
+              ['deliveryLat/Lng',  'Coordenadas GPS exactas del pin'],
+              ['mapsUrl',          'Ver ubicación en Google Maps'],
+              ['navUrl',           'Abrir navegación guiada en Google Maps'],
+              ['wazeUrl',          'Abrir navegación guiada en Waze'],
+              ['total',            'Total del pedido'],
+              ['paymentMethod',    '"cash_on_delivery" o "online"'],
+              ['status',           'Estado actual del pedido'],
+              ['items[]',          'Lista de productos con cantidad y precio'],
+            ].map(([field, desc]) => (
+              <div key={field} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
+                <span style={{ fontFamily: 'monospace', color: '#6366f1', fontWeight: 700, minWidth: 120, flexShrink: 0 }}>{field}</span>
+                <span style={{ color: '#64748b' }}>— {desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Otros endpoints */}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontWeight: 700, fontSize: 12, color: '#374151', marginBottom: 8 }}>Otros endpoints disponibles:</div>
+          <div style={{ display: 'grid', gap: 6 }}>
+            {[
+              ['PATCH', `/delivery/orders/{id}/status?code=${code}`, 'Cambiar estado: pending→confirmed→preparing→ready→delivered'],
+              ['POST',  `/delivery/orders/{id}/deliver?code=${code}`, 'Marcar como entregado (registra la venta si es efectivo)'],
+              ['GET',   `/delivery/earnings?code=${code}`, 'Historial de ventas y ganancias del día'],
+            ].map(([method, path, desc]) => (
+              <div key={path} style={{ background: '#0f172a', borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                  <span style={{ color: method === 'GET' ? '#34d399' : method === 'PATCH' ? '#fbbf24' : '#60a5fa', fontFamily: 'monospace', fontWeight: 700, fontSize: 11 }}>{method}</span>
+                  <code style={{ color: '#a5f3fc', fontSize: 11, wordBreak: 'break-all' }}>{path}</code>
+                </div>
+                <span style={{ color: '#64748b', fontSize: 11 }}>{desc}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Instrucciones */}
+      <div className="card" style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)' }}>
+        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>📱 Qué configurar en Auto Delivery</div>
+        <div style={{ display: 'grid', gap: 10 }}>
+          {[
+            ['1', `URL base del API: ${baseApi}`],
+            ['2', `Código de delivery: ${code || '(ver arriba)'} — es la "API key" del negocio`],
+            ['3', 'Usa navUrl de cada pedido para abrir Google Maps en modo navegación guiada'],
+            ['4', 'O usa wazeUrl para abrir Waze con la ruta ya calculada'],
+            ['5', 'Llama PATCH /delivery/orders/{id}/status para actualizar el estado en tiempo real'],
+            ['6', 'Llama POST /delivery/orders/{id}/deliver cuando el cliente recibe el pedido'],
+          ].map(([n, text]) => (
+            <div key={n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <span style={{
+                width: 26, height: 26, borderRadius: '50%', background: '#6366f1',
+                color: '#fff', fontWeight: 700, fontSize: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+              }}>{n}</span>
+              <span style={{ fontSize: 13, color: '#374151', paddingTop: 3, wordBreak: 'break-all' }}>{text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   )
 }

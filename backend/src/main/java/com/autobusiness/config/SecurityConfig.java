@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/**",
                                 "/store/**",
+                                "/marketplace/**",                          // buscador público de tiendas
+                                "/delivery/**",                             // app de delivery (sync por código)
                                 "/health",
                                 "/actuator/**",
                                 "/subscription/plans",                      // precios públicos
@@ -89,22 +91,35 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsSource() {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+
+        // /delivery/** es una API pública — acepta cualquier origen (apps de delivery externas)
+        CorsConfiguration publicConfig = new CorsConfiguration();
+        publicConfig.setAllowedOriginPatterns(List.of("*"));
+        publicConfig.setAllowedMethods(List.of("GET", "POST", "PATCH", "OPTIONS"));
+        publicConfig.setAllowedHeaders(List.of("*"));
+        publicConfig.setAllowCredentials(false);
+        source.registerCorsConfiguration("/delivery/**", publicConfig);
+
+        // Resto de rutas — solo orígenes autorizados
         List<String> origins = new java.util.ArrayList<>(Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isBlank())
                 .collect(Collectors.toList()));
-        // Allow Capacitor (Android/iOS app) and *.onrender.com always
         origins.add("capacitor://localhost");
         origins.add("https://localhost");
         origins.add("http://localhost");
-        origins.add("*.onrender.com");
+        origins.add("https://skytechnologieslatam.com");
+        origins.add("https://www.skytechnologieslatam.com");
+        origins.add("https://*.vercel.app");
+        origins.add("https://*.up.railway.app");
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 }

@@ -91,6 +91,13 @@
       <artifactId>spring-boot-starter-webflux</artifactId>
     </dependency>
 
+    <!-- Cloudinary — almacenamiento de imágenes -->
+    <dependency>
+      <groupId>com.cloudinary</groupId>
+      <artifactId>cloudinary-http44</artifactId>
+      <version>1.39.0</version>
+    </dependency>
+
     <!-- Test -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

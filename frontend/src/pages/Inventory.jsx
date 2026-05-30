@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
-import { inventory as inventoryApi, categories as categoriesApi } from '../api'
+import { inventory as inventoryApi, categories as categoriesApi, upload as uploadApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
 import './Inventory.css'
@@ -537,24 +537,19 @@ export default function Inventory() {
     a.click()
   }
 
-  // ── Subida de foto (resize a 300×300, guarda como base64) ─────────────────
+  // ── Subida de foto a Cloudinary ───────────────────────────────────────────
   const handleImageUpload = useCallback(async (file, target) => {
     if (!file || !file.type.startsWith('image/')) return
-    const img = new Image()
-    img.src = URL.createObjectURL(file)
-    await new Promise(res => { img.onload = res })
-    const SIZE = 300
-    const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = SIZE
-    const ctx = canvas.getContext('2d')
-    const scale = Math.max(SIZE / img.width, SIZE / img.height)
-    const w = img.width * scale, h = img.height * scale
-    ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h)
-    URL.revokeObjectURL(img.src)
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.82)
-    if (target === 'create') setForm(f => ({ ...f, imageUrl: dataUrl }))
-    else                     setEditForm(f => ({ ...f, imageUrl: dataUrl }))
-  }, [])
+    if (file.size > 5 * 1024 * 1024) { show('Imagen demasiado grande (máx 5 MB)', 'error'); return }
+    try {
+      show('Subiendo imagen...', 'info')
+      const result = await uploadApi.image(file, 'products')
+      if (target === 'create') setForm(f => ({ ...f, imageUrl: result.url }))
+      else                     setEditForm(f => ({ ...f, imageUrl: result.url }))
+    } catch {
+      show('Error al subir imagen', 'error')
+    }
+  }, [show])
 
   const setEdit = (k) => (e) => setEditForm(f => ({
     ...f,

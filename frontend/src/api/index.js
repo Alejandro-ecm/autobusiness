@@ -11,11 +11,13 @@ export const dashboard = {
 }
 
 export const pos = {
-  products:    (q)     => client.get('/pos/products', { params: q ? { q } : {} }),
-  topProducts: ()      => client.get('/pos/top-products'),
-  checkout:    (data)  => client.post('/pos/checkout', data),
-  corteToday:  ()      => client.get('/pos/corte/today'),
-  corteClose:  (notes) => client.post('/pos/corte/close', { notes }),
+  products:           (q)      => client.get('/pos/products', { params: q ? { q } : {} }),
+  topProducts:        ()       => client.get('/pos/top-products'),
+  checkout:           (data)   => client.post('/pos/checkout', data),
+  createCardPayment:  (data)   => client.post('/pos/create-payment', data),
+  processCardPayment: (data)   => client.post('/pos/process-payment', data),
+  corteToday:         ()       => client.get('/pos/corte/today'),
+  corteClose:         (notes)  => client.post('/pos/corte/close', { notes }),
 }
 
 export const inventory = {
@@ -74,7 +76,12 @@ export const store = {
 }
 
 export const business = {
-  updateSettings: (data) => client.patch('/business/settings', data),
+  updateSettings:  (data) => client.patch('/business/settings', data),
+  deliveryCode:    ()     => client.get('/business/delivery-code'),
+}
+
+export const delivery = {
+  orders: (code) => client.get('/delivery/orders', { params: { code } }),
 }
 
 export const subscription = {
@@ -95,7 +102,7 @@ export const payments = {
 export const mpSettings = {
   status:      ()            => client.get('/settings/mp'),
   connectUrl:  ()            => client.get('/settings/mp/connect-url'),
-  connectManual: (token)     => client.post('/settings/mp/manual', { accessToken: token }),
+  connectManual: (token, publicKey) => client.post('/settings/mp/manual', { accessToken: token, ...(publicKey ? { publicKey } : {}) }),
   disconnect:  ()            => client.delete('/settings/mp'),
 }
 
@@ -127,4 +134,19 @@ export const purchases = {
 
 export const onboarding = {
   complete: (profileType) => client.patch('/auth/onboarding', { profileType }),
+}
+
+export const marketplace = {
+  stores: (q) => client.get('/marketplace/stores', { params: q ? { q } : {} }),
+}
+
+export const upload = {
+  image: (file, folder = 'products') => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', folder)
+    return client.post('/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
 }

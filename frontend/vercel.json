@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://autobusiness-backend.onrender.com/api/:path*"
+      "destination": "https://api.skytechnologieslatam.com/api/:path*"
     }
   ]
 }
