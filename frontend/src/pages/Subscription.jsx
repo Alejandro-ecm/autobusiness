@@ -106,7 +106,7 @@ export default function Subscription() {
     setUpgrading(plan)
     try {
       const res = await subApi.upgrade(plan)
-      const prices = { BASIC: 49, PRO: 100, PREMIUM: 180 }
+      const prices = { BASIC: 60, PRO: 120, PREMIUM: 190 }
 
       if (data?.mpPublicKey) {
         // Checkout Bricks — formulario embebido
