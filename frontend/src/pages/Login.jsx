@@ -119,6 +119,15 @@ export default function Login() {
             🛍️ Ver tiendas en línea
           </span>
         </div>
+
+        {/* Legal links */}
+        <div style={{ textAlign: 'center', marginTop: 14, display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Link to="/terms" style={{ color: '#94a3b8', fontSize: 11, textDecoration: 'none' }}>Términos de Servicio</Link>
+          <span style={{ color: '#e2e8f0', fontSize: 11 }}>·</span>
+          <Link to="/privacy-policy" style={{ color: '#94a3b8', fontSize: 11, textDecoration: 'none' }}>Privacidad</Link>
+          <span style={{ color: '#e2e8f0', fontSize: 11 }}>·</span>
+          <Link to="/account-deletion" style={{ color: '#94a3b8', fontSize: 11, textDecoration: 'none' }}>Eliminar cuenta</Link>
+        </div>
       </div>
     </div>
   )

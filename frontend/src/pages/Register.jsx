@@ -105,7 +105,10 @@ export default function Register() {
           </form>
 
           <p className="register-terms">
-            Al registrarte aceptas nuestros términos de servicio.
+            Al registrarte aceptas nuestros{' '}
+            <Link to="/terms" style={{ color: '#6366f1', fontWeight: 600 }}>Términos de Servicio</Link>
+            {' '}y nuestra{' '}
+            <Link to="/privacy-policy" style={{ color: '#6366f1', fontWeight: 600 }}>Política de Privacidad</Link>.
             No se requiere tarjeta de crédito.
           </p>
         </div>
