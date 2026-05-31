@@ -68,7 +68,22 @@ export default function PrivacyPolicy() {
               </ul>
             </SubSection>
 
-            <SubSection title="2.4 Datos técnicos y de uso">
+            <SubSection title="2.4 Uso de cámara y códigos de barras">
+              <p>
+                La aplicación móvil solicita acceso a la <strong>cámara del dispositivo</strong> exclusivamente para:
+              </p>
+              <ul>
+                <li>Escanear <strong>códigos de barras y QR</strong> de productos en el punto de venta (Caja IA).</li>
+                <li>Detectar productos visualmente mediante inteligencia artificial para agilizar el cobro.</li>
+              </ul>
+              <p>
+                El acceso a la cámara es <strong>opcional</strong> — la aplicación funciona sin ella.
+                Las imágenes capturadas se procesan en tiempo real en el dispositivo y
+                <strong>no se almacenan ni se envían a servidores externos</strong>.
+              </p>
+            </SubSection>
+
+            <SubSection title="2.5 Datos técnicos y de uso">
               <ul>
                 <li><strong>Dirección IP</strong> — registrada en logs de servidor para seguridad y detección de fraude.</li>
                 <li><strong>Identificador de dispositivo</strong> en la app móvil (Capacitor/Android).</li>
