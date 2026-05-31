@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
 import { subscription as subApi } from '../api'
@@ -22,29 +22,58 @@ async function initMP(publicKey) {
 
 function PaymentStep({ plan, price, preferenceId, initPoint, onSuccess, onError }) {
   const [BrickComponent, setBrickComponent] = useState(null)
+  const [brickError, setBrickError] = useState(null)
   const navigate = useNavigate()
 
-  useState(() => {
+  useEffect(() => {
     import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
-  })
+  }, [])
 
+  // Fallback: no preferenceId → redirect button
   if (!preferenceId && initPoint) {
     return (
       <div style={{ textAlign: 'center', padding: '32px 0' }}>
         <p style={{ color: '#475569', marginBottom: 20, fontSize: 15 }}>
           Serás redirigido a Mercado Pago para completar el pago de manera segura.
         </p>
-        <a
-          href={initPoint}
-          className="checkout-btn-primary"
-          style={{ display: 'inline-block', textDecoration: 'none' }}
-        >
-          Ir a pagar con Mercado Pago →
+        <a href={initPoint} style={{
+          display: 'inline-block', padding: '13px 28px', background: '#6366f1',
+          color: '#fff', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 15,
+        }}>
+          Pagar con Mercado Pago →
         </a>
         <br />
-        <button
-          onClick={() => navigate('/dashboard')}
+        <button onClick={() => navigate('/dashboard')}
           style={{ marginTop: 16, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
+          Continuar con prueba gratuita de 14 días
+        </button>
+      </div>
+    )
+  }
+
+  // Brick error recovery UI
+  if (brickError) {
+    return (
+      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+        <p style={{ color: '#b91c1c', marginBottom: 16, fontSize: 14 }}>
+          Hubo un problema al cargar el formulario de pago.
+        </p>
+        {initPoint && (
+          <a href={initPoint} style={{
+            display: 'inline-block', padding: '12px 24px', background: '#6366f1',
+            color: '#fff', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 14,
+          }}>
+            Pagar en Mercado Pago →
+          </a>
+        )}
+        <br />
+        <button onClick={() => setBrickError(null)}
+          style={{ marginTop: 12, background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: 13 }}>
+          Reintentar formulario
+        </button>
+        <br />
+        <button onClick={() => navigate('/dashboard')}
+          style={{ marginTop: 8, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
           Continuar con prueba gratuita de 14 días
         </button>
       </div>
@@ -55,13 +84,12 @@ function PaymentStep({ plan, price, preferenceId, initPoint, onSuccess, onError 
     <div>
       {!BrickComponent ? (
         <div style={{ textAlign: 'center', padding: 40 }}>
-          <div className="checkout-spinner" />
           <p style={{ color: '#64748b', marginTop: 12 }}>Cargando métodos de pago...</p>
         </div>
       ) : (
         <>
           <BrickComponent
-            initialization={{ amount: price, preferenceId }}
+            initialization={{ amount: price, ...(preferenceId ? { preferenceId } : {}) }}
             customization={{
               paymentMethods: { creditCard: 'all', debitCard: 'all', mercadoPago: 'all' },
               visual: { style: { theme: 'default' } },
@@ -80,10 +108,13 @@ function PaymentStep({ plan, price, preferenceId, initPoint, onSuccess, onError 
               }
             }}
             onReady={() => {}}
-            onError={() => onError('Error en el formulario de pago')}
+            onError={(err) => {
+              // Solo mostrar error crítico — ignorar errores no_críticos del autocompletado
+              if (err?.type === 'non_critical') return
+              setBrickError(true)
+            }}
           />
-          <button
-            onClick={() => navigate('/dashboard')}
+          <button onClick={() => navigate('/dashboard')}
             style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
             Continuar con prueba gratuita de 14 días →
           </button>
