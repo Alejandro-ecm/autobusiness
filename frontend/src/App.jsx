@@ -44,7 +44,6 @@ function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
 
 function AppRoutes() {
   const { user } = useAuth()
-  const location = useLocation()
   const home = user?.isSuperAdmin ? '/super-admin' : user?.role === 'CASHIER' ? '/caja' : '/dashboard'
 
   return (
