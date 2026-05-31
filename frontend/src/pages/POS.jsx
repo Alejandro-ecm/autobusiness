@@ -135,7 +135,9 @@ export default function POS() {
   const [mobileTab, setMobileTab] = useState('products') // 'products' | 'cart'
   const [payBrick, setPayBrick] = useState({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })
   const [cardConfirm, setCardConfirm] = useState(false)
+  const [scanFlash, setScanFlash] = useState(null) // nombre del producto escaneado
   const searchRef = useRef()
+  const productsRef = useRef([]) // ref para acceso sin stale closure en el listener global
 
   // Detectar conexión
   useEffect(() => {
@@ -159,20 +161,91 @@ export default function POS() {
     )
   }, [isOnline])
 
+  // Mantener productsRef sincronizado para el listener global
+  useEffect(() => { productsRef.current = products }, [products])
+
   // Carga inicial
   useEffect(() => {
-    posApi.products().then(setProducts)
+    posApi.products().then(data => { setProducts(data); productsRef.current = data })
     posApi.topProducts().then(setTopProducts).catch(() => {})
     searchRef.current?.focus()
+  }, [])
+
+  // Captura global de teclado — redirige al buscador aunque no tenga foco
+  // Útil para lectores de barras hardware que "escriben" sin importar el foco
+  useEffect(() => {
+    const handleGlobalKey = (e) => {
+      if (e.ctrlKey || e.altKey || e.metaKey) return
+      const tag = document.activeElement?.tagName
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+      // Si no hay ningún campo activo y se presiona una tecla imprimible → llevar foco al buscador
+      if (!isEditable && e.key.length === 1) {
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKey)
+    return () => window.removeEventListener('keydown', handleGlobalKey)
   }, [])
 
   // Búsqueda con debounce
   useEffect(() => {
     const t = setTimeout(() => {
-      posApi.products(query || undefined).then(setProducts)
+      posApi.products(query || undefined).then(data => { setProducts(data); productsRef.current = data })
     }, 180)
     return () => clearTimeout(t)
   }, [query])
+
+  // Beep de POS al escanear
+  const beep = (freq = 1800, ms = 80) => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain); gain.connect(ctx.destination)
+      osc.frequency.value = freq; osc.type = 'sine'
+      gain.gain.setValueAtTime(0.25, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ms / 1000)
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + ms / 1000)
+    } catch { /* sin audio disponible */ }
+  }
+
+  // Enter en el buscador → agregar producto por código de barras / SKU / único resultado
+  const handleSearchEnter = (e) => {
+    if (e.key !== 'Enter') return
+    const q = query.trim()
+    if (!q) return
+    e.preventDefault()
+
+    const all = productsRef.current
+    // 1. Coincidencia exacta por código de barras o SKU
+    const exact = all.find(p =>
+      p.barcode?.toString() === q ||
+      p.sku?.toLowerCase() === q.toLowerCase()
+    )
+    if (exact) {
+      addToCart(exact)
+      beep(1900, 70)
+      if (navigator.vibrate) navigator.vibrate(30)
+      setScanFlash(exact.name)
+      setTimeout(() => setScanFlash(null), 1200)
+      setQuery('')
+      setMobileTab('cart')
+      setTimeout(() => searchRef.current?.focus(), 80)
+      return
+    }
+    // 2. Un solo resultado tras búsqueda — agregarlo directo
+    const visible = products.filter(p => Number(p.stock) > 0)
+    if (visible.length === 1) {
+      addToCart(visible[0])
+      beep(1600, 70)
+      setScanFlash(visible[0].name)
+      setTimeout(() => setScanFlash(null), 1200)
+      setQuery('')
+      setMobileTab('cart')
+      setTimeout(() => searchRef.current?.focus(), 80)
+    }
+    // 3. Varios resultados → dejar el filtro activo para que el cajero elija
+  }
 
   // Refresh stock en carrito cada 20s
   useEffect(() => {
@@ -387,17 +460,30 @@ export default function POS() {
 
   const productPanel = (
     <div className="pos-products">
+      {/* Flash de confirmación al escanear */}
+      {scanFlash && (
+        <div style={{
+          position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)',
+          background: '#10b981', color: '#fff', padding: '10px 24px',
+          borderRadius: 30, fontWeight: 700, fontSize: 15, zIndex: 999,
+          boxShadow: '0 4px 20px rgba(16,185,129,0.4)', pointerEvents: 'none',
+        }}>
+          ✓ {scanFlash}
+        </div>
+      )}
       <div className="pos-search">
         <input
           ref={searchRef}
           className="input pos-search-input"
-          placeholder="🔍 Buscar por nombre, SKU o código..."
+          placeholder="📷 Escanea o escribe nombre / código de barras..."
           value={query}
           onChange={e => setQuery(e.target.value)}
+          onKeyDown={handleSearchEnter}
           autoComplete="off"
+          autoFocus
         />
         {query && (
-          <button className="pos-search-clear" onClick={() => setQuery('')}>✕</button>
+          <button className="pos-search-clear" onClick={() => { setQuery(''); searchRef.current?.focus() }}>✕</button>
         )}
       </div>
 
@@ -416,7 +502,7 @@ export default function POS() {
             <button
               key={p.id}
               className={`product-card${agotado ? ' out-of-stock' : ''}`}
-              onClick={() => { if (!agotado) { addToCart(p); setMobileTab('cart') } }}
+              onClick={() => { if (!agotado) { addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80) } }}
               disabled={agotado}
               title={agotado ? 'Sin stock' : `${stock} disponibles`}
             >
