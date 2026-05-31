@@ -28,6 +28,7 @@ public class MercadoPagoService {
     private final SubscriptionService subscriptionService;
     private final OnlineStoreService onlineStoreService;
     private final WebClient.Builder webClientBuilder;
+    private final com.autobusiness.domain.repository.PendingRegistrationRepository pendingRegRepo;
 
     @Value("${mercadopago.access-token:TEST-placeholder}")
     private String accessToken;
@@ -277,6 +278,17 @@ public class MercadoPagoService {
                 } catch (Exception e) {
                     log.error("Failed to activate subscription: {}", e.getMessage());
                 }
+            } else if ("new_registration".equals(mpType) && !extRef.isBlank()) {
+                // Marcar registro pendiente como pagado (cuenta se crea al activar)
+                try {
+                    pendingRegRepo.findByMpExternalRef(extRef).ifPresent(p -> {
+                        p.setPaid(true);
+                        pendingRegRepo.save(p);
+                        log.info("Pending registration marked paid via webhook, ref={}", extRef);
+                    });
+                } catch (Exception e) {
+                    log.error("Failed to mark pending registration paid ref={}: {}", extRef, e.getMessage());
+                }
             } else if (!extRef.isBlank()) {
                 // Marcar la orden de tienda online como confirmada y registrar venta
                 try {
@@ -485,6 +497,56 @@ public class MercadoPagoService {
     /**
      * Crea un link de pago para suscripción mensual.
      */
+    /** Crea preferencia MP para un nuevo registro (sin businessId aún) */
+    public Map<String, Object> createRegistrationPreference(String externalRef, String plan, String payerEmail) {
+        Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
+        int price = prices.getOrDefault(plan.toUpperCase(), 120);
+
+        var items = List.of(Map.<String, Object>of(
+                "title",      "AutoBusiness " + plan + " — mensual",
+                "quantity",   1,
+                "unit_price", price,
+                "currency_id", "MXN"
+        ));
+
+        var preference = new HashMap<String, Object>();
+        preference.put("items", items);
+        preference.put("external_reference", externalRef);
+        preference.put("notification_url", notificationUrl);
+        preference.put("back_urls", Map.of(
+                "success", successUrl + "?ref=" + externalRef + "&type=registration",
+                "failure", failureUrl + "?ref=" + externalRef + "&type=registration",
+                "pending", pendingUrl + "?ref=" + externalRef + "&type=registration"
+        ));
+        if (!successUrl.contains("localhost")) preference.put("auto_return", "approved");
+        if (payerEmail != null && !payerEmail.isBlank())
+            preference.put("payer", Map.of("email", payerEmail));
+        preference.put("metadata", Map.of("type", "new_registration", "plan", plan));
+
+        WebClient client = webClientBuilder.baseUrl(MP_API)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .build();
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = client.post()
+                .uri("/checkout/preferences")
+                .bodyValue(preference)
+                .retrieve()
+                .bodyToMono(Map.class)
+                .block();
+
+        if (result == null || result.containsKey("error"))
+            throw new IllegalStateException("Error al crear preferencia de pago");
+
+        log.info("Registration preference created: ref={} plan={}", externalRef, plan);
+        return Map.of(
+                "preferenceId", result.get("id").toString(),
+                "initPoint",    result.get("init_point").toString(),
+                "sandboxPoint", result.getOrDefault("sandbox_init_point", result.get("init_point")).toString()
+        );
+    }
+
     public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {
         Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
         int price = prices.getOrDefault(plan.toUpperCase(), 60);

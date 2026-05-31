@@ -1,12 +1,21 @@
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useAuth } from '../store/AuthContext'
+import client from '../api/client'
 
 export default function PaymentResult() {
   const [params] = useSearchParams()
-  const status     = params.get('status') || detectStatus()
-  const ref        = params.get('ref') || params.get('external_reference') || ''
-  const paymentId  = params.get('payment_id') || ''
-  const slug       = params.get('slug') || ''
+  const navigate = useNavigate()
+  const { login: authLogin } = useAuth()
+
+  const status    = params.get('status') || detectStatus()
+  const ref       = params.get('ref') || params.get('external_reference') || ''
+  const type      = params.get('type') || ''
+  const paymentId = params.get('payment_id') || ''
+  const slug      = params.get('slug') || ''
+
+  const [activating, setActivating] = useState(false)
+  const [activateError, setActivateError] = useState('')
 
   function detectStatus() {
     const path = window.location.pathname
@@ -14,6 +23,36 @@ export default function PaymentResult() {
     if (path.includes('failure')) return 'rejected'
     return 'pending'
   }
+
+  // Si viene de un registro nuevo con pago aprobado, activar la cuenta
+  useEffect(() => {
+    if (type !== 'registration' || status !== 'approved' || !ref) return
+    setActivating(true)
+    const activate = async () => {
+      // Reintentar hasta 5 veces (el webhook puede tardar unos segundos)
+      for (let i = 0; i < 5; i++) {
+        try {
+          const res = await client.get(`/auth/activate-registration?ref=${encodeURIComponent(ref)}`)
+          // Guardar sesión
+          try { localStorage.setItem('ab_token', res.token) } catch {}
+          try { localStorage.setItem('ab_user', JSON.stringify(res.user)) } catch {}
+          localStorage.removeItem('checkout_pending_ref')
+          // Recargar para que AuthContext lea el nuevo usuario
+          window.location.href = '/dashboard'
+          return
+        } catch (err) {
+          if (err?.error?.includes('no ha sido confirmado') && i < 4) {
+            await new Promise(r => setTimeout(r, 2000))
+            continue
+          }
+          setActivateError(err?.error || 'No se pudo activar la cuenta. Contacta soporte.')
+          break
+        }
+      }
+      setActivating(false)
+    }
+    activate()
+  }, [type, status, ref])
 
   const config = {
     approved: {
@@ -34,6 +73,31 @@ export default function PaymentResult() {
   }
 
   const c = config[status] || config.pending
+
+  // Pantalla de activación de cuenta
+  if (type === 'registration' && status === 'approved') {
+    return (
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f8fafc', fontFamily:'Inter,system-ui,sans-serif', padding:24 }}>
+        <div style={{ background:'#fff', borderRadius:20, padding:'48px 40px', maxWidth:440, width:'100%', textAlign:'center', border:'1px solid #e2e8f0' }}>
+          {activating ? (
+            <>
+              <div style={{ fontSize:48, marginBottom:16 }}>⚡</div>
+              <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:'0 0 12px' }}>Activando tu cuenta...</h1>
+              <p style={{ color:'#64748b', fontSize:15 }}>Pago confirmado. Creando tu negocio en AutoBusiness.</p>
+            </>
+          ) : activateError ? (
+            <>
+              <div style={{ fontSize:48, marginBottom:16 }}>⚠️</div>
+              <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:'0 0 12px' }}>Pago recibido</h1>
+              <p style={{ color:'#64748b', fontSize:14, marginBottom:20 }}>{activateError}</p>
+              <p style={{ color:'#64748b', fontSize:13 }}>Envía tu referencia de pago a <strong>soporte@skytechnologieslatam.com</strong> y activamos tu cuenta manualmente.</p>
+              <p style={{ color:'#94a3b8', fontSize:12, marginTop:8 }}>Ref: {ref}</p>
+            </>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{

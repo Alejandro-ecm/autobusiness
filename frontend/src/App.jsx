@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './store/AuthContext'
 import { ToastProvider } from './store/ToastContext'
 import AppLayout from './components/layout/AppLayout'
@@ -46,14 +46,6 @@ function AppRoutes() {
   const { user } = useAuth()
   const location = useLocation()
   const home = user?.isSuperAdmin ? '/super-admin' : user?.role === 'CASHIER' ? '/caja' : '/dashboard'
-
-  // Si el usuario tiene un plan pendiente de pago, redirigir a suscripción.
-  // No redirigir si ya estamos en /subscription o /checkout para evitar loop infinito.
-  const pendingPlan = localStorage.getItem('checkout_plan_pending')
-  const onSubPage = location.pathname.startsWith('/subscription') || location.pathname.startsWith('/checkout')
-  if (user && pendingPlan && !user.isSuperAdmin && !onSubPage) {
-    return <Navigate to={`/subscription?upgrade=${pendingPlan}`} replace />
-  }
 
   return (
     <Routes>

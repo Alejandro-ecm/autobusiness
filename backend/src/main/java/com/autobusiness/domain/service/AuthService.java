@@ -3,9 +3,11 @@ package com.autobusiness.domain.service;
 import com.autobusiness.config.JwtUtil;
 import com.autobusiness.domain.model.Business;
 import com.autobusiness.domain.model.Branch;
+import com.autobusiness.domain.model.PendingRegistration;
 import com.autobusiness.domain.model.User;
 import com.autobusiness.domain.repository.BusinessRepository;
 import com.autobusiness.domain.repository.BranchRepository;
+import com.autobusiness.domain.repository.PendingRegistrationRepository;
 import com.autobusiness.domain.repository.UserRepository;
 import com.autobusiness.infrastructure.analytics.AlejandriaClient;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -28,6 +31,7 @@ public class AuthService {
     private final BusinessRepository businessRepo;
     private final BranchRepository branchRepo;
     private final SubscriptionService subscriptionService;
+    private final PendingRegistrationRepository pendingRepo;
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtil;
     private final AlejandriaClient alejandria;
@@ -192,6 +196,118 @@ public class AuthService {
             code = sb.toString();
         } while (businessRepo.existsByDeliveryCode(code));
         return code;
+    }
+
+    // ── Pre-checkout: valida datos y crea registro pendiente (sin cuenta en DB aún) ──
+    @Transactional
+    public Map<String, Object> preCheckout(String businessName, String ownerName,
+                                            String email, String password, String plan) {
+        if (userRepo.existsByEmail(email))
+            throw new IllegalArgumentException("El email ya está registrado");
+        if (pendingRepo.existsByEmail(email))
+            throw new IllegalArgumentException("Ya hay un registro pendiente para este email");
+        if (businessName == null || businessName.isBlank())
+            throw new IllegalArgumentException("El nombre del negocio es requerido");
+        if (password == null || password.length() < 6)
+            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+
+        String externalRef = UUID.randomUUID().toString();
+        PendingRegistration pending = pendingRepo.save(PendingRegistration.builder()
+                .businessName(businessName.trim())
+                .ownerName(ownerName.trim())
+                .email(email.trim().toLowerCase())
+                .passwordHash(encoder.encode(password))
+                .plan(plan != null ? plan.toUpperCase() : "PRO")
+                .mpExternalRef(externalRef)
+                .paid(false)
+                .createdAt(Instant.now())
+                .expiresAt(Instant.now().plus(24, ChronoUnit.HOURS))
+                .build());
+
+        log.info("PreCheckout: email={} plan={} ref={}", email, plan, externalRef);
+        return Map.of("ref", externalRef, "pendingId", pending.getId().toString());
+    }
+
+    // ── Activar registro después de pago confirmado ──────────────────────────
+    @Transactional
+    public Map<String, Object> activateRegistration(String externalRef) {
+        PendingRegistration pending = pendingRepo.findByMpExternalRef(externalRef)
+                .orElseThrow(() -> new IllegalArgumentException("Registro no encontrado"));
+
+        if (pending.isExpired())
+            throw new IllegalStateException("El enlace de registro expiró. Vuelve a registrarte.");
+
+        // Idempotente: si ya se creó la cuenta, solo devolver token
+        var existingUser = userRepo.findByEmail(pending.getEmail());
+        if (existingUser.isPresent()) {
+            return buildTokenResponse(existingUser.get());
+        }
+
+        if (!pending.isPaid())
+            throw new IllegalStateException("El pago aún no ha sido confirmado");
+
+        return createAccountFromPending(pending);
+    }
+
+    // ── Guarda el preferenceId en el registro pendiente ──────────────────────
+    @Transactional
+    public void updatePendingPreference(String externalRef, String preferenceId) {
+        pendingRepo.findByMpExternalRef(externalRef).ifPresent(p -> {
+            p.setMpPreferenceId(preferenceId);
+            pendingRepo.save(p);
+        });
+    }
+
+    private Map<String, Object> createAccountFromPending(PendingRegistration pending) {
+        String slug = generateSlug(pending.getBusinessName());
+
+        Business business = businessRepo.save(Business.builder()
+                .name(pending.getBusinessName())
+                .slug(slug)
+                .deliveryCode(generateDeliveryCode())
+                .build());
+
+        Branch mainBranch = branchRepo.save(Branch.builder()
+                .business(business).name("Sucursal Principal").isMain(true).build());
+
+        User owner = userRepo.save(User.builder()
+                .business(business).branch(mainBranch)
+                .email(pending.getEmail())
+                .passwordHash(pending.getPasswordHash())
+                .name(pending.getOwnerName())
+                .role("OWNER").build());
+
+        // Activar suscripción de pago directamente (no trial)
+        subscriptionService.upgradePlan(business.getId(), pending.getPlan(), "checkout_" + pending.getMpExternalRef());
+
+        pendingRepo.delete(pending);
+        alejandria.trackMetric("total_usuarios", userRepo.count(), "count");
+        log.info("Account created: business='{}' email={} plan={}", pending.getBusinessName(), pending.getEmail(), pending.getPlan());
+        return buildTokenResponse(owner);
+    }
+
+    private Map<String, Object> buildTokenResponse(User owner) {
+        String token = jwtUtil.generate(owner.getId(), owner.getEmail(),
+                owner.getRole(), owner.getBusiness().getId(), false);
+        UUID branchId = owner.getBranch() != null ? owner.getBranch().getId()
+                : branchRepo.findFirstByBusinessIdAndIsMainTrue(owner.getBusiness().getId())
+                             .map(Branch::getId).orElse(null);
+        var sub = subscriptionService.getStatus(owner.getBusiness().getId());
+        var map = new HashMap<String, Object>();
+        map.put("id",           owner.getId());
+        map.put("name",         owner.getName());
+        map.put("email",        owner.getEmail());
+        map.put("role",         owner.getRole());
+        map.put("isSuperAdmin", false);
+        map.put("businessId",   owner.getBusiness().getId());
+        map.put("businessName", owner.getBusiness().getName());
+        map.put("businessSlug", owner.getBusiness().getSlug());
+        map.put("branchId",     branchId);
+        map.put("profileType",  null);
+        map.put("onboardingCompleted", false);
+        map.put("subscription", Map.of("plan", sub.get("plan"), "status", sub.get("status"),
+                                       "isActive", sub.get("isActive"), "daysLeft", sub.get("daysLeft")));
+        return Map.of("token", token, "user", map);
     }
 
     private String generateSlug(String name) {

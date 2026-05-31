@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../store/AuthContext'
-import { subscription as subApi } from '../api'
+import client from '../api/client'
 import { useToast } from '../store/ToastContext'
 
 const PLAN_PRICES = { BASIC: 60, PRO: 120, PREMIUM: 190 }
@@ -71,7 +70,7 @@ export default function Checkout() {
   const features = PLAN_FEATURES[plan] || []
   const color    = PLAN_COLOR[plan] || '#6366f1'
 
-  const [phase,   setPhase]   = useState('form')   // 'form' | 'payment' | 'done'
+  const [phase,   setPhase]   = useState('form')
   const [form,    setForm]    = useState({ businessName: '', ownerName: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
@@ -88,15 +87,17 @@ export default function Checkout() {
     setLoading(true)
     setError('')
     try {
-      // Guardar plan pendiente ANTES de registrar — si cierran sin pagar, se detecta al volver
-      localStorage.setItem('checkout_plan_pending', plan)
-      await register({
+      // Llama a pre-checkout: valida datos y crea preferencia MP SIN crear cuenta en DB
+      const res = await client.post('/auth/pre-checkout', {
         businessName: form.businessName.trim(),
         ownerName:    form.ownerName.trim(),
         email:        form.email.trim().toLowerCase(),
         password:     form.password,
+        plan,
       })
-      const res = await subApi.upgrade(plan)
+      // Guardar ref para recuperar la cuenta en la página de éxito
+      localStorage.setItem('checkout_pending_ref', res.ref)
+      localStorage.removeItem('checkout_plan_pending') // ya no necesitamos este
       setPayData({ initPoint: res.initPoint || res.sandboxPoint })
       setPhase('payment')
     } catch (err) {
@@ -107,9 +108,9 @@ export default function Checkout() {
   }
 
   const handleSkipPayment = () => {
-    localStorage.removeItem('checkout_plan_pending')
-    show('Entrando con prueba gratuita de 14 días', 'success')
-    navigate('/dashboard')
+    localStorage.removeItem('checkout_pending_ref')
+    show('Puedes activar tu plan desde Suscripción cuando quieras.', 'success')
+    navigate('/login')
   }
 
   return (

@@ -45,7 +45,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Públicos sin autenticación
                         .requestMatchers(
-                                "/auth/**",
+                                "/auth/login",
+                                "/auth/register",
+                                "/auth/pre-checkout",
+                                "/auth/activate-registration",
+                                "/auth/health",
                                 "/store/**",
                                 "/marketplace/**",                          // buscador público de tiendas
                                 "/delivery/**",                             // app de delivery (sync por código)
