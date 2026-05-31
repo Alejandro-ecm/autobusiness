@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { subscription as subApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
@@ -85,11 +86,17 @@ const fmt = n => `$${Number(n).toLocaleString('es-MX')}`
 export default function Subscription() {
   const { show } = useToast()
   const { user } = useAuth()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const autoUpgrade = searchParams.get('upgrade')?.toUpperCase()
+  const autoUpgradeTriggered = useRef(false)
+
   const [data, setData] = useState(null)
   const [plans, setPlans] = useState({})
   const [loading, setLoading] = useState(true)
   const [upgrading, setUpgrading] = useState(null)
   const [brickData, setBrickData] = useState(null)   // { plan, amount, preferenceId }
+  const [fromRegister, setFromRegister] = useState(!!autoUpgrade)
 
   useEffect(() => {
     Promise.all([subApi.status(), subApi.plans()])
@@ -101,6 +108,14 @@ export default function Subscription() {
       .catch(() => show('Error al cargar suscripción', 'error'))
       .finally(() => setLoading(false))
   }, [])
+
+  // Auto-trigger payment when coming from register with a plan selected
+  useEffect(() => {
+    if (!data || !autoUpgrade || autoUpgradeTriggered.current) return
+    if (!PLAN_INFO[autoUpgrade]) return
+    autoUpgradeTriggered.current = true
+    handleUpgrade(autoUpgrade)
+  }, [data, autoUpgrade])
 
   const handleUpgrade = async (plan) => {
     setUpgrading(plan)
@@ -128,16 +143,44 @@ export default function Subscription() {
 
   const handlePaymentSuccess = (plan, status) => {
     setBrickData(null)
+    setFromRegister(false)
     if (status === 'pending') {
       show('Pago en proceso. Tu plan se activará cuando se confirme.', 'success')
+      navigate('/dashboard')
     } else {
-      show(`¡Plan ${plan} activado!`, 'success')
-      // Recargar estado de suscripción
+      show(`¡Plan ${plan} activado! Bienvenido a AutoBusiness.`, 'success')
       subApi.status().then(s => setData(s)).catch(() => {})
+      navigate('/dashboard')
     }
   }
 
   if (loading) return <div className="page-loading"><div className="spinner" /></div>
+
+  // Banner cuando viene directo del registro con plan seleccionado
+  const RegisterBanner = fromRegister && autoUpgrade && (
+    <div style={{
+      background: 'linear-gradient(90deg,#6366f1,#8b5cf6)',
+      color: '#fff', borderRadius: 12, padding: '16px 20px',
+      marginBottom: 20, display: 'flex', alignItems: 'center',
+      justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+    }}>
+      <div>
+        <strong style={{ fontSize: 16 }}>¡Cuenta creada! Activa tu plan {autoUpgrade}</strong>
+        <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.9 }}>
+          Completa el pago para acceder a todas las funciones.
+        </p>
+      </div>
+      <button
+        onClick={() => { setFromRegister(false); navigate('/dashboard') }}
+        style={{
+          background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)',
+          color: '#fff', borderRadius: 8, padding: '8px 16px',
+          cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap',
+        }}>
+        Continuar con prueba gratuita →
+      </button>
+    </div>
+  )
 
   const currentPlan  = data?.plan || 'FREE'
   const status       = data?.status || 'TRIAL'
@@ -149,6 +192,7 @@ export default function Subscription() {
 
   return (
     <div className="sub-page">
+      {RegisterBanner}
       {brickData && (
         <SubPaymentBrick
           plan={brickData.plan}

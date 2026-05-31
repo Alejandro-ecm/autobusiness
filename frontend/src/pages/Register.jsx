@@ -35,7 +35,11 @@ export default function Register() {
         nombre: form.ownerName.trim(),
         plan: planHint,
       })
-      navigate('/dashboard')
+      if (planHint && planHint !== 'FREE') {
+        navigate(`/subscription?upgrade=${planHint}`)
+      } else {
+        navigate('/dashboard')
+      }
     } catch (err) {
       setError(err?.error || err?.message || 'Error al crear la cuenta')
     } finally {
