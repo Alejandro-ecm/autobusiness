@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
 import { subscription as subApi } from '../api'
@@ -12,114 +12,48 @@ const PLAN_FEATURES = {
 }
 const PLAN_COLOR = { BASIC: '#3b82f6', PRO: '#6366f1', PREMIUM: '#8b5cf6' }
 
-let mpInitialized = false
-async function initMP(publicKey) {
-  if (mpInitialized || !publicKey) return
-  const { initMercadoPago } = await import('@mercadopago/sdk-react')
-  initMercadoPago(publicKey, { locale: 'es-MX' })
-  mpInitialized = true
-}
-
-function PaymentStep({ plan, price, preferenceId, initPoint, onSuccess, onError }) {
-  const [BrickComponent, setBrickComponent] = useState(null)
-  const [brickError, setBrickError] = useState(null)
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
-  }, [])
-
-  // Fallback: no preferenceId → redirect button
-  if (!preferenceId && initPoint) {
+// Paso 2: muestra botón de pago con Mercado Pago (redirect — más confiable que Bricks aquí)
+function PaymentStep({ plan, price, initPoint, onSkip }) {
+  if (!initPoint) {
     return (
-      <div style={{ textAlign: 'center', padding: '32px 0' }}>
-        <p style={{ color: '#475569', marginBottom: 20, fontSize: 15 }}>
-          Serás redirigido a Mercado Pago para completar el pago de manera segura.
-        </p>
-        <a href={initPoint} style={{
-          display: 'inline-block', padding: '13px 28px', background: '#6366f1',
-          color: '#fff', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 15,
-        }}>
-          Pagar con Mercado Pago →
-        </a>
-        <br />
-        <button onClick={() => navigate('/dashboard')}
-          style={{ marginTop: 16, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
-          Continuar con prueba gratuita de 14 días
-        </button>
-      </div>
-    )
-  }
-
-  // Brick error recovery UI
-  if (brickError) {
-    return (
-      <div style={{ textAlign: 'center', padding: '24px 0' }}>
-        <p style={{ color: '#b91c1c', marginBottom: 16, fontSize: 14 }}>
-          Hubo un problema al cargar el formulario de pago.
-        </p>
-        {initPoint && (
-          <a href={initPoint} style={{
-            display: 'inline-block', padding: '12px 24px', background: '#6366f1',
-            color: '#fff', borderRadius: 10, fontWeight: 700, textDecoration: 'none', fontSize: 14,
-          }}>
-            Pagar en Mercado Pago →
-          </a>
-        )}
-        <br />
-        <button onClick={() => setBrickError(null)}
-          style={{ marginTop: 12, background: 'none', border: 'none', color: '#6366f1', cursor: 'pointer', fontSize: 13 }}>
-          Reintentar formulario
-        </button>
-        <br />
-        <button onClick={() => navigate('/dashboard')}
-          style={{ marginTop: 8, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
-          Continuar con prueba gratuita de 14 días
-        </button>
+      <div style={{ textAlign: 'center', padding: 32 }}>
+        <p style={{ color: '#64748b' }}>Generando enlace de pago...</p>
       </div>
     )
   }
 
   return (
-    <div>
-      {!BrickComponent ? (
-        <div style={{ textAlign: 'center', padding: 40 }}>
-          <p style={{ color: '#64748b', marginTop: 12 }}>Cargando métodos de pago...</p>
-        </div>
-      ) : (
-        <>
-          <BrickComponent
-            initialization={{ amount: price, ...(preferenceId ? { preferenceId } : {}) }}
-            customization={{
-              paymentMethods: { creditCard: 'all', debitCard: 'all', mercadoPago: 'all' },
-              visual: { style: { theme: 'default' } },
-            }}
-            onSubmit={async ({ formData }) => {
-              try {
-                const result = await subApi.processPayment(plan, formData)
-                if (result.status === 'approved') { onSuccess('approved'); return { status: 'approved' } }
-                if (result.status === 'pending' || result.status === 'in_process') {
-                  onSuccess('pending'); return { status: 'pending' }
-                }
-                return { status: 'rejected' }
-              } catch (err) {
-                onError(err?.error || 'Error al procesar el pago')
-                return { status: 'rejected' }
-              }
-            }}
-            onReady={() => {}}
-            onError={(err) => {
-              // Solo mostrar error crítico — ignorar errores no_críticos del autocompletado
-              if (err?.type === 'non_critical') return
-              setBrickError(true)
-            }}
-          />
-          <button onClick={() => navigate('/dashboard')}
-            style={{ width: '100%', marginTop: 12, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}>
-            Continuar con prueba gratuita de 14 días →
-          </button>
-        </>
-      )}
+    <div style={{ textAlign: 'center', padding: '8px 0' }}>
+      <div style={{
+        background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10,
+        padding: '14px 18px', marginBottom: 24, fontSize: 14, color: '#166534',
+      }}>
+        ✓ Cuenta creada. Completa el pago para activar tu plan <strong>{plan}</strong>.
+      </div>
+
+      <a
+        href={initPoint}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          display: 'block', padding: '15px', background: '#009ee3',
+          color: '#fff', borderRadius: 10, fontWeight: 700, textDecoration: 'none',
+          fontSize: 16, marginBottom: 12,
+        }}
+      >
+        Pagar ${price}/mes con Mercado Pago →
+      </a>
+
+      <p style={{ color: '#64748b', fontSize: 12, marginBottom: 20 }}>
+        Se abrirá Mercado Pago. Después de pagar tu plan se activa automáticamente.
+      </p>
+
+      <button
+        onClick={onSkip}
+        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 13 }}
+      >
+        Continuar con prueba gratuita de 14 días →
+      </button>
     </div>
   )
 }
@@ -163,8 +97,7 @@ export default function Checkout() {
         password:     form.password,
       })
       const res = await subApi.upgrade(plan)
-      if (res.mpPublicKey) await initMP(res.mpPublicKey)
-      setPayData({ preferenceId: res.preferenceId, initPoint: res.initPoint || res.sandboxPoint, mpPublicKey: res.mpPublicKey })
+      setPayData({ initPoint: res.initPoint || res.sandboxPoint })
       setPhase('payment')
     } catch (err) {
       setError(err?.error || err?.message || 'Error al crear la cuenta')
@@ -173,13 +106,9 @@ export default function Checkout() {
     }
   }
 
-  const handlePaySuccess = (status) => {
+  const handleSkipPayment = () => {
     localStorage.removeItem('checkout_plan_pending')
-    if (status === 'pending') {
-      show('Pago en proceso. Tu plan se activará cuando se confirme.', 'success')
-    } else {
-      show(`¡Plan ${plan} activado! Bienvenido a AutoBusiness.`, 'success')
-    }
+    show('Entrando con prueba gratuita de 14 días', 'success')
     navigate('/dashboard')
   }
 
@@ -294,10 +223,8 @@ export default function Checkout() {
               <PaymentStep
                 plan={plan}
                 price={price}
-                preferenceId={payData?.preferenceId}
                 initPoint={payData?.initPoint}
-                onSuccess={handlePaySuccess}
-                onError={(msg) => show(msg, 'error')}
+                onSkip={handleSkipPayment}
               />
             </>
           )}
