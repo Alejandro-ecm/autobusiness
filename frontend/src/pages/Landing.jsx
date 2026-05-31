@@ -131,7 +131,7 @@ export default function Landing() {
                 {plan.features.map(f => <li key={f}>✓ {f}</li>)}
               </ul>
               <Link
-                to={`/register?plan=${plan.name}`}
+                to={plan.name === 'FREE' ? '/register' : `/checkout?plan=${plan.name}`}
                 className={plan.highlight ? 'landing-btn-hero' : 'landing-btn-outline'}
                 style={{ display: 'block', textAlign: 'center', marginTop: 'auto' }}>
                 {plan.cta}

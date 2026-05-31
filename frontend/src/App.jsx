@@ -28,6 +28,7 @@ import Marketplace from './pages/Marketplace'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import AccountDeletion from './pages/AccountDeletion'
+import Checkout from './pages/Checkout'
 
 function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
   const { user } = useAuth()
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route path="/payment/success" element={<PaymentResult />} />
       <Route path="/payment/failure" element={<PaymentResult />} />
       <Route path="/payment/pending" element={<PaymentResult />} />
+      <Route path="/checkout" element={<Checkout />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/account-deletion" element={<AccountDeletion />} />
