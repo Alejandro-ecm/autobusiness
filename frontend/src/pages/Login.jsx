@@ -58,6 +58,13 @@ export default function Login() {
       </div>
 
       <div className="login-box card" style={{ marginTop: 48 }}>
+        <Link to="/" style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          color: '#6366f1', fontSize: 13, fontWeight: 600,
+          textDecoration: 'none', marginBottom: 12,
+        }}>
+          ← Volver al inicio
+        </Link>
         <div className="login-logo">
           <div className="login-logo-icon">AB</div>
           <h1 className="login-title">AutoBusiness AI</h1>
