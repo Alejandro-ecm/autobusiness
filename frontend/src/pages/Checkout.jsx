@@ -60,7 +60,6 @@ function PaymentStep({ plan, price, initPoint, onSkip }) {
 export default function Checkout() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { register } = useAuth()
   const { show } = useToast()
 
   const plan = (searchParams.get('plan') || 'PRO').toUpperCase()
