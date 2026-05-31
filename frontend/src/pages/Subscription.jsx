@@ -14,12 +14,14 @@ async function initMP(publicKey) {
   mpSubInitialized = true
 }
 
-function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClose }) {
+function SubPaymentBrick({ plan, amount, preferenceId, initPoint, onSuccess, onError, onClose }) {
   const [BrickComponent, setBrickComponent] = useState(null)
 
   useEffect(() => {
-    import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
-  }, [])
+    if (preferenceId) {
+      import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
+    }
+  }, [preferenceId])
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -32,7 +34,25 @@ function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClo
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <div style={{ padding: '0 8px 8px' }}>
-          {!BrickComponent ? (
+          {/* Sin preferenceId → botón de redirección a MP */}
+          {!preferenceId && initPoint ? (
+            <div style={{ textAlign: 'center', padding: '24px 8px' }}>
+              <p style={{ color: '#475569', marginBottom: 20, fontSize: 14 }}>
+                Completa el pago en Mercado Pago de forma segura.
+              </p>
+              <a href={initPoint} target="_blank" rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block', padding: '13px 28px',
+                  background: '#009ee3', color: '#fff', borderRadius: 10,
+                  fontWeight: 700, textDecoration: 'none', fontSize: 15,
+                }}>
+                Pagar ${amount}/mes con Mercado Pago →
+              </a>
+              <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 16 }}>
+                Después de pagar, tu plan se activará automáticamente.
+              </p>
+            </div>
+          ) : !BrickComponent ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
               <p style={{ color: '#64748b' }}>Cargando métodos de pago...</p>
@@ -47,7 +67,12 @@ function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClo
               onSubmit={async ({ formData }) => {
                 try {
                   const result = await subApi.processPayment(plan, formData)
-                  if (result.status === 'approved') { trackRevenue(amount, 'MXN', `Suscripcion ${plan}`); trackEvent('suscripcion_activada', { plan, monto: amount }); onSuccess(plan); return { status: 'approved' } }
+                  if (result.status === 'approved') {
+                    trackRevenue(amount, 'MXN', `Suscripcion ${plan}`)
+                    trackEvent('suscripcion_activada', { plan, monto: amount })
+                    onSuccess(plan)
+                    return { status: 'approved' }
+                  }
                   if (result.status === 'pending' || result.status === 'in_process') {
                     onSuccess(plan, 'pending'); return { status: 'pending' }
                   }
@@ -58,7 +83,7 @@ function SubPaymentBrick({ plan, amount, preferenceId, onSuccess, onError, onClo
                 }
               }}
               onReady={() => {}}
-              onError={() => onError('Error en el formulario de pago')}
+              onError={(err) => { if (err?.type !== 'non_critical') onError('Error en el formulario de pago') }}
             />
           )}
         </div>
@@ -109,12 +134,17 @@ export default function Subscription() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Auto-trigger payment when coming from register with a plan selected
+  // Auto-trigger payment when coming from register with a plan selected.
+  // Solo pre-carga la preferencia — NO abre popup (el browser lo bloquea desde useEffect).
   useEffect(() => {
     if (!data || !autoUpgrade || autoUpgradeTriggered.current) return
     if (!PLAN_INFO[autoUpgrade]) return
     autoUpgradeTriggered.current = true
-    handleUpgrade(autoUpgrade)
+    // Si hay public key disponible, abrir Bricks automáticamente
+    if (data.mpPublicKey) {
+      handleUpgrade(autoUpgrade)
+    }
+    // Si no hay public key, mostrar banner con botón de pago — el usuario hace clic
   }, [data, autoUpgrade])
 
   const handleUpgrade = async (plan) => {
@@ -124,17 +154,16 @@ export default function Subscription() {
       const prices = { BASIC: 60, PRO: 120, PREMIUM: 190 }
 
       if (data?.mpPublicKey) {
-        // Checkout Bricks — formulario embebido
-        setBrickData({ plan, amount: prices[plan] || 29, preferenceId: res.preferenceId })
+        // Checkout Bricks — formulario embebido en modal
+        setBrickData({ plan, amount: prices[plan] || 120, preferenceId: res.preferenceId })
       } else {
-        // Fallback ventana centrada si no hay public key
-        const url = res.initPoint || res.sandboxPoint
-        const w = 520, h = 720
-        const left = Math.round(window.screenX + (window.outerWidth - w) / 2)
-        const top  = Math.round(window.screenY + (window.outerHeight - h) / 2)
-        window.open(url, 'mp_checkout',
-          `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`)
-        show('Completa el pago en la ventana de Mercado Pago', 'success')
+        // Sin public key → guardar initPoint y mostrar botón de redirección (no popup)
+        setBrickData({
+          plan,
+          amount: prices[plan] || 120,
+          preferenceId: null,
+          initPoint: res.initPoint || res.sandboxPoint,
+        })
       }
     } catch (err) {
       show(err?.error || 'Error al generar enlace de pago', 'error')
@@ -142,16 +171,16 @@ export default function Subscription() {
   }
 
   const handlePaymentSuccess = (plan, status) => {
+    localStorage.removeItem('checkout_plan_pending')
     setBrickData(null)
     setFromRegister(false)
     if (status === 'pending') {
       show('Pago en proceso. Tu plan se activará cuando se confirme.', 'success')
-      navigate('/dashboard')
     } else {
       show(`¡Plan ${plan} activado! Bienvenido a AutoBusiness.`, 'success')
       subApi.status().then(s => setData(s)).catch(() => {})
-      navigate('/dashboard')
     }
+    navigate('/dashboard')
   }
 
   if (loading) return <div className="page-loading"><div className="spinner" /></div>
@@ -171,7 +200,11 @@ export default function Subscription() {
         </p>
       </div>
       <button
-        onClick={() => { setFromRegister(false); navigate('/dashboard') }}
+        onClick={() => {
+          localStorage.removeItem('checkout_plan_pending')
+          setFromRegister(false)
+          navigate('/dashboard')
+        }}
         style={{
           background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.4)',
           color: '#fff', borderRadius: 8, padding: '8px 16px',
@@ -198,6 +231,7 @@ export default function Subscription() {
           plan={brickData.plan}
           amount={brickData.amount}
           preferenceId={brickData.preferenceId}
+          initPoint={brickData.initPoint}
           onSuccess={handlePaymentSuccess}
           onError={(msg) => show(msg, 'error')}
           onClose={() => setBrickData(null)}

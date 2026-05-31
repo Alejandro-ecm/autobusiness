@@ -47,10 +47,9 @@ function AppRoutes() {
   const home = user?.isSuperAdmin ? '/super-admin' : user?.role === 'CASHIER' ? '/caja' : '/dashboard'
 
   // Si el usuario tiene un plan pendiente de pago (registrado desde checkout sin pagar),
-  // redirigir a suscripción antes de entrar a la app
+  // redirigir a suscripción. NO borrar la key aquí — solo se borra al pagar o al saltar.
   const pendingPlan = localStorage.getItem('checkout_plan_pending')
   if (user && pendingPlan && !user.isSuperAdmin) {
-    localStorage.removeItem('checkout_plan_pending')
     return <Navigate to={`/subscription?upgrade=${pendingPlan}`} replace />
   }
 
