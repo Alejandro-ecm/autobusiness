@@ -154,6 +154,8 @@ export default function Checkout() {
     setLoading(true)
     setError('')
     try {
+      // Guardar plan pendiente ANTES de registrar — si cierran sin pagar, se detecta al volver
+      localStorage.setItem('checkout_plan_pending', plan)
       await register({
         businessName: form.businessName.trim(),
         ownerName:    form.ownerName.trim(),
@@ -172,6 +174,7 @@ export default function Checkout() {
   }
 
   const handlePaySuccess = (status) => {
+    localStorage.removeItem('checkout_plan_pending')
     if (status === 'pending') {
       show('Pago en proceso. Tu plan se activará cuando se confirme.', 'success')
     } else {
