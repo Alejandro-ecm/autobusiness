@@ -27,6 +27,19 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
 
+    private static final java.util.Set<String> ALLOWED_EMAIL_DOMAINS = java.util.Set.of(
+        "gmail.com", "hotmail.com", "hotmail.es", "hotmail.com.mx", "hotmail.fr",
+        "outlook.com", "outlook.es", "outlook.com.mx", "live.com", "live.com.mx"
+    );
+
+    private void validateEmailDomain(String email) {
+        if (email == null || !email.contains("@")) throw new IllegalArgumentException("Email inválido");
+        String domain = email.trim().toLowerCase().split("@")[1];
+        if (!ALLOWED_EMAIL_DOMAINS.contains(domain))
+            throw new IllegalArgumentException(
+                "Solo se aceptan correos de Gmail (@gmail.com) o Hotmail/Outlook (@hotmail.com, @outlook.com)");
+    }
+
     private final UserRepository userRepo;
     private final BusinessRepository businessRepo;
     private final BranchRepository branchRepo;
@@ -87,6 +100,7 @@ public class AuthService {
                                          String email, String password) {
         if (userRepo.existsByEmail(email))
             throw new IllegalArgumentException("El email ya está registrado");
+        validateEmailDomain(email);
         if (businessName == null || businessName.isBlank())
             throw new IllegalArgumentException("El nombre del negocio es requerido");
         if (password == null || password.length() < 6)
@@ -206,6 +220,7 @@ public class AuthService {
             throw new IllegalArgumentException("El email ya está registrado");
         if (pendingRepo.existsByEmail(email))
             throw new IllegalArgumentException("Ya hay un registro pendiente para este email");
+        validateEmailDomain(email);
         if (businessName == null || businessName.isBlank())
             throw new IllegalArgumentException("El nombre del negocio es requerido");
         if (password == null || password.length() < 6)

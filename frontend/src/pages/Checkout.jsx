@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import client from '../api/client'
 import { useToast } from '../store/ToastContext'
+import { validateEmailDomain } from '../lib/emailValidation'
 
 const PLAN_PRICES = { BASIC: 60, PRO: 120, PREMIUM: 190 }
 const PLAN_FEATURES = {
@@ -82,6 +83,8 @@ export default function Checkout() {
     if (!form.businessName.trim()) { setError('Ingresa el nombre de tu negocio'); return }
     if (!form.ownerName.trim())    { setError('Ingresa tu nombre'); return }
     if (!form.email.trim())        { setError('Ingresa tu email'); return }
+    const emailErr = validateEmailDomain(form.email)
+    if (emailErr) { setError(emailErr); return }
     if (form.password.length < 6)  { setError('La contraseña debe tener al menos 6 caracteres'); return }
     setLoading(true)
     setError('')

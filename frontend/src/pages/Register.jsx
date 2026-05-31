@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
 import { trackEvent } from '../lib/alejandria'
+import { validateEmailDomain } from '../lib/emailValidation'
 import './Register.css'
 
 export default function Register() {
@@ -21,6 +22,8 @@ export default function Register() {
     if (!form.businessName.trim()) { setError('Ingresa el nombre de tu negocio'); return }
     if (!form.ownerName.trim())    { setError('Ingresa tu nombre'); return }
     if (!form.email.trim())        { setError('Ingresa tu email'); return }
+    const emailErr = validateEmailDomain(form.email)
+    if (emailErr) { setError(emailErr); return }
     if (form.password.length < 6)  { setError('La contraseña debe tener al menos 6 caracteres'); return }
     setLoading(true)
     setError('')
