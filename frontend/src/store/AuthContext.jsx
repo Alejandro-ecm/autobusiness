@@ -35,8 +35,11 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const res = await authApi.login(email, password)
     try { localStorage.setItem('ab_token', res.token) } catch {}
-    _persist(res.user)
-    return res.user
+    const userToStore = res.requiresLegalAcceptance
+      ? { ...res.user, requiresLegalAcceptance: true }
+      : res.user
+    _persist(userToStore)
+    return res  // return full response so callers can check requiresLegalAcceptance
   }, [])
 
   const register = useCallback(async (data) => {

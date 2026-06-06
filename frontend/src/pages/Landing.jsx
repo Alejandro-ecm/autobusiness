@@ -161,6 +161,7 @@ export default function Landing() {
             <a href="#features">Funciones</a>
             <a href="#pricing">Precios</a>
             <Link to="/login">Iniciar sesión</Link>
+            <Link to="/acceptable-use">Uso Aceptable</Link>
           </div>
           <p className="landing-footer-copy">© 2025 AutoBusiness AI · Hecho con ❤️ en México</p>
         </div>

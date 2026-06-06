@@ -48,6 +48,7 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtil;
     private final AlejandriaClient alejandria;
+    private final LegalService legalService;
 
     public Map<String, Object> login(String email, String password) {
         User user = userRepo.findByEmail(email)
@@ -72,6 +73,8 @@ public class AuthService {
 
         var sub = subscriptionService.getStatus(user.getBusiness().getId());
 
+        boolean needsLegal = !legalService.hasAcceptedLatest(user.getId());
+
         var userMap = new HashMap<String, Object>();
         userMap.put("id",           user.getId());
         userMap.put("name",         user.getName());
@@ -88,16 +91,18 @@ public class AuthService {
                 "daysLeft", sub.get("daysLeft")
         ));
         if (branchId != null) userMap.put("branchId", branchId);
-        userMap.put("profileType",         user.getBusiness().getProfileType());
-        userMap.put("onboardingCompleted", user.getBusiness().isOnboardingCompleted());
+        userMap.put("profileType",              user.getBusiness().getProfileType());
+        userMap.put("onboardingCompleted",       user.getBusiness().isOnboardingCompleted());
+        userMap.put("requiresLegalAcceptance",   needsLegal);
 
-        log.info("Login: {} role={}", email, user.getRole());
-        return Map.of("token", token, "user", userMap);
+        log.info("Login: {} role={} requiresLegal={}", email, user.getRole(), needsLegal);
+        return Map.of("token", token, "user", userMap, "requiresLegalAcceptance", needsLegal);
     }
 
     @Transactional
     public Map<String, Object> register(String businessName, String ownerName,
-                                         String email, String password) {
+                                         String email, String password,
+                                         String ipAddress, String userAgent) {
         if (userRepo.existsByEmail(email))
             throw new IllegalArgumentException("El email ya está registrado");
         validateEmailDomain(email);
@@ -132,6 +137,9 @@ public class AuthService {
         // Crear suscripción trial de 14 días automáticamente
         subscriptionService.createTrialSubscription(business);
 
+        // Registrar aceptación legal al momento del registro
+        legalService.recordAcceptance(owner.getId(), ipAddress, userAgent);
+
         long totalUsuarios = userRepo.count();
         alejandria.trackMetric("total_usuarios", totalUsuarios, "count");
 
@@ -152,6 +160,7 @@ public class AuthService {
         userMap2.put("branchId",           mainBranch.getId());
         userMap2.put("profileType",        null);
         userMap2.put("onboardingCompleted",false);
+        userMap2.put("requiresLegalAcceptance", false);
         userMap2.put("subscription",       Map.of("plan", "FREE", "status", "TRIAL",
                                                    "isActive", true, "daysLeft", 14));
         return Map.of("token", token, "user", userMap2);

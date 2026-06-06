@@ -3,6 +3,7 @@ package com.autobusiness.api.controller;
 import com.autobusiness.config.JwtAuthFilter.AuthPrincipal;
 import com.autobusiness.domain.service.AuthService;
 import com.autobusiness.domain.service.MercadoPagoService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -28,13 +29,17 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Map<String, String> body) {
+    public ResponseEntity<?> register(@RequestBody Map<String, String> body, HttpServletRequest request) {
         try {
+            String ip = getClientIp(request);
+            String ua = request.getHeader("User-Agent");
             return ResponseEntity.ok(authService.register(
                     body.get("businessName"),
                     body.get("ownerName"),
                     body.get("email"),
-                    body.get("password")
+                    body.get("password"),
+                    ip,
+                    ua
             ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -105,5 +110,13 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of("status", "ok", "service", "AutoBusiness AI"));
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) return realIp.trim();
+        return request.getRemoteAddr();
     }
 }

@@ -150,3 +150,12 @@ export const upload = {
     })
   },
 }
+
+export const legal = {
+  terms:         () => client.get('/legal/terms'),
+  privacy:       () => client.get('/legal/privacy'),
+  acceptableUse: () => client.get('/legal/acceptable-use'),
+  versions:      () => client.get('/legal/versions'),
+  status:        () => client.get('/legal/status'),
+  accept:        () => client.post('/legal/accept'),
+}

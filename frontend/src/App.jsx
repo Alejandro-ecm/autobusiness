@@ -28,6 +28,7 @@ import Marketplace from './pages/Marketplace'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import AccountDeletion from './pages/AccountDeletion'
+import AcceptableUse from './pages/AcceptableUse'
 import Checkout from './pages/Checkout'
 
 function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
@@ -35,6 +36,8 @@ function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
   if (!user) return <Navigate to="/login" replace />
   if (superAdminOnly && !user.isSuperAdmin) return <Navigate to="/dashboard" replace />
   if (ownerOnly && user.role === 'CASHIER') return <Navigate to="/caja" replace />
+  // Redirigir al login para que el usuario acepte los documentos legales
+  if (user.requiresLegalAcceptance) return <Navigate to="/login?legal=1" replace />
   // Mostrar onboarding solo a OWNER la primera vez (no en super-admin ni en caja)
   if (user && !user.onboardingCompleted && !user.isSuperAdmin && user.role === 'OWNER') {
     return <OnboardingWizard />
@@ -61,6 +64,7 @@ function AppRoutes() {
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/account-deletion" element={<AccountDeletion />} />
+      <Route path="/acceptable-use" element={<AcceptableUse />} />
 
       {/* Super Admin */}
       <Route path="/super-admin" element={
