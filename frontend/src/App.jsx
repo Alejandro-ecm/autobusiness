@@ -53,8 +53,8 @@ function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={user ? <Navigate to={home} /> : <Landing />} />
-      <Route path="/login" element={user ? <Navigate to={home} /> : <Login />} />
-      <Route path="/register" element={user ? <Navigate to={home} /> : <Register />} />
+      <Route path="/login" element={(user && !user.requiresLegalAcceptance) ? <Navigate to={home} /> : <Login />} />
+      <Route path="/register" element={(user && !user.requiresLegalAcceptance) ? <Navigate to={home} /> : <Register />} />
       <Route path="/tienda/:slug" element={<Storefront />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/payment/success" element={<PaymentResult />} />
