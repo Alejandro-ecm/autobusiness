@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
     base: '/',
     build: {
       outDir: 'dist',
+      target: ['es2015', 'chrome87', 'firefox78', 'safari14', 'edge88'],
     },
     server: {
       port: 3000,
