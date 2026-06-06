@@ -39,6 +39,7 @@ public class OnlineStoreService {
         biz.put("bannerUrl", business.getBannerUrl() != null ? business.getBannerUrl() : "");
         biz.put("storeTheme", business.getStoreTheme() != null ? business.getStoreTheme() : "modern");
         biz.put("mpPublicKey", business.getMpPublicKey() != null ? business.getMpPublicKey() : "");
+        biz.put("businessHours", business.getBusinessHours() != null ? business.getBusinessHours() : "");
         return Map.of("business", biz, "products", products);
     }
 

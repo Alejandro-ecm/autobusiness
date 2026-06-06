@@ -126,6 +126,9 @@ export default function Inventory() {
   const [importRows,    setImportRows]    = useState([])
   const [importing,     setImporting]     = useState(false)
   const [dragOver,      setDragOver]      = useState(false)
+  const [adjustProduct, setAdjustProduct] = useState(null)
+  const [adjustQty,     setAdjustQty]     = useState('')
+  const [adjusting,     setAdjusting]     = useState(false)
   const [genLoading,    setGenLoading]    = useState(null)   // productId generando
   const [printSelected, setPrintSelected] = useState(new Set())
   const [bulkGenerating, setBulkGenerating] = useState(false)
@@ -556,16 +559,23 @@ export default function Inventory() {
     [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value
   }))
 
-  const adjustStock = async (id, delta, name) => {
-    const reason = prompt(`Ajuste de stock para "${name}" (positivo = entrada, negativo = salida):`)
-    if (reason === null) return
+  const openAdjust = (product) => {
+    setAdjustProduct(product)
+    setAdjustQty('')
+  }
+
+  const doAdjust = async (delta) => {
+    const qty = parseFloat(adjustQty)
+    if (!qty || qty <= 0) { show('Ingresa una cantidad válida mayor a 0', 'error'); return }
+    setAdjusting(true)
     try {
-      await inventoryApi.adjustStock(id, delta, reason || 'Ajuste manual')
-      show('Stock actualizado', 'success')
+      await inventoryApi.adjustStock(adjustProduct.id, delta > 0 ? qty : -qty, 'Ajuste manual')
+      show(delta > 0 ? `+${qty} unidades agregadas` : `-${qty} unidades quitadas`, 'success')
+      setAdjustProduct(null)
       load()
     } catch (err) {
-      show(err?.error || 'Error', 'error')
-    }
+      show(err?.error || 'Error al ajustar', 'error')
+    } finally { setAdjusting(false) }
   }
 
   const set = (k) => (e) => setForm(f => ({
@@ -775,11 +785,8 @@ export default function Inventory() {
                       )}
                       {isOwner && (
                         <button className="btn btn-sm btn-outline"
-                          onClick={() => {
-                            const d = prompt('¿Cuántas unidades agregar? (negativo para restar)')
-                            if (d !== null) adjustStock(p.id, parseInt(d), p.name)
-                          }}>
-                          Ajustar
+                          onClick={() => openAdjust(p)}>
+                          Ajustar inventario
                         </button>
                       )}
                     </div>
@@ -1128,6 +1135,116 @@ export default function Inventory() {
           <div className="import-drag-message">
             <span>📥</span>
             <p>Suelta el archivo Excel aquí</p>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Ajustar inventario ── */}
+      {adjustProduct && (
+        <div className="modal-overlay" onClick={() => setAdjustProduct(null)}>
+          <div className="modal-box card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Ajustar inventario</h3>
+              <button className="modal-close" onClick={() => setAdjustProduct(null)}>×</button>
+            </div>
+
+            <div style={{ padding: '0 0 16px' }}>
+              {/* Nombre + stock actual */}
+              <div style={{
+                background: '#f8fafc', borderRadius: 10, padding: '12px 14px',
+                marginBottom: 20, display: 'flex', alignItems: 'center', gap: 12,
+              }}>
+                {adjustProduct.imageUrl
+                  ? <img src={adjustProduct.imageUrl} alt={adjustProduct.name}
+                      style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                  : <div style={{ width: 44, height: 44, background: '#e2e8f0', borderRadius: 8,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📦</div>
+                }
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{adjustProduct.name}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                    Stock actual: <strong style={{ color: adjustProduct.stock === 0 ? '#ef4444' : '#0f172a' }}>
+                      {adjustProduct.stock} uds
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Input de cantidad */}
+              <div className="input-group" style={{ marginBottom: 16 }}>
+                <label>Cantidad de unidades</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  value={adjustQty}
+                  onChange={e => setAdjustQty(e.target.value)}
+                  placeholder="Ej: 10"
+                  autoFocus
+                  style={{ fontSize: 18, fontWeight: 700, textAlign: 'center' }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && parseFloat(adjustQty) > 0) doAdjust(1)
+                  }}
+                />
+              </div>
+
+              {/* Dos botones */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <button
+                  className="btn"
+                  disabled={adjusting || !adjustQty}
+                  onClick={() => doAdjust(1)}
+                  style={{
+                    background: 'linear-gradient(135deg,#16a34a,#15803d)',
+                    color: '#fff', border: 'none', borderRadius: 12,
+                    padding: '14px 10px', fontWeight: 700, fontSize: 14,
+                    cursor: adjusting || !adjustQty ? 'not-allowed' : 'pointer',
+                    opacity: adjusting || !adjustQty ? 0.6 : 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    boxShadow: '0 3px 10px rgba(22,163,74,.35)',
+                  }}>
+                  <span style={{ fontSize: 22 }}>➕</span>
+                  Agregar al stock
+                </button>
+                <button
+                  className="btn"
+                  disabled={adjusting || !adjustQty}
+                  onClick={() => doAdjust(-1)}
+                  style={{
+                    background: 'linear-gradient(135deg,#dc2626,#b91c1c)',
+                    color: '#fff', border: 'none', borderRadius: 12,
+                    padding: '14px 10px', fontWeight: 700, fontSize: 14,
+                    cursor: adjusting || !adjustQty ? 'not-allowed' : 'pointer',
+                    opacity: adjusting || !adjustQty ? 0.6 : 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    boxShadow: '0 3px 10px rgba(220,38,38,.35)',
+                  }}>
+                  <span style={{ fontSize: 22 }}>➖</span>
+                  Quitar del stock
+                </button>
+              </div>
+
+              {/* Preview del resultado */}
+              {adjustQty && parseFloat(adjustQty) > 0 && (
+                <div style={{
+                  marginTop: 14, background: '#f0f9ff', borderRadius: 10, padding: '10px 14px',
+                  border: '1px solid #bae6fd', display: 'flex', justifyContent: 'space-between',
+                  fontSize: 13,
+                }}>
+                  <span style={{ color: '#0369a1' }}>Nuevo stock si agregas:</span>
+                  <strong style={{ color: '#0369a1' }}>{adjustProduct.stock + parseFloat(adjustQty)} uds</strong>
+                  <span style={{ color: '#dc2626', marginLeft: 16 }}>Si quitas:</span>
+                  <strong style={{ color: adjustProduct.stock - parseFloat(adjustQty) < 0 ? '#dc2626' : '#dc2626' }}>
+                    {Math.max(0, adjustProduct.stock - parseFloat(adjustQty))} uds
+                  </strong>
+                </div>
+              )}
+
+              <div style={{ marginTop: 16, textAlign: 'center' }}>
+                <button className="btn btn-outline" onClick={() => setAdjustProduct(null)}>Cancelar</button>
+              </div>
+            </div>
           </div>
         </div>
       )}

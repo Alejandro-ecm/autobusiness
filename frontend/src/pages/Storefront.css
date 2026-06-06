@@ -1,3 +1,8 @@
+@keyframes sf-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: .5; transform: scale(1.4); }
+}
+
 /* ── Loading ─────────────────────────────────────────────────────────────── */
 .sf-loading {
   display: flex; align-items: center; justify-content: center;

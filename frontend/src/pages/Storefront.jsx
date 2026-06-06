@@ -70,6 +70,84 @@ function PaymentBrick({ amount, preferenceId, orderId, slug, onSuccess, onError 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const DEFAULT_LOGO = '/skymarket-logo.jpg'
 
+const DAY_KEYS = ['dom', 'lun', 'mar', 'mie', 'jue', 'vie', 'sab']
+const DAY_LABELS = { lun: 'Lun', mar: 'Mar', mie: 'Mié', jue: 'Jue', vie: 'Vie', sab: 'Sáb', dom: 'Dom' }
+
+function BusinessHours({ hoursJson }) {
+  if (!hoursJson) return null
+  let hours = null
+  try { hours = JSON.parse(hoursJson) } catch { return null }
+
+  const now = new Date()
+  const todayKey = DAY_KEYS[now.getDay()]
+  const todayHours = hours[todayKey]
+
+  const isOpenNow = (() => {
+    if (!todayHours?.open) return false
+    const [fH, fM] = todayHours.from.split(':').map(Number)
+    const [tH, tM] = todayHours.to.split(':').map(Number)
+    const cur = now.getHours() * 60 + now.getMinutes()
+    return cur >= fH * 60 + fM && cur < tH * 60 + tM
+  })()
+
+  return (
+    <div style={{
+      marginTop: 16,
+      background: 'rgba(0,0,0,.35)',
+      backdropFilter: 'blur(8px)',
+      borderRadius: 14,
+      padding: '12px 16px',
+      display: 'inline-block',
+      maxWidth: 340,
+      width: '100%',
+    }}>
+      {/* Estado actual */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          background: isOpenNow ? '#16a34a' : '#dc2626',
+          color: '#fff', borderRadius: 20, padding: '3px 10px',
+          fontSize: 12, fontWeight: 700,
+        }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: '#fff', display: 'inline-block',
+            animation: isOpenNow ? 'sf-pulse 1.5s infinite' : 'none',
+          }} />
+          {isOpenNow ? 'Abierto ahora' : 'Cerrado ahora'}
+        </span>
+        {todayHours?.open && (
+          <span style={{ color: 'rgba(255,255,255,.75)', fontSize: 11 }}>
+            Hoy: {todayHours.from} – {todayHours.to}
+          </span>
+        )}
+      </div>
+      {/* Tabla de días */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
+        {['lun','mar','mie','jue','vie','sab','dom'].map(key => {
+          const d = hours[key]
+          const isToday = key === todayKey
+          return (
+            <div key={key} style={{
+              textAlign: 'center', padding: '4px 2px', borderRadius: 6,
+              background: isToday ? 'rgba(255,255,255,.2)' : 'transparent',
+              border: isToday ? '1px solid rgba(255,255,255,.35)' : '1px solid transparent',
+            }}>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,.6)', fontWeight: isToday ? 700 : 400, marginBottom: 2 }}>
+                {DAY_LABELS[key]}
+              </div>
+              <div style={{
+                width: 6, height: 6, borderRadius: '50%', margin: '0 auto',
+                background: d?.open ? '#4ade80' : '#f87171',
+              }} />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function MapPicker({ initialLat, initialLng, onConfirm, onCancel }) {
   const mapDivRef = useRef(null)
   const leafletMapRef = useRef(null)
@@ -735,6 +813,7 @@ export default function Storefront() {
             <span className="sf-badge">⚡ Pedidos rápidos</span>
             <span className="sf-badge">✅ {products.length} productos</span>
           </div>
+          {business.businessHours && <BusinessHours hoursJson={business.businessHours} />}
           <ShareButtons slug={slug} businessName={business.name} />
         </div>
       </div>

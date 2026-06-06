@@ -16,6 +16,26 @@ const STATUS_LABELS = {
   cancelled: { label: 'Cancelado',  cls: 'badge-red' },
 }
 
+const DAYS = [
+  { key: 'lun', label: 'Lunes' },
+  { key: 'mar', label: 'Martes' },
+  { key: 'mie', label: 'Miércoles' },
+  { key: 'jue', label: 'Jueves' },
+  { key: 'vie', label: 'Viernes' },
+  { key: 'sab', label: 'Sábado' },
+  { key: 'dom', label: 'Domingo' },
+]
+
+const DEFAULT_HOURS = {
+  lun: { open: true,  from: '09:00', to: '18:00' },
+  mar: { open: true,  from: '09:00', to: '18:00' },
+  mie: { open: true,  from: '09:00', to: '18:00' },
+  jue: { open: true,  from: '09:00', to: '18:00' },
+  vie: { open: true,  from: '09:00', to: '18:00' },
+  sab: { open: true,  from: '10:00', to: '14:00' },
+  dom: { open: false, from: '10:00', to: '14:00' },
+}
+
 const THEMES = [
   {
     id: 'modern',
@@ -57,6 +77,7 @@ export default function StoreAdmin() {
 
   // Diseño state
   const [design, setDesign] = useState({ name: '', description: '', logoUrl: '', bannerUrl: '', storeTheme: 'modern' })
+  const [hours, setHours] = useState(DEFAULT_HOURS)
   const [designLoading, setDesignLoading] = useState(false)
   const [logoError, setLogoError]         = useState(false)
   const [bannerError, setBannerError]     = useState(false)
@@ -123,6 +144,9 @@ export default function StoreAdmin() {
         bannerUrl:   b.bannerUrl   || '',
         storeTheme:  b.storeTheme  || 'modern',
       })
+      if (b.businessHours) {
+        try { setHours({ ...DEFAULT_HOURS, ...JSON.parse(b.businessHours) }) } catch { /* ignore */ }
+      }
     } catch { /* ignore */ }
   }
 
@@ -164,7 +188,7 @@ export default function StoreAdmin() {
   const saveDesign = async () => {
     setDesignLoading(true)
     try {
-      await businessApi.updateSettings(design)
+      await businessApi.updateSettings({ ...design, businessHours: JSON.stringify(hours) })
       show('Diseño guardado correctamente', 'success')
     } catch (e) {
       show(e?.error || 'Error al guardar diseño', 'error')
@@ -488,6 +512,79 @@ export default function StoreAdmin() {
                   {design.storeTheme === t.id && <div className="design-theme-check">✓</div>}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Horario */}
+          <div className="card design-section">
+            <h3 className="design-section-title">Horario de atención</h3>
+            <p className="design-section-sub">Se mostrará en tu tienda online para que los clientes sepan cuándo estás disponible.</p>
+            <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+              {DAYS.map(({ key, label }) => {
+                const day = hours[key]
+                return (
+                  <div key={key} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', borderRadius: 10,
+                    background: day.open ? '#f0fdf4' : '#f8fafc',
+                    border: `1px solid ${day.open ? '#bbf7d0' : '#e2e8f0'}`,
+                    transition: 'all .15s',
+                    flexWrap: 'wrap',
+                  }}>
+                    {/* Toggle */}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
+                      <div
+                        onClick={() => setHours(h => ({ ...h, [key]: { ...h[key], open: !h[key].open } }))}
+                        style={{
+                          width: 36, height: 20, borderRadius: 10, cursor: 'pointer',
+                          background: day.open ? '#16a34a' : '#cbd5e1',
+                          position: 'relative', transition: 'background .2s', flexShrink: 0,
+                        }}>
+                        <div style={{
+                          position: 'absolute', top: 2, left: day.open ? 18 : 2,
+                          width: 16, height: 16, borderRadius: '50%',
+                          background: '#fff', transition: 'left .2s',
+                          boxShadow: '0 1px 3px rgba(0,0,0,.25)',
+                        }} />
+                      </div>
+                    </label>
+
+                    {/* Día */}
+                    <span style={{
+                      minWidth: 80, fontWeight: 600, fontSize: 13,
+                      color: day.open ? '#15803d' : '#94a3b8',
+                    }}>{label}</span>
+
+                    {day.open ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <input
+                          type="time"
+                          value={day.from}
+                          onChange={e => setHours(h => ({ ...h, [key]: { ...h[key], from: e.target.value } }))}
+                          style={{
+                            border: '1px solid #d1fae5', borderRadius: 6, padding: '4px 8px',
+                            fontSize: 13, fontWeight: 600, color: '#15803d',
+                            background: '#fff', cursor: 'pointer',
+                          }}
+                        />
+                        <span style={{ color: '#64748b', fontSize: 13 }}>—</span>
+                        <input
+                          type="time"
+                          value={day.to}
+                          onChange={e => setHours(h => ({ ...h, [key]: { ...h[key], to: e.target.value } }))}
+                          style={{
+                            border: '1px solid #d1fae5', borderRadius: 6, padding: '4px 8px',
+                            fontSize: 13, fontWeight: 600, color: '#15803d',
+                            background: '#fff', cursor: 'pointer',
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Cerrado</span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
 

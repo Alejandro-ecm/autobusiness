@@ -142,6 +142,8 @@ public class OnlineStoreController {
                 String theme = body.get("storeTheme") != null ? body.get("storeTheme").toString() : "modern";
                 business.setStoreTheme(ALLOWED_THEMES.contains(theme) ? theme : "modern");
             }
+            if (body.containsKey("businessHours"))
+                business.setBusinessHours(body.get("businessHours") != null ? body.get("businessHours").toString() : null);
 
             businessRepo.save(business);
             return ResponseEntity.ok(Map.of("message", "Configuración guardada"));

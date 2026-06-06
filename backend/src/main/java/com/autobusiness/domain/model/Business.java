@@ -63,6 +63,9 @@ public class Business {
     @Column(length = 20, unique = true)
     private String deliveryCode;
 
+    @Column(columnDefinition = "TEXT")
+    private String businessHours;
+
     // Mercado Pago por negocio
     @Column(length = 500)
     private String mpAccessToken;
