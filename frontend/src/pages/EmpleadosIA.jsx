@@ -47,7 +47,7 @@ export default function EmpleadosIA() {
 
       {/* Banner destacado */}
       <div className="empia-banner">
-        <div className="empia-banner-art">🤖</div>
+        <img className="empia-banner-art" src="/empleados-ia-banner.png" alt="Empleados IA" />
         <div className="empia-banner-text">
           <h2>Haz que la IA responda WhatsApp por ti</h2>
           <p>Tu Vendedor IA responde automáticamente 24/7 preguntas de clientes sobre productos, precios y stock.</p>
