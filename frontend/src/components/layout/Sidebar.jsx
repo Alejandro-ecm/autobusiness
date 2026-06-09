@@ -6,9 +6,13 @@ import './Sidebar.css'
 
 const ACTIVE = new Set(['pending', 'confirmed', 'preparing', 'ready'])
 
-function usePendingOrdersCount() {
+function usePendingOrdersCount(enabled = true) {
   const [count, setCount] = useState(0)
   useEffect(() => {
+    if (!enabled) {
+      setCount(0)
+      return
+    }
     const load = () =>
       ordersApi.list().then(r => {
         // el interceptor ya hace res.data, r es el array directamente
@@ -23,7 +27,7 @@ function usePendingOrdersCount() {
     load()
     const id = setInterval(load, 15_000)
     return () => clearInterval(id)
-  }, [])
+  }, [enabled])
   return count
 }
 
@@ -42,6 +46,8 @@ const ownerNav = [
   { to: '/marketing',        icon: '📣', label: 'Marketing' },
   { to: '/users',            icon: '👤', label: 'Usuarios' },
   { to: '/settings/payments',icon: '💸', label: 'Cobros' },
+  { to: '/empleados-ia',     icon: '🤝', label: 'Empleados IA' },
+  { to: '/soporte',          icon: '🎧', label: 'Soporte' },
   { to: '/subscription',     icon: '⭐', label: 'Suscripción' },
 ]
 
@@ -50,13 +56,14 @@ const cashierNav = [
   { to: '/caja-ia',   icon: '🤖', label: 'Caja IA' },
   { to: '/inventory', icon: '📦', label: 'Inventario' },
   { to: '/customers', icon: '👥', label: 'Clientes' },
+  { to: '/soporte',   icon: '🎧', label: 'Soporte' },
 ]
 
 export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) {
   const { user, logout, isOwner } = useAuth()
   const navigate = useNavigate()
   const nav = isOwner ? ownerNav : cashierNav
-  const pendingOrders = isOwner ? usePendingOrdersCount() : 0
+  const pendingOrders = usePendingOrdersCount(isOwner)
 
   useEffect(() => {
     if (isOwner && 'Notification' in window && Notification.permission === 'default') {

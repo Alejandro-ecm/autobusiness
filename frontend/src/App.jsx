@@ -30,6 +30,8 @@ import TermsOfService from './pages/TermsOfService'
 import AccountDeletion from './pages/AccountDeletion'
 import AcceptableUse from './pages/AcceptableUse'
 import Checkout from './pages/Checkout'
+import Soporte from './pages/Soporte'
+import EmpleadosIA from './pages/EmpleadosIA'
 
 function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
   const { user } = useAuth()
@@ -132,6 +134,14 @@ function AppRoutes() {
 
       <Route path="/purchases" element={
         <PrivateRoute ownerOnly><AppLayout><Purchases /></AppLayout></PrivateRoute>
+      } />
+
+      <Route path="/empleados-ia" element={
+        <PrivateRoute ownerOnly><AppLayout><EmpleadosIA /></AppLayout></PrivateRoute>
+      } />
+
+      <Route path="/soporte" element={
+        <PrivateRoute><AppLayout><Soporte /></AppLayout></PrivateRoute>
       } />
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,0 +1,207 @@
+.empia-page {
+  max-width: 1100px;
+}
+
+/* ── Banner ── */
+.empia-banner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  background: linear-gradient(135deg, #cdeef0 0%, #d7f3ee 100%);
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin: 20px 0 28px;
+}
+
+.empia-banner-art {
+  font-size: 70px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 150px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0d9488;
+  border-radius: 14px;
+  color: #fff;
+}
+
+.empia-banner-text h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  color: #0f172a;
+}
+.empia-banner-text p {
+  margin: 0 0 18px;
+  font-size: 14px;
+  color: #475569;
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.empia-banner-btn {
+  background: #0d9488;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 15px;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.empia-banner-btn:hover {
+  background: #0b7c72;
+}
+
+/* ── Grid de empleados ── */
+.empia-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 20px;
+}
+
+.empia-card {
+  padding: 26px 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.empia-avatar-wrap {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 16px;
+}
+.empia-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  border: 1px solid #e2e8f0;
+}
+.empia-avatar-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #25d366;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+.empia-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.empia-card-head h3 {
+  margin: 0;
+  font-size: 17px;
+  color: #0f172a;
+}
+
+.empia-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.empia-tag--activo {
+  background: #d1fae5;
+  color: #047857;
+}
+.empia-tag--soon {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* Toggle switch */
+.empia-switch {
+  margin-left: auto;
+  width: 44px;
+  height: 24px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  transition: background .2s;
+  flex-shrink: 0;
+}
+.empia-switch--on {
+  background: #0d9488;
+}
+.empia-switch:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+.empia-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.empia-switch--on .empia-switch-knob {
+  transform: translateX(20px);
+}
+
+.empia-card-desc {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.empia-train-btn {
+  align-self: flex-start;
+  background: #0d9488;
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 11px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s;
+}
+.empia-train-btn:hover {
+  background: #0b7c72;
+}
+.empia-train-btn:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .empia-banner {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+  .empia-banner-text p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
