@@ -6,7 +6,7 @@ const EMPLEADOS = [
   {
     id: 'vendedor',
     nombre: 'Vendedor IA',
-    avatar: '🧑‍💼',
+    foto: '/vendedora-ia.jpg',
     estado: 'activo',
     descripcion: 'Responde automáticamente las consultas de tu WhatsApp las 24hs del día.',
   },
@@ -65,7 +65,9 @@ export default function EmpleadosIA() {
           return (
             <div key={emp.id} className="card empia-card">
               <div className="empia-avatar-wrap">
-                <div className="empia-avatar">{emp.avatar}</div>
+                {emp.foto
+                  ? <img className="empia-avatar empia-avatar--img" src={emp.foto} alt={emp.nombre} />
+                  : <div className="empia-avatar">{emp.avatar}</div>}
                 {disponible && <span className="empia-avatar-badge">✓</span>}
               </div>
 

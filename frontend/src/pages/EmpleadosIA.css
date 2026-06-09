@@ -85,6 +85,11 @@
   font-size: 38px;
   border: 1px solid #e2e8f0;
 }
+.empia-avatar--img {
+  object-fit: cover;
+  font-size: 0;
+  background: #e2e8f0;
+}
 .empia-avatar-badge {
   position: absolute;
   bottom: 2px;
