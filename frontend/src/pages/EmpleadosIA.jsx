@@ -6,7 +6,7 @@ const EMPLEADOS = [
   {
     id: 'vendedor',
     nombre: 'Vendedor IA',
-    foto: '/vendedora-ia.jpg',
+    foto: '/vendedora-ia.webp',
     estado: 'activo',
     descripcion: 'Responde automáticamente las consultas de tu WhatsApp las 24hs del día.',
   },
@@ -20,7 +20,7 @@ const EMPLEADOS = [
   {
     id: 'repositor',
     nombre: 'Repositor IA',
-    foto: '/repositor-ia.jpg',
+    foto: '/repositor-ia.webp',
     estado: 'proximamente',
     descripcion: 'Controla tu inventario y te avisa cuando un producto está por agotarse.',
   },
@@ -47,7 +47,7 @@ export default function EmpleadosIA() {
 
       {/* Banner destacado */}
       <div className="empia-banner">
-        <img className="empia-banner-art" src="/empleados-ia-banner.png" alt="Empleados IA" />
+        <img className="empia-banner-art" src="/empleados-ia-banner.webp" alt="Empleados IA" />
         <div className="empia-banner-text">
           <h2>Haz que la IA responda WhatsApp por ti</h2>
           <p>Tu Vendedor IA responde automáticamente 24/7 preguntas de clientes sobre productos, precios y stock.</p>
