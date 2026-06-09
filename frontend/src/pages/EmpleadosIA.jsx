@@ -13,14 +13,14 @@ const EMPLEADOS = [
   {
     id: 'cobrador',
     nombre: 'Cobrador IA',
-    avatar: '🧑‍💻',
+    foto: '/cobrador-ia.avif',
     estado: 'proximamente',
     descripcion: 'Gestiona cobros y pagos pendientes por WhatsApp de forma automática.',
   },
   {
     id: 'repositor',
     nombre: 'Repositor IA',
-    avatar: '🧑‍🔧',
+    foto: '/repositor-ia.jpg',
     estado: 'proximamente',
     descripcion: 'Controla tu inventario y te avisa cuando un producto está por agotarse.',
   },
