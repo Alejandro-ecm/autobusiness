@@ -372,3 +372,50 @@
 
   .status-pill { font-size: 12px; padding: 6px 12px; }
 }
+
+/* ---- Ranking de cajeros ---- */
+.cashier-ranking { padding: 16px 20px; }
+.cashier-ranking-head {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 14px;
+}
+.cashier-ranking-filter { display: flex; gap: 6px; }
+.crf-btn {
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+  border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+}
+.crf-btn:hover { background: #f8fafc; }
+.crf-btn--active {
+  background: #6366f1; border-color: #6366f1; color: #fff;
+}
+
+.cashier-ranking-list { display: flex; flex-direction: column; gap: 10px; }
+.cr-row {
+  display: flex; align-items: center; gap: 14px;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 12px 16px;
+}
+.cr-row--top {
+  background: linear-gradient(135deg, #fffbeb, #fff7ed);
+  border-color: #fcd34d;
+}
+.cr-rank {
+  font-size: 26px; width: 36px; text-align: center; flex-shrink: 0;
+}
+.cr-main { flex: 1; min-width: 0; }
+.cr-name { font-weight: 700; font-size: 14px; color: #0f172a; margin-bottom: 6px; }
+.cr-bar { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+.cr-bar-fill {
+  height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 3px; transition: width .4s;
+}
+.cr-sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+.cr-figures { text-align: right; flex-shrink: 0; }
+.cr-revenue { font-weight: 800; font-size: 16px; color: #6366f1; }
+.cr-profit { font-size: 12px; color: #10b981; font-weight: 600; margin-top: 2px; }
+
+@media (max-width: 560px) {
+  .cr-rank { font-size: 22px; width: 28px; }
+  .cr-revenue { font-size: 14px; }
+}

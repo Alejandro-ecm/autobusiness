@@ -112,6 +112,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [showAllInsights, setShowAllInsights] = useState(false)
 
+  // Ranking de cajeros (solo dueño/admin)
+  const canSeeRanking = user?.role === 'OWNER' || user?.role === 'ADMIN'
+  const [ranking, setRanking] = useState(null)
+  const [rankingDays, setRankingDays] = useState(30)
+
   // Multi-business
   const [accounts, setAccounts] = useState(() => {
     try { return JSON.parse(localStorage.getItem('multi_accounts') || '[]') } catch { return [] }
@@ -214,6 +219,11 @@ export default function Dashboard() {
     const iv = setInterval(() => dashboardApi.get().then(setData), 60_000)
     return () => clearInterval(iv)
   }, [])
+
+  useEffect(() => {
+    if (!canSeeRanking) return
+    dashboardApi.cashierRanking(rankingDays).then(setRanking).catch(() => setRanking(null))
+  }, [canSeeRanking, rankingDays])
 
   if (loading) return (
     <div className="page-loading">
@@ -399,6 +409,48 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Ranking de cajeros */}
+      {canSeeRanking && ranking?.ranking?.length > 0 && (
+        <div className="card cashier-ranking">
+          <div className="cashier-ranking-head">
+            <h3 className="section-title" style={{ margin: 0 }}>🏅 Ranking de cajeros</h3>
+            <div className="cashier-ranking-filter">
+              {[7, 30, 90].map(d => (
+                <button
+                  key={d}
+                  className={`crf-btn ${rankingDays === d ? 'crf-btn--active' : ''}`}
+                  onClick={() => setRankingDays(d)}
+                >
+                  {d === 7 ? '7 días' : d === 30 ? '30 días' : '90 días'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="cashier-ranking-list">
+            {ranking.ranking.map((c) => {
+              const medal = c.rank === 1 ? '🥇' : c.rank === 2 ? '🥈' : c.rank === 3 ? '🥉' : null
+              return (
+                <div key={c.cashierId} className={`cr-row ${c.rank === 1 ? 'cr-row--top' : ''}`}>
+                  <div className="cr-rank">{medal || <span className="rank-badge">{c.rank}</span>}</div>
+                  <div className="cr-main">
+                    <div className="cr-name">{c.name}</div>
+                    <div className="cr-bar">
+                      <div className="cr-bar-fill" style={{ width: `${c.share}%` }} />
+                    </div>
+                    <div className="cr-sub">{c.sales} venta{c.sales !== 1 ? 's' : ''} · {c.share}% del total</div>
+                  </div>
+                  <div className="cr-figures">
+                    <div className="cr-revenue">{fmt(c.revenue)}</div>
+                    <div className="cr-profit">Ganancia {fmt(c.profit)}</div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Multi-negocio */}
       <div className="card" style={{ padding: '16px 20px' }}>

@@ -5,3 +5,47 @@
   display: flex; align-items: center; justify-content: center;
   font-size: 14px; font-weight: 700; flex-shrink: 0;
 }
+
+/* ---- Modal de estadísticas del cajero ---- */
+.stats-modal { max-width: 720px; width: 100%; }
+.stats-body { display: flex; flex-direction: column; gap: 18px; }
+.stats-empty {
+  background: #f1f5f9; color: #64748b; border-radius: 10px;
+  padding: 12px 14px; font-size: 14px; margin: 0;
+}
+
+.stats-periods {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+}
+.stats-period-card {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 14px;
+}
+.stats-period-label {
+  display: block; font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: #6366f1; margin-bottom: 10px;
+}
+.stats-rows { display: flex; flex-direction: column; gap: 8px; }
+.stats-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 13px; color: #64748b;
+}
+.stats-row strong { color: #0f172a; font-size: 14px; }
+.stats-revenue { color: #6366f1 !important; }
+.stats-profit  { color: #10b981 !important; }
+
+.stats-section h4 {
+  font-size: 14px; margin: 0 0 10px; color: #0f172a;
+}
+.stats-pay { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.stats-pay-item {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 14px; font-size: 14px; color: #64748b;
+}
+.stats-pay-item strong { color: #0f172a; }
+.stats-top { width: 100%; }
+
+@media (max-width: 640px) {
+  .stats-periods { grid-template-columns: 1fr; }
+}

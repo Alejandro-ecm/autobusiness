@@ -6,8 +6,9 @@ export const auth = {
 }
 
 export const dashboard = {
-  get:      () => client.get('/dashboard'),
-  branches: () => client.get('/dashboard/branches'),
+  get:            () => client.get('/dashboard'),
+  branches:       () => client.get('/dashboard/branches'),
+  cashierRanking: (days = 30) => client.get('/dashboard/cashier-ranking', { params: { days } }),
 }
 
 export const pos = {
@@ -52,6 +53,7 @@ export const users = {
   list:         ()            => client.get('/users'),
   create:       (data)        => client.post('/users', data),
   toggleActive: (id, active)  => client.patch(`/users/${id}/active`, { isActive: active }),
+  stats:        (id)          => client.get(`/users/${id}/stats`),
 }
 
 export const reports = {

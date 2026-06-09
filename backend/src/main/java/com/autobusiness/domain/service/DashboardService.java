@@ -123,6 +123,58 @@ public class DashboardService {
         return result;
     }
 
+    /** Ranking de cajeros por ventas en los últimos {days} días. */
+    public Map<String, Object> getCashierRanking(UUID businessId, int days) {
+        Instant now  = Instant.now();
+        Instant from = now.minus(days, ChronoUnit.DAYS);
+
+        // Costo por cajero → para calcular ganancia
+        Map<UUID, BigDecimal> costByCashier = new HashMap<>();
+        for (Object[] row : saleRepo.cashierCosts(businessId, from, now)) {
+            costByCashier.put((UUID) row[0], (BigDecimal) row[1]);
+        }
+
+        List<Object[]> rows = saleRepo.cashierRanking(businessId, from, now);
+        BigDecimal totalRevenue = rows.stream()
+                .map(r -> (BigDecimal) r[3])
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        int rank = 1;
+        for (Object[] r : rows) {
+            UUID cashierId    = (UUID) r[0];
+            String name       = r[1] == null ? "Sin nombre" : r[1].toString();
+            long sales        = ((Number) r[2]).longValue();
+            BigDecimal revenue = (BigDecimal) r[3];
+            BigDecimal cost    = costByCashier.getOrDefault(cashierId, BigDecimal.ZERO);
+            BigDecimal profit  = revenue.subtract(cost);
+            BigDecimal avg = sales > 0
+                    ? revenue.divide(BigDecimal.valueOf(sales), 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+            int share = totalRevenue.compareTo(BigDecimal.ZERO) > 0
+                    ? revenue.multiply(BigDecimal.valueOf(100))
+                        .divide(totalRevenue, 0, RoundingMode.HALF_UP).intValue()
+                    : 0;
+
+            Map<String, Object> entry = new HashMap<>();
+            entry.put("rank", rank++);
+            entry.put("cashierId", cashierId);
+            entry.put("name", name);
+            entry.put("sales", sales);
+            entry.put("revenue", revenue);
+            entry.put("profit", profit);
+            entry.put("avgTicket", avg);
+            entry.put("share", share);
+            ranking.add(entry);
+        }
+
+        return Map.of(
+                "period", "ultimos " + days + " dias",
+                "totalRevenue", totalRevenue,
+                "ranking", ranking
+        );
+    }
+
     public Map<String, Object> getBranchComparison(UUID businessId) {
         var branches = branchRepo.findByBusinessIdAndIsActiveTrue(businessId);
         Instant from = Instant.now().minus(30, ChronoUnit.DAYS);

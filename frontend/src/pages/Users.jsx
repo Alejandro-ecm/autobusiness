@@ -7,6 +7,9 @@ import './Users.css'
 const ROLE_LABELS = { OWNER: '👑 Propietario', ADMIN: '🛠️ Administrador', CASHIER: '💳 Cajero' }
 const ROLE_COLORS = { OWNER: 'badge-blue', ADMIN: 'badge-green', CASHIER: 'badge-gray' }
 
+const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+const fmtQty = (n) => Number(n || 0).toLocaleString('es-MX', { maximumFractionDigits: 2 })
+
 export default function Users() {
   const { show }    = useToast()
   const { user: me } = useAuth()
@@ -16,6 +19,24 @@ export default function Users() {
   const [showAdd,   setShowAdd]   = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [form,      setForm]      = useState({ name: '', email: '', password: '', role: 'CASHIER' })
+
+  const [statsUser,    setStatsUser]    = useState(null)   // usuario seleccionado
+  const [stats,        setStats]        = useState(null)   // datos cargados
+  const [statsLoading, setStatsLoading] = useState(false)
+
+  const openStats = async (u) => {
+    setStatsUser(u)
+    setStats(null)
+    setStatsLoading(true)
+    try {
+      setStats(await api.stats(u.id))
+    } catch (err) {
+      show(err?.error || 'Error al cargar estadísticas', 'error')
+      setStatsUser(null)
+    } finally {
+      setStatsLoading(false)
+    }
+  }
 
   const load = () => api.list().then(setUserList).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
@@ -89,11 +110,16 @@ export default function Users() {
                   </span>
                 </td>
                 <td>
-                  {u.role !== 'OWNER' && u.id !== me?.id && (
-                    <button className="btn btn-sm btn-outline" onClick={() => toggleActive(u)}>
-                      {u.isActive ? 'Desactivar' : 'Activar'}
+                  <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button className="btn btn-sm btn-outline" onClick={() => openStats(u)}>
+                      📊 Estadísticas
                     </button>
-                  )}
+                    {u.role !== 'OWNER' && u.id !== me?.id && (
+                      <button className="btn btn-sm btn-outline" onClick={() => toggleActive(u)}>
+                        {u.isActive ? 'Desactivar' : 'Activar'}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -140,6 +166,103 @@ export default function Users() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {statsUser && (
+        <div className="modal-overlay" onClick={() => setStatsUser(null)}>
+          <div className="modal-box card stats-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>📊 Rendimiento de {statsUser.name}</h3>
+              <button className="modal-close" onClick={() => setStatsUser(null)}>×</button>
+            </div>
+
+            {statsLoading && <div className="page-loading"><div className="spinner" /></div>}
+
+            {!statsLoading && stats && (() => {
+              const hasSales = stats.allTime.sales > 0
+              return (
+                <div className="stats-body">
+                  {!hasSales && (
+                    <p className="stats-empty">
+                      Este usuario todavía no tiene ventas registradas.
+                    </p>
+                  )}
+
+                  {/* Resumen por periodo */}
+                  <div className="stats-periods">
+                    {[
+                      { label: 'Últimos 7 días',  d: stats.last7  },
+                      { label: 'Últimos 30 días', d: stats.last30 },
+                      { label: 'Histórico',       d: stats.allTime },
+                    ].map(({ label, d }) => (
+                      <div key={label} className="stats-period-card">
+                        <span className="stats-period-label">{label}</span>
+                        <div className="stats-rows">
+                          <div className="stats-row">
+                            <span>Ventas</span>
+                            <strong>{d.sales}</strong>
+                          </div>
+                          <div className="stats-row">
+                            <span>Dinero generado</span>
+                            <strong className="stats-revenue">{fmt(d.revenue)}</strong>
+                          </div>
+                          <div className="stats-row">
+                            <span>Ganancia</span>
+                            <strong className="stats-profit">{fmt(d.profit)}</strong>
+                          </div>
+                          <div className="stats-row">
+                            <span>Ticket promedio</span>
+                            <strong>{fmt(d.avgTicket)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {hasSales && (
+                    <>
+                      {/* Método de pago (30 días) */}
+                      <div className="stats-section">
+                        <h4>Método de pago · últimos 30 días</h4>
+                        <div className="stats-pay">
+                          <div className="stats-pay-item">
+                            <span>💵 Efectivo</span>
+                            <strong>{fmt(stats.byPayment.cash)}</strong>
+                          </div>
+                          <div className="stats-pay-item">
+                            <span>💳 Tarjeta</span>
+                            <strong>{fmt(stats.byPayment.card)}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Top productos (30 días) */}
+                      {stats.topProducts.length > 0 && (
+                        <div className="stats-section">
+                          <h4>Productos más vendidos · últimos 30 días</h4>
+                          <table className="inv-table stats-top">
+                            <thead>
+                              <tr><th>Producto</th><th>Cant.</th><th>Vendido</th></tr>
+                            </thead>
+                            <tbody>
+                              {stats.topProducts.map((pr, i) => (
+                                <tr key={i}>
+                                  <td>{pr.name}</td>
+                                  <td>{fmtQty(pr.qty)}</td>
+                                  <td>{fmt(pr.revenue)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
