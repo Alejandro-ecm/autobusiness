@@ -858,13 +858,13 @@ export default function Inventory() {
                 <label>Foto del producto</label>
                 <input ref={imgInputEditRef} type="file" accept="image/*" style={{ display:'none' }}
                   onChange={e => handleImageUpload(e.target.files[0], 'edit')} />
-                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                <div style={{ display:'flex', gap:12, alignItems:'center' }}>
                   {editForm.imageUrl
                     ? <img src={editForm.imageUrl} alt="preview"
-                        style={{ width:60, height:60, objectFit:'cover', borderRadius:8, border:'1px solid #e2e8f0' }} />
-                    : <div style={{ width:60, height:60, background:'#f1f5f9', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, border:'1px solid #e2e8f0' }}>📦</div>
+                        style={{ width:110, height:110, objectFit:'cover', borderRadius:10, border:'1px solid #e2e8f0' }} />
+                    : <div style={{ width:110, height:110, background:'#f1f5f9', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, border:'1px solid #e2e8f0' }}>📦</div>
                   }
-                  <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                     <button type="button" className="btn btn-sm btn-outline"
                       onClick={() => imgInputEditRef.current.click()}>
                       📷 {editForm.imageUrl ? 'Cambiar foto' : 'Subir foto'}
@@ -878,6 +878,9 @@ export default function Inventory() {
                     )}
                   </div>
                 </div>
+                <input className="input" type="url" placeholder="…o pega el link de la imagen (https://...)"
+                  value={editForm.imageUrl || ''} onChange={setEdit('imageUrl')}
+                  style={{ marginTop:8, fontSize:13 }} />
               </div>
               <label className="checkbox-label">
                 <input type="checkbox" checked={editForm.isOnline} onChange={setEdit('isOnline')} />
@@ -1004,13 +1007,13 @@ export default function Inventory() {
                 <label>Foto del producto</label>
                 <input ref={imgInputCreateRef} type="file" accept="image/*" style={{ display:'none' }}
                   onChange={e => handleImageUpload(e.target.files[0], 'create')} />
-                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                <div style={{ display:'flex', gap:12, alignItems:'center' }}>
                   {form.imageUrl
                     ? <img src={form.imageUrl} alt="preview"
-                        style={{ width:60, height:60, objectFit:'cover', borderRadius:8, border:'1px solid #e2e8f0' }} />
-                    : <div style={{ width:60, height:60, background:'#f1f5f9', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, border:'1px solid #e2e8f0' }}>📦</div>
+                        style={{ width:110, height:110, objectFit:'cover', borderRadius:10, border:'1px solid #e2e8f0' }} />
+                    : <div style={{ width:110, height:110, background:'#f1f5f9', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, border:'1px solid #e2e8f0' }}>📦</div>
                   }
-                  <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                     <button type="button" className="btn btn-sm btn-outline"
                       onClick={() => imgInputCreateRef.current.click()}>
                       📷 {form.imageUrl ? 'Cambiar foto' : 'Subir foto'}
@@ -1024,6 +1027,9 @@ export default function Inventory() {
                     )}
                   </div>
                 </div>
+                <input className="input" type="url" placeholder="…o pega el link de la imagen (https://...)"
+                  value={form.imageUrl || ''} onChange={set('imageUrl')}
+                  style={{ marginTop:8, fontSize:13 }} />
               </div>
               <label className="checkbox-label">
                 <input type="checkbox" checked={form.isOnline} onChange={set('isOnline')} />
