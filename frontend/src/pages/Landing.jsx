@@ -26,6 +26,7 @@ const PLANS = [
     name: 'BASIC',
     price: 80,
     label: '$80/mes',
+    annual: 'o $800/año · +2 meses gratis 🎁',
     desc: 'Para negocios en crecimiento',
     features: ['100 productos', '5 usuarios', 'Tienda online + QR', 'Reportes', 'Soporte por email'],
     cta: 'Empezar con BASIC',
@@ -35,6 +36,7 @@ const PLANS = [
     name: 'PRO',
     price: 150,
     label: '$150/mes',
+    annual: 'o $1,500/año · +2 meses gratis 🎁',
     desc: 'El favorito de las tiendas',
     features: ['Productos ilimitados', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Cobros con Mercado Pago'],
     cta: 'Empezar con PRO',
@@ -44,6 +46,7 @@ const PLANS = [
     name: 'PREMIUM',
     price: 200,
     label: '$200/mes',
+    annual: 'o $2,000/año · +2 meses gratis 🎁',
     desc: 'Para cadenas y franquicias',
     features: ['Todo ilimitado', 'Usuarios ilimitados', 'CFDI / facturación', 'Multi-sucursal', 'Soporte prioritario'],
     cta: 'Empezar con PREMIUM',
@@ -126,6 +129,7 @@ export default function Landing() {
               {plan.highlight && <div className="landing-plan-badge">⭐ Más popular</div>}
               <div className="landing-plan-name">{plan.name}</div>
               <div className="landing-plan-price">{plan.label}</div>
+              {plan.annual && <div className="landing-plan-annual">{plan.annual}</div>}
               <div className="landing-plan-desc">{plan.desc}</div>
               <ul className="landing-plan-features">
                 {plan.features.map(f => <li key={f}>✓ {f}</li>)}
