@@ -122,6 +122,22 @@ export default function Customers() {
         )}
       </div>
 
+      {/* Qué es este apartado — guía rápida para el dueño */}
+      <div style={{
+        background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12,
+        padding: '14px 18px', marginBottom: 20, fontSize: 13.5, color: '#3730a3', lineHeight: 1.65,
+      }}>
+        <strong>📒 Tu libreta de fiados digital.</strong> En este apartado anotas lo que tus
+        clientes se llevan fiado (a crédito) y llevas el control de cuánto te debe cada quien,
+        sin libreta de papel. Así funciona:
+        <span style={{ display: 'block', marginTop: 6 }}>
+          <strong>1.</strong> Agrega a tu cliente con el botón <strong>"+ Agregar cliente"</strong> (solo necesitas su nombre). &nbsp;
+          <strong>2.</strong> Cuando se lleve algo fiado, entra a <strong>"Ver / Fiado"</strong> y apunta el monto. &nbsp;
+          <strong>3.</strong> Cuando te pague o abone, regístralo ahí mismo y su deuda baja automáticamente. &nbsp;
+          También puedes consultar el historial completo de compras y abonos de cada cliente.
+        </span>
+      </div>
+
       {/* Stats */}
       <div className="cust-stats">
         <div className="cust-stat">
