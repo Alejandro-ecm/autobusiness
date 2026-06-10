@@ -6,6 +6,9 @@
 .app-content {
   margin-left: 220px;
   flex: 1;
+  /* min-width 0: sin esto, contenido con ancho intrínseco grande (p. ej. la pasarela
+     de Caja) infla esta columna más allá del viewport y empuja todo fuera de pantalla */
+  min-width: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
