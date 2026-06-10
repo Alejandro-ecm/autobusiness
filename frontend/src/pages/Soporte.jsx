@@ -37,13 +37,17 @@ export default function Soporte() {
             <span>Contáctame</span>
           </a>
           <div className="soporte-wa-num">{WHATSAPP_DISPLAY}</div>
-          <div style={{ fontSize: 13, color: '#64748b', marginTop: 10 }}>
-            🛠️ Soporte técnico:{' '}
-            <a href={techHref} target="_blank" rel="noopener noreferrer"
-              style={{ color: '#16a34a', fontWeight: 700, textDecoration: 'none' }}>
-              {TECH_DISPLAY}
-            </a>
-          </div>
+        </div>
+
+        <div className="card soporte-card">
+          <div className="soporte-card-icon">🛠️</div>
+          <h3>Soporte técnico</h3>
+          <p>¿Algo no funciona o tienes un problema con el sistema? Escríbenos a la línea de soporte técnico y lo resolvemos.</p>
+          <a className="soporte-wa-btn" href={techHref} target="_blank" rel="noopener noreferrer">
+            <WhatsAppIcon />
+            <span>Soporte técnico</span>
+          </a>
+          <div className="soporte-wa-num">{TECH_DISPLAY}</div>
         </div>
 
         <div className="card soporte-card">
