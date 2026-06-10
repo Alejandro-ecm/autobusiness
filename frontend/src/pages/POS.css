@@ -23,6 +23,8 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  /* sin esto, la pista max-content de la pasarela infla el panel y empuja el carrito fuera */
+  min-width: 0;
 }
 
 .pos-cart-panel {
@@ -36,6 +38,7 @@
   gap: 12px;
   overflow: hidden;
   width: 100%;
+  min-width: 0;
 }
 
 .pos-search-input {
@@ -56,6 +59,8 @@
   overflow: hidden;
   padding: 2px 0 10px;
   flex-shrink: 0;
+  max-width: 100%;
+  min-width: 0;
 }
 .pos-carousel-track {
   display: flex;
@@ -69,10 +74,20 @@
   animation-play-state: paused;
 }
 /* margin-right en vez de gap: las dos mitades del loop miden exactamente igual */
+/* Tarjetas más grandes que el grid de abajo — es el escaparate de la caja */
 .pos-carousel .product-card {
-  width: 152px;
+  width: 200px;
   flex-shrink: 0;
-  margin-right: 12px;
+  margin-right: 14px;
+}
+.pos-carousel .product-thumb {
+  height: 150px;
+}
+.pos-carousel .product-name {
+  font-size: 15px;
+}
+.pos-carousel .product-price {
+  font-size: 18px;
 }
 @keyframes pos-marquee {
   from { transform: translateX(-50%); }
