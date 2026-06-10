@@ -127,7 +127,7 @@
 .product-thumb {
   height: 120px;
   flex-shrink: 0;   /* la foto nunca cede su altura aunque la tarjeta quede apretada */
-  background: #fff;
+  background: #e9edf2;   /* mismo gris que el cuerpo: nada blanco en la tarjeta */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +150,7 @@
 .product-name {
   font-size: 13px;
   font-weight: 700;
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  background: #0f172a;   /* mismo azul marino que el sidebar: combina con el layout */
   color: #fff;
   margin: -11px -12px 8px;
   padding: 7px 12px;
@@ -193,7 +193,7 @@
   margin: auto -12px -10px;    /* top auto: se ancla al pie; lados/abajo anulan el padding de product-info */
   padding: 7px 12px 6px;
   border-top: 1px dashed var(--color-border);
-  background: #fff;   /* etiqueta blanca: contrasta con el cuerpo gris de la tarjeta */
+  background: #e9edf2;   /* mismo gris que el cuerpo de la tarjeta */
   display: flex;
   flex-direction: column;
   align-items: center;
