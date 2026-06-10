@@ -13,26 +13,34 @@ function CardBarcode({ code }) {
   useEffect(() => {
     if (!ref.current || !code) return
     import('jsbarcode').then(({ default: JsBarcode }) => {
-      const opts = {
-        width:        1.1,
-        height:       22,
-        displayValue: true,
-        fontSize:     8,
-        margin:       0,
-        textMargin:   1,
-      }
-      const c = String(code).trim()
-      // EAN-13 si el código es válido; si no, CODE128 (acepta cualquier código)
+      const svg = ref.current
+      if (!svg) return
       try {
-        JsBarcode(ref.current, c, { ...opts, format: 'EAN13' })
-      } catch {
-        try { JsBarcode(ref.current, c, { ...opts, format: 'CODE128' }) }
-        catch { /* código vacío/inválido — no se dibuja */ }
-      }
+        // CODE128 siempre: acepta cualquier código y todas las tarjetas se ven uniformes
+        JsBarcode(svg, String(code).trim(), {
+          format:       'CODE128',
+          width:        1.4,
+          height:       30,
+          displayValue: false,
+          margin:       0,
+        })
+        // JsBarcode no pone viewBox: sin él, el SVG se recorta en vez de escalar
+        const w = svg.getAttribute('width'), h = svg.getAttribute('height')
+        if (w && h) {
+          svg.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`)
+          svg.removeAttribute('width')
+          svg.removeAttribute('height')
+        }
+      } catch { /* código vacío/inválido — no se dibuja */ }
     })
   }, [code])
   if (!code) return null
-  return <div className="product-barcode"><svg ref={ref} /></div>
+  return (
+    <div className="product-barcode">
+      <svg ref={ref} />
+      <span className="product-barcode-num">{String(code).trim()}</span>
+    </div>
+  )
 }
 
 let mpPosInitialized = false
