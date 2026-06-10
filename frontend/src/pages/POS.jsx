@@ -172,6 +172,8 @@ export default function POS() {
   const [payBrick, setPayBrick] = useState({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })
   const [cardConfirm, setCardConfirm] = useState(false)
   const [scanFlash, setScanFlash] = useState(null) // nombre del producto escaneado
+  const [addedFlash, setAddedFlash] = useState(null) // overlay grande "producto agregado"
+  const addedFlashTimer = useRef(null)
   const searchRef = useRef()
   const productsRef = useRef([]) // ref para acceso sin stale closure en el listener global
 
@@ -301,14 +303,25 @@ export default function POS() {
     return () => clearInterval(t)
   }, [cart.length])
 
+  const triggerAddedFlash = useCallback((product) => {
+    clearTimeout(addedFlashTimer.current)
+    // key nueva por cada add → reinicia la animación CSS aunque sea el mismo producto
+    setAddedFlash({ product, key: Date.now() })
+    addedFlashTimer.current = setTimeout(() => setAddedFlash(null), 1200)
+  }, [])
+
+  useEffect(() => () => clearTimeout(addedFlashTimer.current), [])
+
   const addToCart = useCallback((product) => {
     const stock = Number(product.stock)
     if (stock <= 0) { show(`${product.name} está agotado`, 'error'); return }
+    const ex = cart.find(i => i.productId === product.id)
+    if (ex && ex.quantity >= stock) { show(`Solo quedan ${stock} de ${product.name}`, 'error'); return }
     setCart(prev => {
-      const ex = prev.find(i => i.productId === product.id)
-      if (ex) {
-        if (ex.quantity >= stock) { show(`Solo quedan ${stock} de ${product.name}`, 'error'); return prev }
-        const q = ex.quantity + 1
+      const cur = prev.find(i => i.productId === product.id)
+      if (cur) {
+        if (cur.quantity >= stock) return prev
+        const q = cur.quantity + 1
         return prev.map(i => i.productId === product.id ? { ...i, quantity: q, subtotal: q * i.price } : i)
       }
       return [...prev, {
@@ -320,7 +333,8 @@ export default function POS() {
         maxStock: stock,
       }]
     })
-  }, [show])
+    triggerAddedFlash(product)
+  }, [cart, show, triggerAddedFlash])
 
   const removeFromCart = (id) => setCart(prev => prev.filter(i => i.productId !== id))
 
@@ -731,6 +745,21 @@ export default function POS() {
 
   return (
     <div className="pos-page">
+      {/* Animación pantalla completa al agregar producto */}
+      {addedFlash && (
+        <div key={addedFlash.key} className="added-flash-overlay">
+          <div className="added-flash-card">
+            <div className="added-flash-img">
+              {addedFlash.product.imageUrl
+                ? <img src={addedFlash.product.imageUrl} alt={addedFlash.product.name} />
+                : <span className="added-flash-placeholder">📦</span>}
+            </div>
+            <div className="added-flash-check">✓</div>
+            <div className="added-flash-name">{addedFlash.product.name}</div>
+            <div className="added-flash-msg">¡Producto agregado con éxito!</div>
+          </div>
+        </div>
+      )}
       {!isOnline && (
         <div className="pos-offline-bar">
           📴 Sin conexión — las ventas se guardarán localmente y sincronizarán al reconectar
