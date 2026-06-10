@@ -51,6 +51,34 @@
   padding: 2px 2px 10px;
 }
 
+/* ── Pasarela de más vendidos: desfile continuo de izquierda a derecha ── */
+.pos-carousel {
+  overflow: hidden;
+  padding: 2px 0 10px;
+  flex-shrink: 0;
+}
+.pos-carousel-track {
+  display: flex;
+  width: max-content;
+  animation: pos-marquee linear infinite;
+}
+/* Pausa al pasar el mouse o tocar — para poder hacer click sin que se mueva */
+.pos-carousel:hover .pos-carousel-track,
+.pos-carousel:active .pos-carousel-track,
+.pos-carousel:focus-within .pos-carousel-track {
+  animation-play-state: paused;
+}
+/* margin-right en vez de gap: las dos mitades del loop miden exactamente igual */
+.pos-carousel .product-card {
+  width: 152px;
+  flex-shrink: 0;
+  margin-right: 12px;
+}
+@keyframes pos-marquee {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
 .product-card {
   display: flex;
   flex-direction: column;

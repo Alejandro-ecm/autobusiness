@@ -491,15 +491,55 @@ export default function POS() {
     </div>
   )
 
-  // Sin búsqueda: catálogo completo ordenado con los más vendidos primero
-  const displayProducts = useMemo(() => {
-    if (query || topProducts.length === 0) return products
+  // Pasarela: más vendidos en orden (mayor → menor ventas), de izquierda a derecha
+  const topRow = useMemo(() => {
+    if (topProducts.length === 0) return []
     const byId = new Map(products.map(p => [p.id, p]))
-    const top = topProducts.map(t => byId.get(t.id)).filter(Boolean)
-    const topIds = new Set(top.map(p => p.id))
-    return [...top, ...products.filter(p => !topIds.has(p.id))]
-  }, [query, products, topProducts])
-  const showingTop = !query && topProducts.length > 0
+    return topProducts.map(t => byId.get(t.id)).filter(Boolean)
+  }, [products, topProducts])
+
+  // La animación hace loop con 2 copias idénticas: rellenar hasta tener pista suficiente
+  const carouselItems = useMemo(() => {
+    if (topRow.length === 0) return []
+    const items = [...topRow]
+    while (items.length < 6) items.push(...topRow)
+    return items
+  }, [topRow])
+
+  // Grid: todos los productos en orden alfabético
+  const displayProducts = useMemo(() => {
+    if (query) return products
+    return [...products].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+  }, [query, products])
+  const showCarousel = !query && carouselItems.length > 0
+
+  const renderCard = (p, key) => {
+    const stock = Number(p.stock)
+    const agotado = stock <= 0
+    return (
+      <button
+        key={key}
+        className={`product-card${agotado ? ' out-of-stock' : ''}`}
+        onClick={() => { if (!agotado) { addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80) } }}
+        disabled={agotado}
+        title={agotado ? 'Sin stock' : `${stock} disponibles`}
+      >
+        <div className="product-thumb">
+          {p.imageUrl
+            ? <img src={p.imageUrl} alt={p.name} />
+            : <span className="product-thumb-placeholder">📦</span>}
+        </div>
+        <div className="product-info">
+          <div className="product-name">{p.name}</div>
+          <div className="product-price">{fmt(p.price)}</div>
+          <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
+            {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
+          </div>
+          <CardBarcode code={p.barcode} />
+        </div>
+      </button>
+    )
+  }
 
   const productPanel = (
     <div className="pos-products">
@@ -530,41 +570,28 @@ export default function POS() {
         )}
       </div>
 
-      {showingTop && <div className="pos-section-label">📦 Todos los productos · ⚡ más vendidos primero</div>}
-      {!query && !showingTop && <div className="pos-section-label">📦 Todos los productos</div>}
+      {showCarousel && (
+        <>
+          <div className="pos-section-label">🔥 Más vendidos</div>
+          <div className="pos-carousel">
+            <div
+              className="pos-carousel-track"
+              style={{ animationDuration: `${carouselItems.length * 4}s` }}
+            >
+              {[...carouselItems, ...carouselItems].map((p, i) => renderCard(p, `${p.id}-${i}`))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {!query && <div className="pos-section-label">📦 Todos los productos · A–Z</div>}
       {query && <div className="pos-section-label">Resultados para "{query}"</div>}
 
       <div className="products-grid">
         {displayProducts.length === 0 && (
           <div className="pos-no-results">Sin resultados para "{query}"</div>
         )}
-        {displayProducts.map(p => {
-          const stock = Number(p.stock)
-          const agotado = stock <= 0
-          return (
-            <button
-              key={p.id}
-              className={`product-card${agotado ? ' out-of-stock' : ''}`}
-              onClick={() => { if (!agotado) { addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80) } }}
-              disabled={agotado}
-              title={agotado ? 'Sin stock' : `${stock} disponibles`}
-            >
-              <div className="product-thumb">
-                {p.imageUrl
-                  ? <img src={p.imageUrl} alt={p.name} />
-                  : <span className="product-thumb-placeholder">📦</span>}
-              </div>
-              <div className="product-info">
-                <div className="product-name">{p.name}</div>
-                <div className="product-price">{fmt(p.price)}</div>
-                <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
-                  {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
-                </div>
-                <CardBarcode code={p.barcode} />
-              </div>
-            </button>
-          )
-        })}
+        {displayProducts.map(p => renderCard(p, p.id))}
       </div>
 
     </div>
