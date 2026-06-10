@@ -458,6 +458,31 @@ export default function POS() {
     w.document.close(); w.print()
   }
 
+  // ── Hooks de catálogo — SIEMPRE antes del return temprano del comprobante,
+  //    o React truena por "fewer hooks than expected" al completar una venta ──
+
+  // Pasarela: más vendidos en orden (mayor → menor ventas), de izquierda a derecha
+  const topRow = useMemo(() => {
+    if (topProducts.length === 0) return []
+    const byId = new Map(products.map(p => [p.id, p]))
+    return topProducts.map(t => byId.get(t.id)).filter(Boolean)
+  }, [products, topProducts])
+
+  // La animación hace loop con 2 copias idénticas: rellenar hasta tener pista suficiente
+  const carouselItems = useMemo(() => {
+    if (topRow.length === 0) return []
+    const items = [...topRow]
+    while (items.length < 6) items.push(...topRow)
+    return items
+  }, [topRow])
+
+  // Grid: todos los productos en orden alfabético
+  const displayProducts = useMemo(() => {
+    if (query) return products
+    return [...products].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+  }, [query, products])
+  const showCarousel = !query && carouselItems.length > 0
+
   // Vista de comprobante
   if (lastSale) return (
     <div className="pos-ticket">
@@ -490,28 +515,6 @@ export default function POS() {
       </div>
     </div>
   )
-
-  // Pasarela: más vendidos en orden (mayor → menor ventas), de izquierda a derecha
-  const topRow = useMemo(() => {
-    if (topProducts.length === 0) return []
-    const byId = new Map(products.map(p => [p.id, p]))
-    return topProducts.map(t => byId.get(t.id)).filter(Boolean)
-  }, [products, topProducts])
-
-  // La animación hace loop con 2 copias idénticas: rellenar hasta tener pista suficiente
-  const carouselItems = useMemo(() => {
-    if (topRow.length === 0) return []
-    const items = [...topRow]
-    while (items.length < 6) items.push(...topRow)
-    return items
-  }, [topRow])
-
-  // Grid: todos los productos en orden alfabético
-  const displayProducts = useMemo(() => {
-    if (query) return products
-    return [...products].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
-  }, [query, products])
-  const showCarousel = !query && carouselItems.length > 0
 
   const renderCard = (p, key) => {
     const stock = Number(p.stock)
