@@ -2,8 +2,11 @@ import './Soporte.css'
 
 const WHATSAPP_NUMBER = '527225766423'
 const WHATSAPP_DISPLAY = '+52 722 576 6423'
+const TECH_NUMBER = '5217298050110'
+const TECH_DISPLAY = '+52 1 729 805 0110'
 const SUPPORT_EMAIL = 'yomu43e2@gmail.com'
 const WA_MESSAGE = encodeURIComponent('Hola, necesito ayuda con AutoBusiness 👋')
+const TECH_MESSAGE = encodeURIComponent('Hola, necesito soporte técnico de AutoBusiness 🛠️')
 
 function WhatsAppIcon() {
   return (
@@ -15,6 +18,7 @@ function WhatsAppIcon() {
 
 export default function Soporte() {
   const waHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${WA_MESSAGE}`
+  const techHref = `https://wa.me/${TECH_NUMBER}?text=${TECH_MESSAGE}`
 
   return (
     <div className="soporte-page">
@@ -33,6 +37,13 @@ export default function Soporte() {
             <span>Contáctame</span>
           </a>
           <div className="soporte-wa-num">{WHATSAPP_DISPLAY}</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginTop: 10 }}>
+            🛠️ Soporte técnico:{' '}
+            <a href={techHref} target="_blank" rel="noopener noreferrer"
+              style={{ color: '#16a34a', fontWeight: 700, textDecoration: 'none' }}>
+              {TECH_DISPLAY}
+            </a>
+          </div>
         </div>
 
         <div className="card soporte-card">
@@ -42,6 +53,10 @@ export default function Soporte() {
             <li>
               <span className="soporte-info-label">WhatsApp</span>
               <a href={waHref} target="_blank" rel="noopener noreferrer">{WHATSAPP_DISPLAY}</a>
+            </li>
+            <li>
+              <span className="soporte-info-label">Soporte técnico (WhatsApp)</span>
+              <a href={techHref} target="_blank" rel="noopener noreferrer">{TECH_DISPLAY}</a>
             </li>
             <li>
               <span className="soporte-info-label">Correo</span>
