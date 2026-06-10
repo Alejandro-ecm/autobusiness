@@ -1,3 +1,8 @@
+/* La caja usa todo el ancho de pantalla: el carrito queda pegado a la derecha */
+.app-main:has(.pos-page) {
+  max-width: none;
+}
+
 .pos-page {
   display: flex;
   flex-direction: column;
@@ -49,6 +54,7 @@
 .products-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  grid-auto-rows: max-content;  /* las filas miden lo que mide su contenido — nunca se aplastan */
   gap: 16px;
   overflow-y: auto;
   padding: 4px 4px 12px;
@@ -120,6 +126,7 @@
 
 .product-thumb {
   height: 120px;
+  flex-shrink: 0;   /* la foto nunca cede su altura aunque la tarjeta quede apretada */
   background: #fff;
   display: flex;
   align-items: center;
