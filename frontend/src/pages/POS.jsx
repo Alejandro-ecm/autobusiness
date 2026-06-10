@@ -461,12 +461,15 @@ export default function POS() {
   // ── Hooks de catálogo — SIEMPRE antes del return temprano del comprobante,
   //    o React truena por "fewer hooks than expected" al completar una venta ──
 
-  // Pasarela: más vendidos en orden (mayor → menor ventas), de izquierda a derecha
+  // Pasarela: top 15 más vendidos en orden (mayor → menor ventas), de izquierda a derecha
   const topRow = useMemo(() => {
     if (topProducts.length === 0) return []
     const byId = new Map(products.map(p => [p.id, p]))
-    return topProducts.map(t => byId.get(t.id)).filter(Boolean)
+    return topProducts.map(t => byId.get(t.id)).filter(Boolean).slice(0, 15)
   }, [products, topProducts])
+
+  // Ranking 1–15 por producto: el badge no depende de la posición en la pista repetida
+  const rankById = useMemo(() => new Map(topRow.map((p, i) => [p.id, i + 1])), [topRow])
 
   // La animación hace loop con 2 copias idénticas: rellenar hasta tener pista suficiente
   const carouselItems = useMemo(() => {
@@ -516,7 +519,7 @@ export default function POS() {
     </div>
   )
 
-  const renderCard = (p, key) => {
+  const renderCard = (p, key, rank) => {
     const stock = Number(p.stock)
     const agotado = stock <= 0
     return (
@@ -528,6 +531,7 @@ export default function POS() {
         title={agotado ? 'Sin stock' : `${stock} disponibles`}
       >
         <div className="product-thumb">
+          {rank && <span className="product-rank">{rank}</span>}
           {p.imageUrl
             ? <img src={p.imageUrl} alt={p.name} />
             : <span className="product-thumb-placeholder">📦</span>}
@@ -581,7 +585,7 @@ export default function POS() {
               className="pos-carousel-track"
               style={{ animationDuration: `${carouselItems.length * 4}s` }}
             >
-              {[...carouselItems, ...carouselItems].map((p, i) => renderCard(p, `${p.id}-${i}`))}
+              {[...carouselItems, ...carouselItems].map((p, i) => renderCard(p, `${p.id}-${i}`, rankById.get(p.id)))}
             </div>
           </div>
         </>

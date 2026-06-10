@@ -169,16 +169,21 @@ public class PosService {
         return productRepo.search(businessId, query);
     }
 
-    /** Top 8 productos más vendidos en los últimos 7 días */
+    /** Top 15 productos más vendidos en los últimos 7 días, en orden de ranking */
     public List<Map<String, Object>> getTopProducts(UUID businessId) {
         Instant from = Instant.now().minus(7, ChronoUnit.DAYS);
         Instant to   = Instant.now();
         List<Object[]> rows = saleRepo.topProductsByRevenue(businessId, from, to);
-        List<UUID> topIds = rows.stream().limit(8).map(r -> (UUID) r[0]).toList();
+        List<UUID> topIds = rows.stream().limit(15).map(r -> (UUID) r[0]).toList();
         if (topIds.isEmpty()) return List.of();
 
-        return productRepo.findAllById(topIds).stream()
-                .filter(Product::isActive)
+        // findAllById no respeta el orden pedido: reordenar según el ranking de ventas
+        Map<UUID, Product> found = new java.util.HashMap<>();
+        productRepo.findAllById(topIds).forEach(p -> { if (p.isActive()) found.put(p.getId(), p); });
+
+        return topIds.stream()
+                .map(found::get)
+                .filter(p -> p != null)
                 .map(p -> {
                     Map<String, Object> m = new java.util.LinkedHashMap<>();
                     m.put("id",         p.getId());
