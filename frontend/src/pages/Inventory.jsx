@@ -19,11 +19,20 @@ function generateEAN13() {
   return base + ((10 - (sum % 10)) % 10)           // + dígito verificador
 }
 
-// ── Renderiza un código de barras EAN-13 en un elemento SVG ──────────────────
+// ── Dibuja un barcode: EAN-13 si es válido, si no CODE128 (acepta todo) ───────
+function drawBarcode(JsBarcode, el, code, opts) {
+  const c = String(code).trim()
+  try {
+    JsBarcode(el, c, { ...opts, format: 'EAN13' })
+  } catch {
+    JsBarcode(el, c, { ...opts, format: 'CODE128' })
+  }
+}
+
+// ── Renderiza un código de barras en un elemento SVG ─────────────────────────
 async function renderBarcode(svgEl, code) {
   const JsBarcode = (await import('jsbarcode')).default
-  JsBarcode(svgEl, code, {
-    format:       'EAN13',
+  drawBarcode(JsBarcode, svgEl, code, {
     width:        1.8,
     height:       50,
     displayValue: true,
@@ -40,8 +49,7 @@ function BarcodeImg({ code, small = false }) {
     if (!ref.current || !code) return
     import('jsbarcode').then(({ default: JsBarcode }) => {
       try {
-        JsBarcode(ref.current, code, {
-          format:       'EAN13',
+        drawBarcode(JsBarcode, ref.current, code, {
           width:        small ? 1.1 : 1.6,
           height:       small ? 28 : 42,
           displayValue: true,

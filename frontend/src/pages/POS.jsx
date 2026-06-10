@@ -13,17 +13,22 @@ function CardBarcode({ code }) {
   useEffect(() => {
     if (!ref.current || !code) return
     import('jsbarcode').then(({ default: JsBarcode }) => {
+      const opts = {
+        width:        1.1,
+        height:       22,
+        displayValue: true,
+        fontSize:     8,
+        margin:       0,
+        textMargin:   1,
+      }
+      const c = String(code).trim()
+      // EAN-13 si el código es válido; si no, CODE128 (acepta cualquier código)
       try {
-        JsBarcode(ref.current, String(code), {
-          format:       /^\d{12,13}$/.test(String(code)) ? 'EAN13' : 'CODE128',
-          width:        1.1,
-          height:       22,
-          displayValue: true,
-          fontSize:     8,
-          margin:       0,
-          textMargin:   1,
-        })
-      } catch { /* código inválido — no se dibuja */ }
+        JsBarcode(ref.current, c, { ...opts, format: 'EAN13' })
+      } catch {
+        try { JsBarcode(ref.current, c, { ...opts, format: 'CODE128' }) }
+        catch { /* código vacío/inválido — no se dibuja */ }
+      }
     })
   }, [code])
   if (!code) return null
