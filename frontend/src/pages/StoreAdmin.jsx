@@ -163,14 +163,18 @@ export default function StoreAdmin() {
     .reduce((s, o) => s + Number(o.total || 0), 0)
 
   const toggleOnline = async (product) => {
+    const newOnline = !product.isOnline
+    // Actualización optimista: el badge y los botones cambian al instante
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, isOnline: newOnline } : p))
     try {
       await inventoryApi.update(product.id, {
         name: product.name, price: product.price, cost: product.cost || 0,
-        minStock: product.minStock || 5, description: product.description, isOnline: !product.isOnline,
+        minStock: product.minStock || 5, description: product.description, isOnline: newOnline,
       })
-      show(product.isOnline ? 'Quitado de la tienda' : 'Publicado en tienda', 'success')
-      load()
+      show(newOnline ? 'Publicado en tienda' : 'Quitado de la tienda', 'success')
     } catch {
+      // Falló el servidor: revertir al estado real
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, isOnline: product.isOnline } : p))
       show('Error al actualizar', 'error')
     }
   }
