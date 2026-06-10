@@ -415,6 +415,8 @@ export default function Storefront() {
   const [locationAccuracy, setLocationAccuracy] = useState(null)
   const [showMap, setShowMap] = useState(false)
   const [mapCenter, setMapCenter] = useState({ lat: 19.4326, lng: -99.1332 })
+  const [locationMissing, setLocationMissing] = useState(false)
+  const locationSectionRef = useRef(null)
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [logoError, setLogoError] = useState(false)
@@ -487,11 +489,20 @@ export default function Storefront() {
     setCustomer(c => ({ ...c, lat, lng, mapsUrl }))
     setShowMap(false)
     setLocationAccuracy(null)
+    setLocationMissing(false)
     show('Ubicación exacta confirmada', 'success')
   }
 
   const placeOrder = async (e) => {
     e.preventDefault()
+    // Ubicación exacta OBLIGATORIA: sin pin confirmado no se envía el pedido
+    if (!customer.lat || !customer.lng) {
+      setLocationMissing(true)
+      show('Debes confirmar tu ubicación exacta de entrega para continuar', 'error')
+      locationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if (!showMap) getLocation()
+      return
+    }
     setOrdering(true)
     try {
       const res = await storeApi.placeOrder(slug, {
@@ -688,8 +699,13 @@ export default function Storefront() {
                 placeholder="Ej: Av. Reforma 123, Col. Centro" />
             </div>
 
-            <div className="input-group">
-              <label>Ubicación exacta de entrega</label>
+            <div className="input-group" ref={locationSectionRef}>
+              <label>
+                Ubicación exacta de entrega *
+                {locationMissing && !(customer.lat && customer.lng) && (
+                  <span style={{ color: '#ef4444', fontWeight: 700, marginLeft: 6 }}>(obligatoria)</span>
+                )}
+              </label>
 
               {showMap ? (
                 <MapPicker
@@ -726,17 +742,23 @@ export default function Storefront() {
                   <button type="button" onClick={getLocation} disabled={locating}
                     style={{
                       width: '100%', padding: '13px', borderRadius: 10, cursor: locating ? 'wait' : 'pointer',
-                      background: 'linear-gradient(135deg,#6366f1,#818cf8)', color: '#fff',
-                      border: 'none', fontWeight: 700, fontSize: 14, display: 'flex',
+                      background: locationMissing
+                        ? 'linear-gradient(135deg,#ef4444,#f87171)'
+                        : 'linear-gradient(135deg,#6366f1,#818cf8)',
+                      color: '#fff',
+                      border: locationMissing ? '2px solid #dc2626' : 'none',
+                      fontWeight: 700, fontSize: 14, display: 'flex',
                       alignItems: 'center', justifyContent: 'center', gap: 8,
-                      boxShadow: '0 2px 8px rgba(99,102,241,.35)'
+                      boxShadow: locationMissing ? '0 2px 12px rgba(239,68,68,.45)' : '0 2px 8px rgba(99,102,241,.35)'
                     }}>
                     {locating
                       ? <><div className="spinner" style={{ width: 16, height: 16, borderColor: 'rgba(255,255,255,.3)', borderTopColor: '#fff' }} /> Obteniendo ubicación...</>
-                      : <><span style={{ fontSize: 18 }}>📍</span> Abrir mapa y marcar mi ubicación</>}
+                      : <><span style={{ fontSize: 18 }}>📍</span> Compartir mi ubicación y marcar en el mapa</>}
                   </button>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6, textAlign: 'center' }}>
-                    Podrás arrastrar el pin exactamente a tu puerta
+                  <div style={{ fontSize: 11, color: locationMissing ? '#ef4444' : '#94a3b8', fontWeight: locationMissing ? 700 : 400, marginTop: 6, textAlign: 'center' }}>
+                    {locationMissing
+                      ? '⚠️ Sin tu ubicación exacta no podemos enviar el pedido'
+                      : 'Obligatorio · acepta compartir tu ubicación y ajusta el pin a tu puerta'}
                   </div>
                 </div>
               )}
@@ -776,9 +798,14 @@ export default function Storefront() {
               </div>
             </div>
 
-            <button type="submit" className="sf-btn-primary" style={{ width: '100%', marginTop: 12 }}
+            <button type="submit" className="sf-btn-primary"
+              style={{ width: '100%', marginTop: 12, ...((!customer.lat || !customer.lng) ? { opacity: .55, filter: 'grayscale(.4)' } : {}) }}
               disabled={ordering}>
-              {ordering ? <div className="spinner" /> : `Confirmar pedido — ${fmt(total)}`}
+              {ordering
+                ? <div className="spinner" />
+                : (!customer.lat || !customer.lng)
+                  ? '📍 Confirma tu ubicación para continuar'
+                  : `Confirmar pedido — ${fmt(total)}`}
             </button>
           </form>
         </div>
