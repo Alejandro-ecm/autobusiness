@@ -9,6 +9,7 @@
     "@mercadopago/sdk-react": "^1.0.7",
     "@undecaf/barcode-detector-polyfill": "^0.9.21",
     "axios": "^1.6.5",
+    "canvas-confetti": "^1.9.4",
     "jsbarcode": "^3.11.6",
     "leaflet": "^1.9.4",
     "qrcode": "^1.5.3",

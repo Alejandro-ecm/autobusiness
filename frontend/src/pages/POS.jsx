@@ -307,7 +307,14 @@ export default function POS() {
     clearTimeout(addedFlashTimer.current)
     // key nueva por cada add → reinicia la animación CSS aunque sea el mismo producto
     setAddedFlash({ product, key: Date.now() })
-    addedFlashTimer.current = setTimeout(() => setAddedFlash(null), 1200)
+    addedFlashTimer.current = setTimeout(() => setAddedFlash(null), 1400)
+    // Confeti desde el centro y ambas esquinas inferiores
+    import('canvas-confetti').then(({ default: confetti }) => {
+      const opts = { zIndex: 2100, disableForReducedMotion: true }
+      confetti({ ...opts, particleCount: 90, spread: 75, startVelocity: 48, origin: { x: 0.5, y: 0.55 } })
+      confetti({ ...opts, particleCount: 45, angle: 60, spread: 60, origin: { x: 0, y: 0.8 } })
+      confetti({ ...opts, particleCount: 45, angle: 120, spread: 60, origin: { x: 1, y: 0.8 } })
+    }).catch(() => {})
   }, [])
 
   useEffect(() => () => clearTimeout(addedFlashTimer.current), [])
