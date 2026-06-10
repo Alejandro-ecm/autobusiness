@@ -313,18 +313,28 @@ export default function StoreAdmin() {
                   </td>
                   <td>
                     {p.isOnline
-                      ? <span className="badge badge-green">✓ Publicado en tienda online</span>
-                      : <span className="badge badge-gray">Oculto</span>}
+                      ? <span className="badge badge-green">✓ Publicado</span>
+                      : <span className="badge badge-gray">No publicado</span>}
                   </td>
                   <td>
-                    <button
-                      className={`btn btn-sm ${p.isOnline ? 'btn-danger' : 'btn-primary'}`}
-                      onClick={() => toggleOnline(p)}
-                      disabled={p.stock === 0 && !p.isOnline}
-                      title={p.isOnline ? 'Quitar de la tienda online' : 'Publicar en la tienda online'}
-                    >
-                      {p.isOnline ? '✕ Quitar' : 'Publicar'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => toggleOnline(p)}
+                        disabled={p.isOnline || p.stock === 0}
+                        title={p.isOnline ? 'Ya está publicado' : 'Publicar en la tienda online'}
+                      >
+                        Publicar
+                      </button>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => toggleOnline(p)}
+                        disabled={!p.isOnline}
+                        title={p.isOnline ? 'Quitar de la tienda online' : 'No está publicado'}
+                      >
+                        ✕ Quitar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
