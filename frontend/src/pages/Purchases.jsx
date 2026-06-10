@@ -110,6 +110,24 @@ export default function Purchases() {
         </button>
       </div>
 
+      {/* Qué es este apartado — guía rápida para el dueño */}
+      <div style={{
+        background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 12,
+        padding: '14px 18px', marginBottom: 20, fontSize: 13.5, color: '#3730a3', lineHeight: 1.65,
+      }}>
+        <strong>📦 El control de lo que le compras a tus proveedores.</strong> Aquí registras la
+        mercancía que te surten tus proveedores (refresquero, abarrotero, panadero, etc.). Al guardar
+        una compra, el stock de tus productos sube y su costo se actualiza automáticamente.
+        <span style={{ display: 'block', marginTop: 6 }}>
+          <strong>1.</strong> Toca <strong>"+ Nueva Compra"</strong>, escribe el nombre del proveedor y
+          agrega los productos con su cantidad y costo. &nbsp;
+          <strong>2.</strong> Si el proveedor te dejó la mercancía fiada (a crédito), anótalo en el campo{' '}
+          <strong>"Notas"</strong> — por ejemplo: <em>"Fiado: debo $500, el cobrador pasa el viernes"</em>. &nbsp;
+          <strong>3.</strong> Cuando pase el cobrador, busca aquí al proveedor y abre su compra para ver
+          en las notas cuánto le debes y cuándo toca pagarle.
+        </span>
+      </div>
+
       {success && <div className="pur-success">{success}</div>}
       {error && !showForm && <div className="pur-error">{error}</div>}
 
