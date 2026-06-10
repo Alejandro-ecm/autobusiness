@@ -7,6 +7,29 @@ import './POS.css'
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const OFFLINE_KEY = 'ab_offline_sales'
 
+// ── Código de barras compacto, siempre visible en la tarjeta de producto ──
+function CardBarcode({ code }) {
+  const ref = useRef()
+  useEffect(() => {
+    if (!ref.current || !code) return
+    import('jsbarcode').then(({ default: JsBarcode }) => {
+      try {
+        JsBarcode(ref.current, String(code), {
+          format:       /^\d{12,13}$/.test(String(code)) ? 'EAN13' : 'CODE128',
+          width:        1.1,
+          height:       22,
+          displayValue: true,
+          fontSize:     8,
+          margin:       0,
+          textMargin:   1,
+        })
+      } catch { /* código inválido — no se dibuja */ }
+    })
+  }, [code])
+  if (!code) return null
+  return <div className="product-barcode"><svg ref={ref} /></div>
+}
+
 let mpPosInitialized = false
 async function initMPPos(publicKey) {
   if (mpPosInitialized || !publicKey) return
@@ -524,6 +547,7 @@ export default function POS() {
                 <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
                   {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
                 </div>
+                <CardBarcode code={p.barcode} />
               </div>
             </button>
           )

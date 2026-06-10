@@ -108,6 +108,18 @@
 }
 .product-stock.low { color: var(--color-warning); }
 
+.product-barcode {
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--color-border);
+}
+.product-barcode svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
 /* ── Carrito ── */
 .pos-cart {
   width: 100%;
