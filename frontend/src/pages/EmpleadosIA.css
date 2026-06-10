@@ -128,6 +128,10 @@
   background: #f1f5f9;
   color: #64748b;
 }
+.empia-tag--paused {
+  background: #fef3c7;
+  color: #b45309;
+}
 
 /* Toggle switch */
 .empia-switch {
@@ -193,6 +197,169 @@
   color: #94a3b8;
   cursor: not-allowed;
 }
+
+.empia-card-warn {
+  margin: -10px 0 14px;
+  font-size: 12.5px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+/* ── Fila de estado WhatsApp en el banner ── */
+.empia-wa-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.empia-wa-connected {
+  font-weight: 700;
+  font-size: 14px;
+  color: #047857;
+}
+.empia-wa-status {
+  font-size: 13px;
+  font-weight: 600;
+}
+.empia-banner-btn--outline {
+  background: transparent;
+  color: #0d9488;
+  border: 2px solid #0d9488;
+  padding: 10px 22px;
+}
+.empia-banner-btn--outline:hover {
+  background: rgba(13, 148, 136, .08);
+}
+
+/* ── Modales (QR y chat de prueba) ── */
+.empia-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.empia-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  padding: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .3);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.empia-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.empia-modal-head h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+.empia-modal-close {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+}
+.empia-modal-close:hover { color: #475569; }
+
+.empia-qr-steps {
+  margin: 0 0 16px;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.9;
+}
+.empia-qr-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 14px;
+  min-height: 280px;
+  margin-bottom: 14px;
+}
+.empia-qr-box img {
+  width: 260px;
+  height: 260px;
+  border-radius: 8px;
+}
+.empia-qr-loading {
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+.empia-qr-loading .spinner { margin: 0 auto 10px; }
+.empia-qr-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.empia-qr-success {
+  text-align: center;
+  padding: 16px 8px 8px;
+}
+.empia-qr-success-icon { font-size: 52px; margin-bottom: 10px; }
+.empia-qr-success p {
+  font-size: 15px;
+  color: #334155;
+  margin: 0 0 18px;
+}
+
+/* Chat de prueba */
+.empia-modal--chat { max-width: 480px; height: 560px; }
+.empia-chat-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 2px;
+  margin-bottom: 12px;
+}
+.empia-chat-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.empia-chat-bubble--ia {
+  align-self: flex-start;
+  background: #f1f5f9;
+  color: #1e293b;
+  border-bottom-left-radius: 4px;
+}
+.empia-chat-bubble--cliente {
+  align-self: flex-end;
+  background: #d1fae5;
+  color: #064e3b;
+  border-bottom-right-radius: 4px;
+}
+.empia-chat-input-row {
+  display: flex;
+  gap: 8px;
+}
+.empia-chat-input-row .input { flex: 1; }
+.empia-chat-input-row .empia-banner-btn { padding: 10px 18px; }
 
 @media (max-width: 640px) {
   .empia-banner {

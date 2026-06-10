@@ -6,6 +6,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from brain.business_brain import BusinessBrain
+from brain.vendedor import VendedorIA
 from brain import detector
 
 load_dotenv()
@@ -82,6 +83,33 @@ async def get_finance_summary(business_id: str):
 async def generate_marketing(business_id: str):
     brain = BusinessBrain(pool, business_id)
     return await brain.generate_marketing_posts()
+
+
+# ── Vendedor IA (WhatsApp) ────────────────────────────────────────────────────
+
+@app.post("/vendedor/{business_id}/reply")
+async def vendedor_reply(business_id: str, body: dict):
+    """
+    Responde un mensaje de cliente de WhatsApp con reglas locales (sin LLM).
+    Body: {text: str, from?: str, test?: bool}
+    test=true salta la validación de 'empleado activo' (para el panel de pruebas).
+    """
+    text = (body.get("text") or "").strip()
+    if not text:
+        return {"reply": None, "enabled": True}
+
+    vendedor = VendedorIA(pool, business_id)
+    if not body.get("test") and not await vendedor.is_enabled():
+        return {"reply": None, "enabled": False}
+
+    try:
+        reply = await vendedor.responder(text)
+    except Exception as e:
+        log.error("vendedor reply error business=%s: %s", business_id, e)
+        return {"reply": None, "enabled": True, "error": str(e)}
+
+    log.info("vendedor business=%s msg=%r replied=%s", business_id, text[:60], bool(reply))
+    return {"reply": reply, "enabled": True}
 
 
 # ── Caja IA endpoints ─────────────────────────────────────────────────────────

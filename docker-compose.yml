@@ -25,6 +25,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: autobusiness_secret
       JWT_SECRET: ${JWT_SECRET:-autobusiness_jwt_super_secret_key_2024_CHANGE_IN_PROD}
       AI_ENGINE_URL: http://ai-engine:8001
+      WHATSAPP_SERVICE_URL: http://whatsapp-service:8002
+      WA_INTERNAL_TOKEN: ${WA_INTERNAL_TOKEN:-autobusiness_wa_internal_dev}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-TEST-placeholder-change-me}
       MP_NOTIFICATION_URL: ${MP_NOTIFICATION_URL:-http://localhost:8080/api/payments/mercadopago/webhook}
       MP_SUCCESS_URL: ${MP_SUCCESS_URL:-http://localhost:3000/payment/success}
@@ -45,11 +47,27 @@ services:
     container_name: autobusiness_ai
     environment:
       DATABASE_URL: postgresql://autobusiness:autobusiness_secret@postgres:5432/autobusiness
+      APP_BASE_URL: ${APP_BASE_URL:-https://autobusiness.skytechnologieslatam.com}
     ports:
       - "8001:8001"
     depends_on:
       postgres:
         condition: service_healthy
+    restart: unless-stopped
+
+  whatsapp-service:
+    build: ./whatsapp-service
+    container_name: autobusiness_whatsapp
+    environment:
+      AI_ENGINE_URL: http://ai-engine:8001
+      WA_INTERNAL_TOKEN: ${WA_INTERNAL_TOKEN:-autobusiness_wa_internal_dev}
+      SESSIONS_DIR: /data/sessions
+    volumes:
+      - wa_sessions:/data/sessions
+    ports:
+      - "8002:8002"
+    depends_on:
+      - ai-engine
     restart: unless-stopped
 
   frontend:
@@ -67,3 +85,4 @@ services:
 
 volumes:
   postgres_data:
+  wa_sessions:

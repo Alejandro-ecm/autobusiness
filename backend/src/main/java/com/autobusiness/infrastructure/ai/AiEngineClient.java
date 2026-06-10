@@ -33,6 +33,21 @@ public class AiEngineClient {
                 .subscribe();
     }
 
+    /** Pide al motor la respuesta del Vendedor IA para un mensaje de cliente. */
+    public Map<?, ?> vendedorReply(UUID businessId, String text, boolean test) {
+        try {
+            return webClient.post()
+                    .uri("/vendedor/{businessId}/reply", businessId)
+                    .bodyValue(Map.of("text", text, "test", test))
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+        } catch (Exception e) {
+            log.warn("Vendedor IA unreachable: {}", e.getMessage());
+            throw new IllegalStateException("El motor de IA no está disponible en este momento");
+        }
+    }
+
     public Map<?, ?> getInsights(UUID businessId) {
         try {
             return webClient.get()

@@ -48,6 +48,10 @@ ai:
   engine:
     url: ${AI_ENGINE_URL:http://localhost:8001}
 
+whatsapp:
+  service-url: ${WHATSAPP_SERVICE_URL:http://localhost:8002}
+  internal-token: ${WA_INTERNAL_TOKEN:autobusiness_wa_internal_dev}
+
 mercadopago:
   access-token: ${MP_ACCESS_TOKEN:TEST-placeholder-change-me}
   public-key: ${MP_PUBLIC_KEY:}

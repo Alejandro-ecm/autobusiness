@@ -153,6 +153,18 @@ export const upload = {
   },
 }
 
+export const aiEmployees = {
+  list:   ()              => client.get('/ai-employees'),
+  toggle: (type, enabled) => client.patch(`/ai-employees/${type}`, { enabled }),
+  test:   (text)          => client.post('/ai-employees/vendedor/test', { text }),
+}
+
+export const whatsapp = {
+  connect: () => client.post('/whatsapp/connect'),
+  status:  () => client.get('/whatsapp/status'),
+  logout:  () => client.post('/whatsapp/logout'),
+}
+
 export const legal = {
   terms:         () => client.get('/legal/terms'),
   privacy:       () => client.get('/legal/privacy'),
