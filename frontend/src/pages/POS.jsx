@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { pos as posApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
@@ -455,7 +455,14 @@ export default function POS() {
     </div>
   )
 
-  const displayProducts = query ? products : (topProducts.length > 0 ? topProducts : products)
+  // Sin búsqueda: catálogo completo ordenado con los más vendidos primero
+  const displayProducts = useMemo(() => {
+    if (query || topProducts.length === 0) return products
+    const byId = new Map(products.map(p => [p.id, p]))
+    const top = topProducts.map(t => byId.get(t.id)).filter(Boolean)
+    const topIds = new Set(top.map(p => p.id))
+    return [...top, ...products.filter(p => !topIds.has(p.id))]
+  }, [query, products, topProducts])
   const showingTop = !query && topProducts.length > 0
 
   const productPanel = (
@@ -487,7 +494,7 @@ export default function POS() {
         )}
       </div>
 
-      {showingTop && <div className="pos-section-label">⚡ Más vendidos esta semana</div>}
+      {showingTop && <div className="pos-section-label">📦 Todos los productos · ⚡ más vendidos primero</div>}
       {!query && !showingTop && <div className="pos-section-label">📦 Todos los productos</div>}
       {query && <div className="pos-section-label">Resultados para "{query}"</div>}
 
@@ -523,11 +530,6 @@ export default function POS() {
         })}
       </div>
 
-      {showingTop && products.length > topProducts.length && (
-        <button className="pos-show-all" onClick={() => setQuery(' ')}>
-          Ver todos los productos ({products.length}) →
-        </button>
-      )}
     </div>
   )
 
