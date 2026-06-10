@@ -24,8 +24,8 @@ const PLANS = [
   },
   {
     name: 'BASIC',
-    price: 60,
-    label: '$60/mes',
+    price: 80,
+    label: '$80/mes',
     desc: 'Para negocios en crecimiento',
     features: ['100 productos', '5 usuarios', 'Tienda online + QR', 'Reportes', 'Soporte por email'],
     cta: 'Empezar con BASIC',
@@ -33,8 +33,8 @@ const PLANS = [
   },
   {
     name: 'PRO',
-    price: 120,
-    label: '$120/mes',
+    price: 150,
+    label: '$150/mes',
     desc: 'El favorito de las tiendas',
     features: ['Productos ilimitados', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Cobros con Mercado Pago'],
     cta: 'Empezar con PRO',
@@ -42,8 +42,8 @@ const PLANS = [
   },
   {
     name: 'PREMIUM',
-    price: 190,
-    label: '$190/mes',
+    price: 200,
+    label: '$200/mes',
     desc: 'Para cadenas y franquicias',
     features: ['Todo ilimitado', 'Usuarios ilimitados', 'CFDI / facturación', 'Multi-sucursal', 'Soporte prioritario'],
     cta: 'Empezar con PREMIUM',

@@ -4,7 +4,7 @@ import client from '../api/client'
 import { useToast } from '../store/ToastContext'
 import { validateEmailDomain } from '../lib/emailValidation'
 
-const PLAN_PRICES = { BASIC: 60, PRO: 120, PREMIUM: 190 }
+const PLAN_PRICES = { BASIC: 80, PRO: 150, PREMIUM: 200 }
 const PLAN_FEATURES = {
   BASIC:   ['100 productos', '5 usuarios', 'Tienda online + QR', 'Reportes', 'Soporte por email'],
   PRO:     ['Productos ilimitados', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Cobros con Mercado Pago'],

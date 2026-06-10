@@ -438,17 +438,36 @@ public class MercadoPagoService {
      * Procesa pago de suscripción con tarjeta via Bricks.
      * Siempre usa el token de la plataforma para que el dinero vaya al dueño del SaaS.
      */
+    // Precios de suscripción (MXN). El plan anual cuesta 10 meses: +2 meses gratis.
+    private static final Map<String, Integer> MONTHLY_PRICES = Map.of("BASIC", 80,  "PRO", 150,  "PREMIUM", 200);
+    private static final Map<String, Integer> ANNUAL_PRICES  = Map.of("BASIC", 800, "PRO", 1500, "PREMIUM", 2000);
+
+    /** Resuelve precio y descripción a partir del plan, aceptando sufijo "_ANNUAL". */
+    private static int subscriptionPrice(String plan) {
+        String p = plan.toUpperCase();
+        if (p.endsWith("_ANNUAL")) {
+            return ANNUAL_PRICES.getOrDefault(p.replace("_ANNUAL", ""), 800);
+        }
+        return MONTHLY_PRICES.getOrDefault(p, 80);
+    }
+
+    private static String subscriptionTitle(String plan) {
+        String p = plan.toUpperCase();
+        return p.endsWith("_ANNUAL")
+                ? "AutoBusiness " + p.replace("_ANNUAL", "") + " — anual (+2 meses gratis)"
+                : "AutoBusiness " + p + " — mensual";
+    }
+
     @Transactional
     @SuppressWarnings("unchecked")
     public Map<String, Object> processSubscriptionCardPayment(UUID businessId, String plan,
                                                                Map<String, Object> formData) {
-        Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
-        int price = prices.getOrDefault(plan.toUpperCase(), 60);
+        int price = subscriptionPrice(plan);
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("transaction_amount", (double) price);
         payload.put("token",             formData.get("token"));
-        payload.put("description",       "AutoBusiness " + plan + " — mensual");
+        payload.put("description",       subscriptionTitle(plan));
         payload.put("installments",      Integer.parseInt(formData.getOrDefault("installments", "1").toString()));
         payload.put("payment_method_id", formData.get("payment_method_id"));
         if (formData.containsKey("issuer_id") && formData.get("issuer_id") != null)
@@ -499,11 +518,10 @@ public class MercadoPagoService {
      */
     /** Crea preferencia MP para un nuevo registro (sin businessId aún) */
     public Map<String, Object> createRegistrationPreference(String externalRef, String plan, String payerEmail) {
-        Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
-        int price = prices.getOrDefault(plan.toUpperCase(), 120);
+        int price = subscriptionPrice(plan);
 
         var items = List.of(Map.<String, Object>of(
-                "title",      "AutoBusiness " + plan + " — mensual",
+                "title",      subscriptionTitle(plan),
                 "quantity",   1,
                 "unit_price", price,
                 "currency_id", "MXN"
@@ -548,11 +566,10 @@ public class MercadoPagoService {
     }
 
     public Map<String, Object> createSubscriptionLink(UUID businessId, String plan) {
-        Map<String, Integer> prices = Map.of("BASIC", 60, "PRO", 120, "PREMIUM", 190);
-        int price = prices.getOrDefault(plan.toUpperCase(), 60);
+        int price = subscriptionPrice(plan);
 
         var items = List.of(Map.<String, Object>of(
-                "title",      "AutoBusiness " + plan + " — mensual",
+                "title",      subscriptionTitle(plan),
                 "quantity",   1,
                 "unit_price", price
         ));

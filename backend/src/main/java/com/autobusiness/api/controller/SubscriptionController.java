@@ -40,6 +40,7 @@ public class SubscriptionController {
     public ResponseEntity<?> upgrade(@AuthenticationPrincipal AuthPrincipal p,
                                       @RequestBody Map<String, String> body) {
         String plan = body.getOrDefault("plan", "BASIC").toUpperCase();
+        if ("ANNUAL".equalsIgnoreCase(body.getOrDefault("period", "MONTHLY"))) plan += "_ANNUAL";
         try {
             Map<String, Object> paymentLink = mpService.createSubscriptionLink(p.businessId(), plan);
             return ResponseEntity.ok(Map.of(
@@ -61,6 +62,7 @@ public class SubscriptionController {
     public ResponseEntity<?> processPayment(@AuthenticationPrincipal AuthPrincipal p,
                                              @RequestBody Map<String, Object> body) {
         String plan = body.getOrDefault("plan", "BASIC").toString().toUpperCase();
+        if ("ANNUAL".equalsIgnoreCase(body.getOrDefault("period", "MONTHLY").toString())) plan += "_ANNUAL";
         try {
             @SuppressWarnings("unchecked")
             Map<String, Object> formData = body.containsKey("formData")

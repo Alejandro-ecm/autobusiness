@@ -4,9 +4,9 @@ const LAST_UPDATED = '30 de mayo de 2026'
 
 const PLANS = [
   { name: 'FREE',    price: '$0',    desc: 'Acceso limitado — hasta 50 productos, sin tienda en línea.' },
-  { name: 'BASIC',   price: '$60',   desc: 'Hasta 200 productos, tienda en línea, soporte por email.' },
-  { name: 'PRO',     price: '$120',  desc: 'Productos ilimitados, múltiples sucursales, análisis de IA, reportes avanzados.' },
-  { name: 'PREMIUM', price: '$190',  desc: 'Todo lo del plan PRO + soporte prioritario, acceso anticipado a nuevas funciones.' },
+  { name: 'BASIC',   price: '$80',   desc: 'Hasta 100 productos, tienda en línea, soporte por email. Plan anual: $800 (+2 meses gratis).' },
+  { name: 'PRO',     price: '$150',  desc: 'Productos ilimitados, múltiples sucursales, análisis de IA, reportes avanzados. Plan anual: $1,500 (+2 meses gratis).' },
+  { name: 'PREMIUM', price: '$200',  desc: 'Todo lo del plan PRO + soporte prioritario, acceso anticipado a nuevas funciones. Plan anual: $2,000 (+2 meses gratis).' },
 ]
 
 export default function TermsOfService() {

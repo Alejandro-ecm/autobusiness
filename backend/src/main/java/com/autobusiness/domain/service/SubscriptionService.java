@@ -31,10 +31,10 @@ public class SubscriptionService {
 
     // ── Límites por plan ────────────────────────────────────────────────────
     private static final Map<String, Map<String, Object>> PLAN_LIMITS = Map.of(
-        "FREE",    Map.of("maxProducts", 20,  "maxUsers", 2,  "onlineStore", false, "reports", false, "price", 0),
-        "BASIC",   Map.of("maxProducts", 100, "maxUsers", 5,  "onlineStore", true,  "reports", true,  "price", 60),
-        "PRO",     Map.of("maxProducts", -1,  "maxUsers", 15, "onlineStore", true,  "reports", true,  "ai", true, "price", 120),
-        "PREMIUM", Map.of("maxProducts", -1,  "maxUsers", -1, "onlineStore", true,  "reports", true,  "ai", true, "cfdi", true, "price", 190)
+        "FREE",    Map.of("maxProducts", 20,  "maxUsers", 2,  "onlineStore", false, "reports", false, "price", 0,   "annualPrice", 0),
+        "BASIC",   Map.of("maxProducts", 100, "maxUsers", 5,  "onlineStore", true,  "reports", true,  "price", 80,  "annualPrice", 800),
+        "PRO",     Map.of("maxProducts", -1,  "maxUsers", 15, "onlineStore", true,  "reports", true,  "ai", true, "price", 150, "annualPrice", 1500),
+        "PREMIUM", Map.of("maxProducts", -1,  "maxUsers", -1, "onlineStore", true,  "reports", true,  "ai", true, "cfdi", true, "price", 200, "annualPrice", 2000)
     );
 
     @Transactional
@@ -85,21 +85,29 @@ public class SubscriptionService {
         return m;
     }
 
+    /**
+     * Activa un plan. Acepta el sufijo "_ANNUAL" (ej. "PRO_ANNUAL") para
+     * suscripción anual: mismo plan, periodo de 365 días.
+     */
     @Transactional
     public Subscription upgradePlan(UUID businessId, String plan, String mpPreapprovalId) {
-        if (!PLAN_LIMITS.containsKey(plan.toUpperCase()))
+        String normalized = plan.toUpperCase();
+        boolean annual = normalized.endsWith("_ANNUAL");
+        if (annual) normalized = normalized.substring(0, normalized.length() - "_ANNUAL".length());
+
+        if (!PLAN_LIMITS.containsKey(normalized))
             throw new IllegalArgumentException("Plan inválido: " + plan);
 
         Subscription sub = getOrCreate(businessId);
         Instant now = Instant.now();
-        sub.setPlan(plan.toUpperCase());
+        sub.setPlan(normalized);
         sub.setStatus("ACTIVE");
         sub.setMpPreapprovalId(mpPreapprovalId);
         sub.setCurrentPeriodStart(now);
-        sub.setCurrentPeriodEnd(now.plus(30, ChronoUnit.DAYS));
+        sub.setCurrentPeriodEnd(now.plus(annual ? 365 : 30, ChronoUnit.DAYS));
         sub.setCanceledAt(null);
         sub.setCancelReason(null);
-        log.info("Business {} upgraded to plan {}", businessId, plan);
+        log.info("Business {} upgraded to plan {} ({})", businessId, normalized, annual ? "anual" : "mensual");
         return subscriptionRepo.save(sub);
     }
 

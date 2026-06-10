@@ -14,8 +14,9 @@ async function initMP(publicKey) {
   mpSubInitialized = true
 }
 
-function SubPaymentBrick({ plan, amount, preferenceId, initPoint, onSuccess, onError, onClose }) {
+function SubPaymentBrick({ plan, amount, period = 'MONTHLY', preferenceId, initPoint, onSuccess, onError, onClose }) {
   const [BrickComponent, setBrickComponent] = useState(null)
+  const per = period === 'ANNUAL' ? 'año' : 'mes'
 
   useEffect(() => {
     if (preferenceId) {
@@ -28,8 +29,10 @@ function SubPaymentBrick({ plan, amount, preferenceId, initPoint, onSuccess, onE
       <div className="modal-box card" style={{ maxWidth: 540, width: '95%' }} onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <h3>Suscripción {plan}</h3>
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Total: ${amount}/mes</p>
+            <h3>Suscripción {plan}{period === 'ANNUAL' ? ' anual' : ''}</h3>
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+              Total: ${amount}/{per}{period === 'ANNUAL' ? ' · +2 meses gratis' : ''}
+            </p>
           </div>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
@@ -46,7 +49,7 @@ function SubPaymentBrick({ plan, amount, preferenceId, initPoint, onSuccess, onE
                   background: '#009ee3', color: '#fff', borderRadius: 10,
                   fontWeight: 700, textDecoration: 'none', fontSize: 15,
                 }}>
-                Pagar ${amount}/mes con Mercado Pago →
+                Pagar ${amount}/{per} con Mercado Pago →
               </a>
               <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 16 }}>
                 Después de pagar, tu plan se activará automáticamente.
@@ -66,7 +69,7 @@ function SubPaymentBrick({ plan, amount, preferenceId, initPoint, onSuccess, onE
               }}
               onSubmit={async ({ formData }) => {
                 try {
-                  const result = await subApi.processPayment(plan, formData)
+                  const result = await subApi.processPayment(plan, formData, period)
                   if (result.status === 'approved') {
                     trackRevenue(amount, 'MXN', `Suscripcion ${plan}`)
                     trackEvent('suscripcion_activada', { plan, monto: amount })
@@ -99,6 +102,12 @@ const PLAN_INFO = {
   PREMIUM: { color: '#8b5cf6', features: ['Todo ilimitado', 'Usuarios ilimitados', 'CFDI', 'Soporte prioritario', 'Multi-sucursal'] },
 }
 
+// Precios de suscripción (MXN). Anual = 10 meses: +2 meses gratis.
+const PRICES = {
+  MONTHLY: { BASIC: 80,  PRO: 150,  PREMIUM: 200 },
+  ANNUAL:  { BASIC: 800, PRO: 1500, PREMIUM: 2000 },
+}
+
 const STATUS_LABEL = {
   TRIAL:    { label: 'Prueba gratuita', cls: 'sub-badge-trial' },
   ACTIVE:   { label: 'Activa',          cls: 'sub-badge-active' },
@@ -120,7 +129,8 @@ export default function Subscription() {
   const [plans, setPlans] = useState({})
   const [loading, setLoading] = useState(true)
   const [upgrading, setUpgrading] = useState(null)
-  const [brickData, setBrickData] = useState(null)   // { plan, amount, preferenceId }
+  const [brickData, setBrickData] = useState(null)   // { plan, amount, period, preferenceId }
+  const [period, setPeriod] = useState('MONTHLY')    // MONTHLY | ANNUAL
   const [fromRegister, setFromRegister] = useState(!!autoUpgrade)
 
   useEffect(() => {
@@ -147,20 +157,21 @@ export default function Subscription() {
     // Si no hay public key, mostrar banner con botón de pago — el usuario hace clic
   }, [data, autoUpgrade])
 
-  const handleUpgrade = async (plan) => {
+  const handleUpgrade = async (plan, payPeriod = period) => {
     setUpgrading(plan)
     try {
-      const res = await subApi.upgrade(plan)
-      const prices = { BASIC: 60, PRO: 120, PREMIUM: 190 }
+      const res = await subApi.upgrade(plan, payPeriod)
+      const amount = PRICES[payPeriod]?.[plan] || PRICES.MONTHLY[plan] || 150
 
       if (data?.mpPublicKey) {
         // Checkout Bricks — formulario embebido en modal
-        setBrickData({ plan, amount: prices[plan] || 120, preferenceId: res.preferenceId })
+        setBrickData({ plan, amount, period: payPeriod, preferenceId: res.preferenceId })
       } else {
         // Sin public key → guardar initPoint y mostrar botón de redirección (no popup)
         setBrickData({
           plan,
-          amount: prices[plan] || 120,
+          amount,
+          period: payPeriod,
           preferenceId: null,
           initPoint: res.initPoint || res.sandboxPoint,
         })
@@ -230,6 +241,7 @@ export default function Subscription() {
         <SubPaymentBrick
           plan={brickData.plan}
           amount={brickData.amount}
+          period={brickData.period}
           preferenceId={brickData.preferenceId}
           initPoint={brickData.initPoint}
           onSuccess={handlePaymentSuccess}
@@ -291,18 +303,44 @@ export default function Subscription() {
       <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 16px' }}>
         Paga con tarjeta directo aquí. El plan se activa automáticamente.
       </p>
+
+      {/* Selector de periodo: mensual o anual */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+        <button
+          className={`btn ${period === 'MONTHLY' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setPeriod('MONTHLY')}>
+          Mensual
+        </button>
+        <button
+          className={`btn ${period === 'ANNUAL' ? 'btn-primary' : 'btn-outline'}`}
+          onClick={() => setPeriod('ANNUAL')}>
+          Anual · +2 meses gratis 🎁
+        </button>
+      </div>
+
       <div className="sub-plans">
         {['BASIC', 'PRO', 'PREMIUM'].map(plan => {
           const pi      = PLAN_INFO[plan]
           const planDef = plans[plan] || {}
-          const price   = planDef.price || 0
+          const price   = period === 'ANNUAL'
+            ? (planDef.annualPrice || PRICES.ANNUAL[plan])
+            : (planDef.price || PRICES.MONTHLY[plan])
           const isCurrent = plan === currentPlan && isActive
 
           return (
             <div key={plan} className={`sub-plan-card${plan === 'PRO' ? ' sub-plan-pro' : ''}`}>
               {plan === 'PRO' && <div className="sub-plan-badge">⭐ Más popular</div>}
               <div className="sub-plan-title" style={{ color: pi.color }}>{plan}</div>
-              <div className="sub-plan-price">{fmt(price)}<span>/mes</span></div>
+              <div className="sub-plan-price">{fmt(price)}<span>/{period === 'ANNUAL' ? 'año' : 'mes'}</span></div>
+              {period === 'ANNUAL' && (
+                <div style={{
+                  display: 'inline-block', background: '#ecfdf5', color: '#047857',
+                  fontSize: 12, fontWeight: 700, padding: '3px 10px',
+                  borderRadius: 20, margin: '4px 0 2px',
+                }}>
+                  🎁 +2 meses gratis
+                </div>
+              )}
               <ul className="sub-plan-feats">
                 {pi.features.map(f => <li key={f}>✓ {f}</li>)}
               </ul>

@@ -89,8 +89,8 @@ export const delivery = {
 export const subscription = {
   status:         ()              => client.get('/subscription'),
   plans:          ()              => client.get('/subscription/plans'),
-  upgrade:        (plan)          => client.post('/subscription/upgrade', { plan }),
-  processPayment: (plan, formData) => client.post('/subscription/process-payment', { plan, formData }),
+  upgrade:        (plan, period = 'MONTHLY')           => client.post('/subscription/upgrade', { plan, period }),
+  processPayment: (plan, formData, period = 'MONTHLY') => client.post('/subscription/process-payment', { plan, formData, period }),
   cancel:         ()              => client.post('/subscription/cancel'),
   activate:       ()              => client.post('/subscription/activate'),
 }
