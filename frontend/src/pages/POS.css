@@ -104,7 +104,7 @@
 .product-card {
   display: flex;
   flex-direction: column;
-  background: var(--color-surface);
+  background: #e9edf2;   /* cuerpo gris: la foto blanca y la franja azul del nombre resaltan */
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 0;
@@ -146,10 +146,14 @@
   padding: 11px 12px 10px;
 }
 
+/* Franja azul de ancho completo bajo la foto — los negativos anulan el padding de product-info */
 .product-name {
   font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #fff;
+  margin: -11px -12px 8px;
+  padding: 7px 12px;
   line-height: 1.3;
   min-height: calc(1.3em * 2);   /* siempre 2 líneas: las tarjetas quedan alineadas */
   overflow: hidden;
@@ -189,7 +193,7 @@
   margin: auto -12px -10px;    /* top auto: se ancla al pie; lados/abajo anulan el padding de product-info */
   padding: 7px 12px 6px;
   border-top: 1px dashed var(--color-border);
-  background: var(--color-bg);
+  background: #fff;   /* etiqueta blanca: contrasta con el cuerpo gris de la tarjeta */
   display: flex;
   flex-direction: column;
   align-items: center;
