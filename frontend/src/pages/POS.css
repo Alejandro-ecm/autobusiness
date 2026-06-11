@@ -96,9 +96,10 @@
 .pos-carousel .product-price {
   font-size: 18px;
 }
+/* De derecha a izquierda: el #1 se ve primero y los demás entran por la derecha */
 @keyframes pos-marquee {
-  from { transform: translateX(-50%); }
-  to   { transform: translateX(0); }
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
 .product-card {
