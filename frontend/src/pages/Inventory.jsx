@@ -608,7 +608,7 @@ export default function Inventory() {
               <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv"
                 style={{ display:'none' }} onChange={e => handleFile(e.target.files[0])} />
               <button className="btn btn-outline" onClick={downloadTemplate} title="Descargar plantilla Excel">
-                📋 Plantilla
+                📋 Descargar plantilla
               </button>
               <button className="btn btn-outline" onClick={() => fileInputRef.current.click()}>
                 📥 Importar Excel
