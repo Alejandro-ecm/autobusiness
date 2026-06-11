@@ -373,7 +373,11 @@ export default function POS() {
     if (offlineFallback) {
       saveOfflineSale(payload)
       setPendingCount(c => c + 1)
-      const saleEntry = { saleId: null, items: cart, discountAmount, total, change, time: new Date(), offline: true }
+      const saleEntry = {
+        saleId: null, items: cart, discountAmount, total, change, time: new Date(), offline: true,
+        payMethod,
+        received: payMethod === 'cash' && cashReceived ? parseFloat(cashReceived) : undefined,
+      }
       setLastSale(saleEntry)
       setSessionHistory(prev => [saleEntry, ...prev].slice(0, 20))
       setCart([]); setCashReceived(''); setDiscount('')
@@ -382,7 +386,11 @@ export default function POS() {
     }
 
     const res = await posApi.checkout(payload)
-    const saleEntry = { ...res, items: cart, discountAmount, total, change: res.change, time: new Date() }
+    const saleEntry = {
+      ...res, items: cart, discountAmount, total, change: res.change, time: new Date(),
+      payMethod,
+      received: payMethod === 'cash' && cashReceived ? parseFloat(cashReceived) : undefined,
+    }
     setLastSale(saleEntry)
     setSessionHistory(prev => [saleEntry, ...prev].slice(0, 20))
     setCart([]); setCashReceived(''); setDiscount('')
@@ -453,30 +461,84 @@ export default function POS() {
 
   const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 
+  const PAY_LABELS = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia' }
+
+  // HTML del ticket — el mismo para la vista previa y para imprimir
+  const buildTicketHtml = (sale) => {
+    const folio = sale.saleId ? String(sale.saleId).replace(/-/g, '').slice(0, 8).toUpperCase() : 'PENDIENTE'
+    const fecha = (sale.time instanceof Date ? sale.time : new Date()).toLocaleString('es-MX', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    })
+    const subtotal = sale.items.reduce((s, i) => s + i.subtotal, 0)
+    const piezas = sale.items.reduce((s, i) => s + Number(i.quantity), 0)
+    const storeUrl = user.businessSlug ? `${window.location.origin.replace(/^https?:\/\//, '')}/tienda/${user.businessSlug}` : ''
+
+    const rows = sale.items.map(i => `
+      <tr>
+        <td class="qty">${i.quantity}</td>
+        <td>${esc(i.name)}${i.quantity > 1 ? `<div class="unit">${fmt(i.price)} c/u</div>` : ''}</td>
+        <td class="amt">${fmt(i.subtotal)}</td>
+      </tr>`).join('')
+
+    return `<html><head><title>Ticket</title><meta charset="utf-8"><style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000;
+             width: 300px; margin: 0 auto; padding: 16px 12px; background: #fff; }
+      .center { text-align: center; }
+      .biz { font-size: 17px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+      .tagline { font-size: 10px; color: #333; margin-top: 3px; }
+      .sep   { border-top: 1px dashed #000; margin: 9px 0; }
+      .meta { font-size: 11px; line-height: 1.7; }
+      .meta-row { display: flex; justify-content: space-between; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      thead th { font-size: 10px; text-align: left; letter-spacing: .5px;
+                 border-bottom: 1px solid #000; padding: 3px 0; }
+      th.amt, td.amt { text-align: right; white-space: nowrap; }
+      td { padding: 4px 0; vertical-align: top; }
+      td.qty { width: 28px; font-weight: 700; }
+      .unit { font-size: 10px; color: #444; }
+      .tot-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+      .grand { font-size: 17px; font-weight: 800; border-top: 2px solid #000;
+               border-bottom: 2px solid #000; padding: 7px 0; margin: 7px 0; }
+      .foot { font-size: 10.5px; color: #111; margin-top: 12px; line-height: 1.8; }
+      .foot .thanks { font-size: 12px; font-weight: 700; }
+      @media print { body { width: auto; } }
+    </style></head><body>
+      <div class="center">
+        <div class="biz">${esc(user.businessName) || 'AutoBusiness'}</div>
+        ${storeUrl ? `<div class="tagline">🛒 Pedidos en línea: ${esc(storeUrl)}</div>` : ''}
+      </div>
+      <div class="sep"></div>
+      <div class="meta">
+        <div class="meta-row"><span>Folio: <b>${folio}</b></span><span>${fecha}</span></div>
+        ${user.name ? `<div>Le atendió: ${esc(user.name)}</div>` : ''}
+        <div>Forma de pago: ${PAY_LABELS[sale.payMethod] || 'Efectivo'}${sale.offline ? ' (offline)' : ''}</div>
+      </div>
+      <div class="sep"></div>
+      <table>
+        <thead><tr><th>CANT</th><th>DESCRIPCIÓN</th><th class="amt">IMPORTE</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="sep"></div>
+      <div class="tot-row"><span>Artículos: ${piezas}</span><span></span></div>
+      <div class="tot-row"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
+      ${sale.discountAmount > 0 ? `<div class="tot-row"><span>Descuento</span><span>-${fmt(sale.discountAmount)}</span></div>` : ''}
+      <div class="tot-row grand"><span>TOTAL</span><span>${fmt(sale.total)}</span></div>
+      ${sale.received ? `<div class="tot-row"><span>Efectivo recibido</span><span>${fmt(sale.received)}</span></div>` : ''}
+      ${(sale.change || 0) > 0 ? `<div class="tot-row" style="font-weight:700"><span>Su cambio</span><span>${fmt(sale.change)}</span></div>` : ''}
+      <div class="foot center">
+        <div class="thanks">★ ¡Gracias por su compra! ★</div>
+        <div>Te esperamos pronto</div>
+        ${storeUrl ? `<div>También puedes pedir en línea:<br>${esc(storeUrl)}</div>` : ''}
+        <div style="margin-top:6px;color:#666">— Ticket generado por AutoBusiness AI —</div>
+      </div>
+    </body></html>`
+  }
+
   const printTicket = (sale) => {
-    const itemLines = sale.items.map(i =>
-      `<div class="tl"><span>${esc(i.name)} x${i.quantity}</span><span>${fmt(i.subtotal)}</span></div>`
-    ).join('')
-    const discLine = sale.discountAmount > 0
-      ? `<div class="tl" style="color:#059669"><span>Descuento</span><span>-${fmt(sale.discountAmount)}</span></div>` : ''
-    const changeLine = (sale.change || 0) > 0
-      ? `<div class="tl" style="color:#065f46;font-weight:bold"><span>Cambio</span><span>${fmt(sale.change)}</span></div>` : ''
     const w = window.open('', '_blank', 'width=380,height=600')
     if (!w) { show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'); return }
-    w.document.write(`<html><head><title>Ticket</title><style>
-      body{font-family:'Courier New',monospace;font-size:13px;padding:20px;max-width:320px;margin:0 auto}
-      h2{text-align:center;font-size:16px;border-bottom:2px dashed #000;padding-bottom:8px;margin-bottom:12px}
-      .tl{display:flex;justify-content:space-between;padding:3px 0}
-      .tot{font-size:18px;font-weight:bold;border-top:2px dashed #000;padding-top:8px;margin-top:8px}
-      .ft{text-align:center;margin-top:16px;font-size:11px;border-top:1px dashed #ccc;padding-top:8px;color:#555}
-    </style></head><body>
-      <h2>${esc(user.businessName) || 'AutoBusiness'}</h2>
-      <div style="text-align:center;margin-bottom:10px;color:#555;font-size:11px">${new Date().toLocaleString('es-MX')}</div>
-      ${itemLines}${discLine}
-      <div class="tl tot"><span>TOTAL</span><span>${fmt(sale.total)}</span></div>
-      ${changeLine}
-      <div class="ft">¡Gracias por su compra!</div>
-    </body></html>`)
+    w.document.write(buildTicketHtml(sale))
     w.document.close(); w.print()
   }
 
@@ -508,7 +570,7 @@ export default function POS() {
   }, [query, products])
   const showCarousel = !query && carouselItems.length > 0
 
-  // Vista de comprobante
+  // Vista de comprobante — con vista previa del ticket tal como se imprime
   if (lastSale) return (
     <div className="pos-ticket">
       <div className="ticket-card card">
@@ -520,13 +582,11 @@ export default function POS() {
             <span>Cambio:</span><strong>{fmt(lastSale.change)}</strong>
           </div>
         )}
-        <div className="divider" />
-        {lastSale.items.map((i, idx) => (
-          <div key={idx} className="ticket-item">
-            <span>{i.name} x{i.quantity}</span>
-            <span>{fmt(i.subtotal)}</span>
-          </div>
-        ))}
+
+        <div className="ticket-preview">
+          <iframe title="Vista previa del ticket" srcDoc={buildTicketHtml(lastSale)} />
+        </div>
+
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           {!lastSale.offline && (
             <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => printTicket(lastSale)}>
