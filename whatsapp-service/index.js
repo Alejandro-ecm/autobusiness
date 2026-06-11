@@ -208,6 +208,59 @@ app.get('/sessions/:businessId/status', (req, res) => {
   res.json(publicState(req.params.businessId))
 })
 
+/** Resuelve el jid de WhatsApp de un teléfono (prueba con y sin lada de México). */
+async function resolveJid(sock, phone) {
+  const digits = String(phone).replace(/\D/g, '')
+  const candidates = [...new Set([
+    digits,
+    digits.length === 10 ? '52' + digits : null,
+    digits.length === 10 ? '521' + digits : null,
+  ].filter(Boolean))]
+  for (const c of candidates) {
+    try {
+      const res = await sock.onWhatsApp(c)
+      if (res?.[0]?.exists) return res[0].jid
+    } catch { /* siguiente candidato */ }
+  }
+  return null
+}
+
+// Enviar mensaje a un cliente por teléfono (Cobrador IA: recordatorios de pago)
+app.post('/sessions/:businessId/send', async (req, res) => {
+  const s = sessions.get(req.params.businessId)
+  if (!s || s.status !== 'connected') return res.status(409).json({ error: 'WhatsApp no conectado' })
+  const { phone, text } = req.body || {}
+  if (!phone || !text) return res.status(400).json({ error: 'phone y text son requeridos' })
+  try {
+    const jid = await resolveJid(s.sock, phone)
+    if (!jid) return res.status(404).json({ error: 'Ese número no tiene WhatsApp' })
+    await s.sock.sendMessage(jid, { text })
+    log.info({ businessId: req.params.businessId, phone: String(phone).slice(-4) }, 'mensaje saliente enviado')
+    res.json({ sent: true })
+  } catch (e) {
+    log.error({ err: e.message }, 'error en send')
+    res.status(500).json({ error: 'No se pudo enviar el mensaje' })
+  }
+})
+
+// Mensaje al chat propio del negocio (Repositor IA: reportes y alertas de stock)
+app.post('/sessions/:businessId/notify-self', async (req, res) => {
+  const s = sessions.get(req.params.businessId)
+  if (!s || s.status !== 'connected' || !s.sock?.user?.id) {
+    return res.status(409).json({ error: 'WhatsApp no conectado' })
+  }
+  const { text } = req.body || {}
+  if (!text) return res.status(400).json({ error: 'text es requerido' })
+  try {
+    const selfJid = s.sock.user.id.split(':')[0] + '@s.whatsapp.net'
+    await s.sock.sendMessage(selfJid, { text })
+    res.json({ sent: true })
+  } catch (e) {
+    log.error({ err: e.message }, 'error en notify-self')
+    res.status(500).json({ error: 'No se pudo enviar la notificación' })
+  }
+})
+
 app.post('/sessions/:businessId/logout', async (req, res) => {
   const businessId = req.params.businessId
   const s = sessions.get(businessId)

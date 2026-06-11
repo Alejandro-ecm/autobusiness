@@ -226,3 +226,135 @@ class VendedorIA:
 
     def _store_url(self, biz) -> str:
         return f"{APP_BASE_URL}/tienda/{biz['slug']}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Despachador de Empleados IA — enruta cada mensaje al empleado que corresponde,
+# respetando el toggle individual de cada uno (sufijo _ig para Instagram).
+# ═══════════════════════════════════════════════════════════════════════════════
+
+BALANCE_KEYWORDS = (
+    "cuanto debo", "cuanto te debo", "cuanto les debo", "mi saldo", "mi deuda",
+    "saldo pendiente", "mi fiado", "cuanto llevo fiado", "mi cuenta pendiente",
+    "consultar saldo", "consultar mi deuda", "saldo",
+)
+
+# "inventario CODIGO" / "reporte CODIGO" / "stock CODIGO" — código admin del negocio
+REPORT_RE = re.compile(r"^(?:inventario|reporte|stock)\s+([a-z0-9]{4,20})$")
+
+
+async def responder_mensaje(pool, business_id: str, text: str,
+                            channel: str = "whatsapp", sender: str = None,
+                            test: bool = False) -> str | None:
+    suffix = "_ig" if channel == "instagram" else ""
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT employee_type, enabled FROM ai_employees WHERE business_id = $1",
+            business_id,
+        )
+    enabled = {r["employee_type"]: r["enabled"] for r in rows}
+
+    def on(emp_type: str) -> bool:
+        return test or bool(enabled.get(emp_type + suffix))
+
+    norm = _norm(text)
+
+    # 1. Repositor IA: reporte de inventario protegido con código de administrador
+    m = REPORT_RE.match(norm)
+    if m and on("repositor"):
+        return await _repositor_report(pool, business_id, m.group(1))
+
+    # 2. Cobrador IA: consulta de saldo de fiado
+    if any(k in norm for k in BALANCE_KEYWORDS) and on("cobrador"):
+        return await _cobrador_balance(pool, business_id, text, sender, channel)
+
+    # 3. Vendedor IA: precios, stock, catálogo, etc.
+    if on("vendedor"):
+        return await VendedorIA(pool, business_id).responder(text)
+
+    return None
+
+
+async def _repositor_report(pool, business_id: str, code: str) -> str:
+    async with pool.acquire() as conn:
+        biz = await conn.fetchrow(
+            "SELECT name, delivery_code FROM businesses WHERE id = $1", business_id)
+        if not biz:
+            return None
+        if not biz["delivery_code"] or code.upper() != biz["delivery_code"].upper():
+            return "🔒 Código incorrecto. El reporte de inventario solo está disponible para el administrador del negocio."
+
+        rows = await conn.fetch(
+            """SELECT name, stock, min_stock FROM products
+               WHERE business_id = $1 AND is_active = true AND stock <= min_stock
+               ORDER BY stock ASC""",
+            business_id,
+        )
+
+    if not rows:
+        return f"✅ *Repositor IA:* todo en orden en *{biz['name']}* — ningún producto con stock bajo. 🎉"
+
+    agotados = [r for r in rows if float(r["stock"]) <= 0]
+    bajos    = [r for r in rows if float(r["stock"]) > 0]
+    lines = [f"📦 *Repositor IA — {biz['name']}*\n"]
+    if agotados:
+        lines.append(f"⛔ *Agotados ({len(agotados)}):*")
+        lines += [f"• {r['name']}" for r in agotados[:15]]
+        lines.append("")
+    if bajos:
+        lines.append(f"⚠️ *Stock bajo ({len(bajos)}):*")
+        lines += [f"• {r['name']} — quedan {float(r['stock']):g} (mín. {float(r['min_stock']):g})" for r in bajos[:15]]
+    return "\n".join(lines)
+
+
+async def _cobrador_balance(pool, business_id: str, text: str,
+                            sender: str, channel: str) -> str:
+    # Teléfono: el escrito en el mensaje tiene prioridad; en WhatsApp cae al remitente
+    digits_in_text = re.sub(r"\D", "", text)
+    phone = None
+    if len(digits_in_text) >= 10:
+        phone = digits_in_text[-10:]
+    elif channel == "whatsapp" and sender:
+        sender_digits = re.sub(r"\D", "", sender)
+        if len(sender_digits) >= 10:
+            phone = sender_digits[-10:]
+
+    if not phone:
+        return ("Claro 😊 Para consultar tu saldo mándame tu número de teléfono "
+                "(10 dígitos) junto con la palabra *saldo*.\nEjemplo: saldo 5512345678")
+
+    async with pool.acquire() as conn:
+        biz = await conn.fetchrow("SELECT name FROM businesses WHERE id = $1", business_id)
+        customer = await conn.fetchrow(
+            """SELECT id, name, total_credit FROM customers
+               WHERE business_id = $1 AND is_active = true
+                 AND RIGHT(regexp_replace(COALESCE(phone, ''), '\\D', '', 'g'), 10) = $2
+               LIMIT 1""",
+            business_id, phone,
+        )
+        last_txn = None
+        if customer:
+            last_txn = await conn.fetchrow(
+                """SELECT type, amount, created_at FROM customer_transactions
+                   WHERE customer_id = $1 ORDER BY created_at DESC LIMIT 1""",
+                customer["id"],
+            )
+
+    biz_name = biz["name"] if biz else "la tienda"
+    if not customer:
+        return (f"No encontré una cuenta de fiado con ese número en *{biz_name}*. 🤔\n"
+                "Verifica el número o pregunta directamente en la tienda.")
+
+    saldo = float(customer["total_credit"])
+    if saldo <= 0:
+        return f"¡Hola {customer['name']}! 🎉 Estás *al corriente* en *{biz_name}* — no tienes saldo pendiente."
+
+    reply = (f"Hola {customer['name']} 👋\n"
+             f"Tu saldo pendiente en *{biz_name}* es de *${saldo:,.2f}*.")
+    if last_txn:
+        tipo = "compra fiada" if last_txn["type"] == "PURCHASE" else "abono"
+        fecha = last_txn["created_at"].strftime("%d/%m/%Y")
+        reply += f"\nÚltimo movimiento: {tipo} de ${float(last_txn['amount']):,.2f} el {fecha}."
+    reply += "\n\nPuedes pasar a abonar cuando gustes. ¡Gracias! 🙏"
+    return reply

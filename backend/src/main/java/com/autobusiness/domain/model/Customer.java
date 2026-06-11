@@ -37,6 +37,10 @@ public class Customer {
     @Builder.Default
     private boolean isActive = true;
 
+    /** Último recordatorio de pago enviado por el Cobrador IA */
+    @Column(name = "cobrador_reminded_at")
+    private Instant cobradorRemindedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

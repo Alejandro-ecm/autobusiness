@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { aiEmployees, whatsapp, instagram } from '../api'
+import { aiEmployees, whatsapp, instagram, business } from '../api'
 import { useToast } from '../store/ToastContext'
 import './EmpleadosIA.css'
 
@@ -18,16 +18,17 @@ const EMPLEADOS = [
     nombre: 'Cobrador IA',
     canal: 'whatsapp',
     foto: '/cobrador-ia.avif',
-    estado: 'proximamente',
-    descripcion: 'Gestiona cobros y pagos pendientes por WhatsApp de forma automática.',
+    estado: 'activo',
+    descripcion: 'Recuerda cada mañana a tus clientes con fiado pendiente que abonen, y les responde «¿cuánto debo?» con su saldo real.',
   },
   {
     id: 'repositor',
     nombre: 'Repositor IA',
     canal: 'whatsapp',
     foto: '/repositor-ia.webp',
-    estado: 'proximamente',
-    descripcion: 'Controla tu inventario y te avisa por WhatsApp cuando un producto está por agotarse.',
+    estado: 'activo',
+    descripcion: 'Te manda cada mañana el reporte de stock bajo a tu propio WhatsApp y te avisa al instante cuando un producto se agota.',
+    conCodigo: true,
   },
   // ── Instagram (rosa/morado) ──
   {
@@ -43,16 +44,17 @@ const EMPLEADOS = [
     nombre: 'Cobrador IA',
     canal: 'instagram',
     foto: '/cobrador-ia.avif',
-    estado: 'proximamente',
-    descripcion: 'Gestiona cobros y recordatorios de pago por DM de Instagram de forma automática.',
+    estado: 'activo',
+    descripcion: 'Responde por DM «¿cuánto debo?» — el cliente manda su teléfono y recibe su saldo de fiado real.',
   },
   {
     id: 'repositor_ig',
     nombre: 'Repositor IA',
     canal: 'instagram',
     foto: '/repositor-ia.webp',
-    estado: 'proximamente',
-    descripcion: 'Controla tu inventario y te avisa por DM de Instagram cuando un producto está por agotarse.',
+    estado: 'activo',
+    descripcion: 'Mándale «inventario + tu código» por DM y te responde el reporte de stock al momento.',
+    conCodigo: true,
   },
 ]
 
@@ -71,6 +73,7 @@ export default function EmpleadosIA() {
   const [igStatus, setIgStatus] = useState({ connected: false })
   const [qrModal, setQrModal] = useState(false)
   const [testModal, setTestModal] = useState(false)
+  const [adminCode, setAdminCode] = useState('')
   const pollRef = useRef(null)
 
   // Estado inicial: empleados + conexiones
@@ -83,6 +86,9 @@ export default function EmpleadosIA() {
       .catch(() => {})
     instagram.status()
       .then(setIgStatus)
+      .catch(() => {})
+    business.deliveryCode()
+      .then(res => setAdminCode(res.deliveryCode || ''))
       .catch(() => {})
 
     // Regreso del OAuth de Instagram
@@ -266,6 +272,13 @@ export default function EmpleadosIA() {
               </div>
 
               <p className="empia-card-desc">{emp.descripcion}</p>
+
+              {/* Repositor: código de administrador para pedir el reporte */}
+              {emp.conCodigo && adminCode && (
+                <div className="empia-card-code">
+                  🔑 Pídele el reporte escribiendo: <code>inventario {adminCode}</code>
+                </div>
+              )}
 
               {/* Estado del canal: aviso clicable que conecta directo */}
               {disponible && on && !canalConectado && (

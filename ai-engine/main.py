@@ -6,7 +6,7 @@ import os
 import logging
 from dotenv import load_dotenv
 from brain.business_brain import BusinessBrain
-from brain.vendedor import VendedorIA
+from brain.vendedor import responder_mensaje
 from brain import detector
 
 load_dotenv()
@@ -99,14 +99,14 @@ async def vendedor_reply(business_id: str, body: dict):
         return {"reply": None, "enabled": True}
 
     channel = body.get("channel") or "whatsapp"
-    employee_type = "vendedor_ig" if channel == "instagram" else "vendedor"
-
-    vendedor = VendedorIA(pool, business_id)
-    if not body.get("test") and not await vendedor.is_enabled(employee_type):
-        return {"reply": None, "enabled": False}
 
     try:
-        reply = await vendedor.responder(text)
+        reply = await responder_mensaje(
+            pool, business_id, text,
+            channel=channel,
+            sender=body.get("from"),
+            test=bool(body.get("test")),
+        )
     except Exception as e:
         log.error("vendedor reply error business=%s: %s", business_id, e)
         return {"reply": None, "enabled": True, "error": str(e)}
@@ -115,7 +115,7 @@ async def vendedor_reply(business_id: str, body: dict):
     if reply and channel == "instagram":
         reply = reply.replace("*", "")
 
-    log.info("vendedor business=%s channel=%s msg=%r replied=%s", business_id, channel, text[:60], bool(reply))
+    log.info("empleados business=%s channel=%s msg=%r replied=%s", business_id, channel, text[:60], bool(reply))
     return {"reply": reply, "enabled": True}
 
 

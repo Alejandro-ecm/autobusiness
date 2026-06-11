@@ -5,6 +5,7 @@ import com.autobusiness.domain.model.SaleItem;
 import com.autobusiness.domain.model.Alert;
 import com.autobusiness.domain.repository.AlertRepository;
 import com.autobusiness.domain.repository.ProductRepository;
+import com.autobusiness.domain.service.AiEmployeeJobsService;
 import com.autobusiness.infrastructure.ai.AiEngineClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ public class SaleEventListener {
     private final AlertRepository alertRepo;
     private final ProductRepository productRepo;
     private final AiEngineClient aiEngineClient;
+    private final AiEmployeeJobsService aiEmployeeJobs;
 
     @Async
     @EventListener
@@ -46,6 +48,12 @@ public class SaleEventListener {
                             .build());
                     log.warn("event=stock.low product={} stock={}",
                             item.getProduct().getName(), stockStr);
+
+                    // Repositor IA: aviso inmediato por WhatsApp cuando se agota
+                    if (critical) {
+                        aiEmployeeJobs.notifyOutOfStock(
+                                sale.getBusiness().getId(), item.getProduct().getName());
+                    }
                 }
             } catch (Exception e) {
                 log.error("Failed to process stock alert for product {}", item.getProduct().getId(), e);
