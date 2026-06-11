@@ -63,12 +63,13 @@
   flex-direction: column;
 }
 
-/* Verde = WhatsApp, rosa/morado = Instagram — toda la tarjeta del color de su app */
-.empia-card--whatsapp {
+/* Verde = WhatsApp, rosa/morado = Instagram — toda la tarjeta del color de su app.
+   Doble clase para ganarle a la regla global `.card { background: #fff }` */
+.empia-card.empia-card--whatsapp {
   background: linear-gradient(160deg, #16ba8b 0%, #0d9488 100%);
   border: none;
 }
-.empia-card--instagram {
+.empia-card.empia-card--instagram {
   background: linear-gradient(150deg, #f58529 0%, #dd2a7b 55%, #8134af 100%);
   border: none;
 }
