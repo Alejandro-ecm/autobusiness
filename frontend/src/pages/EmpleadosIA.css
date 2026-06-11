@@ -63,40 +63,87 @@
   flex-direction: column;
 }
 
-/* Verde = WhatsApp, rosa/morado = Instagram — identificación de canal al instante */
+/* Verde = WhatsApp, rosa/morado = Instagram — toda la tarjeta del color de su app */
 .empia-card--whatsapp {
-  background: linear-gradient(160deg, #f2fdf6 0%, #e9fbf1 100%);
-  border: 1.5px solid #a7e8c3;
+  background: linear-gradient(160deg, #16ba8b 0%, #0d9488 100%);
+  border: none;
 }
 .empia-card--instagram {
-  background: linear-gradient(160deg, #fdf3f9 0%, #f6effc 100%);
-  border: 1.5px solid #ecc7e3;
+  background: linear-gradient(150deg, #f58529 0%, #dd2a7b 55%, #8134af 100%);
+  border: none;
 }
+
+/* Textos en blanco sobre el color del canal */
+.empia-card--whatsapp .empia-card-head h3,
+.empia-card--instagram .empia-card-head h3 { color: #fff; }
+.empia-card--whatsapp .empia-canal-label,
+.empia-card--instagram .empia-canal-label { color: rgba(255, 255, 255, .85); }
+.empia-card--whatsapp .empia-card-desc,
+.empia-card--instagram .empia-card-desc { color: rgba(255, 255, 255, .92); }
+
+/* Etiquetas de estado */
+.empia-card--whatsapp .empia-tag--activo { background: #fff; color: #047857; }
+.empia-card--instagram .empia-tag--activo { background: #fff; color: #be185d; }
+.empia-card--whatsapp .empia-tag--paused,
+.empia-card--instagram .empia-tag--paused,
+.empia-card--whatsapp .empia-tag--soon,
+.empia-card--instagram .empia-tag--soon {
+  background: rgba(255, 255, 255, .25);
+  color: #fff;
+}
+
+/* Switch sobre fondo de color: encendido = blanco con perilla del color */
+.empia-card--whatsapp .empia-switch,
+.empia-card--instagram .empia-switch { background: rgba(255, 255, 255, .35); }
+.empia-card--whatsapp .empia-switch--on,
+.empia-card--instagram .empia-switch--on { background: #fff; }
+.empia-card--whatsapp .empia-switch--on .empia-switch-knob { background: #0d9488; }
+.empia-card--instagram .empia-switch--on .empia-switch-knob { background: #dd2a7b; }
+
+/* Aviso "conectar ahora" y estado conectado sobre el color */
+.empia-card--whatsapp .empia-card-warn,
+.empia-card--instagram .empia-card-warn {
+  background: rgba(255, 255, 255, .95);
+  border-color: transparent;
+}
+.empia-card--whatsapp .empia-card-warn--btn:hover,
+.empia-card--instagram .empia-card-warn--btn:hover {
+  background: #fff;
+  border-color: transparent;
+}
+.empia-card--whatsapp .empia-card-ok,
+.empia-card--instagram .empia-card-ok {
+  background: rgba(255, 255, 255, .18);
+  border-color: rgba(255, 255, 255, .45);
+  color: #fff;
+}
+.empia-card--whatsapp .empia-card-ok-disconnect,
+.empia-card--instagram .empia-card-ok-disconnect { color: rgba(255, 255, 255, .8); }
+.empia-card--whatsapp .empia-card-ok-disconnect:hover,
+.empia-card--instagram .empia-card-ok-disconnect:hover { color: #fff; }
+
+/* Botón principal invertido: blanco con texto del color del canal */
 .empia-card--whatsapp .empia-train-btn {
-  background: #0d9488;
+  background: #fff;
+  color: #0b7c72;
 }
-.empia-card--whatsapp .empia-train-btn:hover:not(:disabled) {
-  background: #0b7c72;
-}
+.empia-card--whatsapp .empia-train-btn:hover:not(:disabled) { background: #ecfdf5; }
 .empia-card--instagram .empia-train-btn {
-  background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af);
-}
-.empia-card--instagram .empia-train-btn:hover:not(:disabled) {
-  filter: brightness(1.08);
-}
-.empia-card--instagram .empia-train-btn:disabled {
-  background: #e2e8f0;
-  filter: none;
-}
-.empia-card--instagram .empia-tag--activo {
-  background: #fce7f3;
+  background: #fff;
   color: #be185d;
 }
-.empia-card--instagram .empia-switch--on {
-  background: #db2777;
+.empia-card--instagram .empia-train-btn:hover:not(:disabled) { background: #fdf2f8; }
+.empia-card--whatsapp .empia-train-btn:disabled,
+.empia-card--instagram .empia-train-btn:disabled {
+  background: rgba(255, 255, 255, .3);
+  color: rgba(255, 255, 255, .85);
 }
-.empia-card--instagram .empia-canal-label { color: #c026d3; }
-.empia-card--whatsapp .empia-canal-label { color: #059669; }
+
+/* Avatar resalta sobre el color */
+.empia-card--whatsapp .empia-avatar--img,
+.empia-card--instagram .empia-avatar--img {
+  border: 3px solid rgba(255, 255, 255, .9);
+}
 
 .empia-avatar-wrap {
   position: relative;
