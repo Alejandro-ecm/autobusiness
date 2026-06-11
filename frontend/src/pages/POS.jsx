@@ -411,7 +411,8 @@ export default function POS() {
 
   const checkout = async () => {
     if (cart.length === 0) { show('El carrito está vacío', 'error'); return }
-    if (payMethod === 'cash' && cashReceived && change < 0) { show('Efectivo insuficiente', 'error'); return }
+    if (payMethod === 'cash' && !cashReceived) { show('Escribe el efectivo recibido para cobrar', 'error'); return }
+    if (payMethod === 'cash' && change < 0) { show('Efectivo insuficiente', 'error'); return }
 
     // Tarjeta → intentar Checkout Bricks si el negocio tiene MP conectado
     if (payMethod === 'card') {
@@ -740,7 +741,8 @@ export default function POS() {
               className="btn btn-primary btn-lg"
               style={{ width: '100%', marginTop: 8 }}
               onClick={checkout}
-              disabled={loading || (payMethod === 'cash' && cashReceived && change < 0)}
+              disabled={loading || (payMethod === 'cash' && (!cashReceived || change < 0))}
+              title={payMethod === 'cash' && !cashReceived ? 'Escribe el efectivo recibido para cobrar' : undefined}
             >
               {loading ? <div className="spinner" /> : `${isOnline ? '💳' : '📴'} Cobrar ${fmt(total)}`}
             </button>
