@@ -4,6 +4,7 @@ import { useToast } from '../store/ToastContext'
 import './EmpleadosIA.css'
 
 const EMPLEADOS = [
+  // ── WhatsApp (verde) ──
   {
     id: 'vendedor',
     nombre: 'Vendedor IA',
@@ -13,6 +14,23 @@ const EMPLEADOS = [
     descripcion: 'Responde automáticamente las consultas de tu WhatsApp las 24hs del día.',
   },
   {
+    id: 'cobrador',
+    nombre: 'Cobrador IA',
+    canal: 'whatsapp',
+    foto: '/cobrador-ia.avif',
+    estado: 'proximamente',
+    descripcion: 'Gestiona cobros y pagos pendientes por WhatsApp de forma automática.',
+  },
+  {
+    id: 'repositor',
+    nombre: 'Repositor IA',
+    canal: 'whatsapp',
+    foto: '/repositor-ia.webp',
+    estado: 'proximamente',
+    descripcion: 'Controla tu inventario y te avisa por WhatsApp cuando un producto está por agotarse.',
+  },
+  // ── Instagram (rosa/morado) ──
+  {
     id: 'vendedor_ig',
     nombre: 'Vendedor IA',
     canal: 'instagram',
@@ -21,18 +39,20 @@ const EMPLEADOS = [
     descripcion: 'Responde automáticamente los mensajes directos (DM) de tu Instagram Business.',
   },
   {
-    id: 'cobrador',
+    id: 'cobrador_ig',
     nombre: 'Cobrador IA',
+    canal: 'instagram',
     foto: '/cobrador-ia.avif',
     estado: 'proximamente',
-    descripcion: 'Gestiona cobros y pagos pendientes por WhatsApp de forma automática.',
+    descripcion: 'Gestiona cobros y recordatorios de pago por DM de Instagram de forma automática.',
   },
   {
-    id: 'repositor',
+    id: 'repositor_ig',
     nombre: 'Repositor IA',
+    canal: 'instagram',
     foto: '/repositor-ia.webp',
     estado: 'proximamente',
-    descripcion: 'Controla tu inventario y te avisa cuando un producto está por agotarse.',
+    descripcion: 'Controla tu inventario y te avisa por DM de Instagram cuando un producto está por agotarse.',
   },
 ]
 
@@ -212,7 +232,7 @@ export default function EmpleadosIA() {
           const esIG = emp.canal === 'instagram'
           const canalConectado = esIG ? igStatus.connected : connected
           return (
-            <div key={emp.id} className="card empia-card">
+            <div key={emp.id} className={`card empia-card${emp.canal ? ` empia-card--${emp.canal}` : ''}`}>
               <div className="empia-avatar-wrap">
                 {emp.foto
                   ? <img className="empia-avatar empia-avatar--img" src={emp.foto} alt={emp.nombre} />

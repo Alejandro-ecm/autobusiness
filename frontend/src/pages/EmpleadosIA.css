@@ -63,6 +63,41 @@
   flex-direction: column;
 }
 
+/* Verde = WhatsApp, rosa/morado = Instagram — identificación de canal al instante */
+.empia-card--whatsapp {
+  background: linear-gradient(160deg, #f2fdf6 0%, #e9fbf1 100%);
+  border: 1.5px solid #a7e8c3;
+}
+.empia-card--instagram {
+  background: linear-gradient(160deg, #fdf3f9 0%, #f6effc 100%);
+  border: 1.5px solid #ecc7e3;
+}
+.empia-card--whatsapp .empia-train-btn {
+  background: #0d9488;
+}
+.empia-card--whatsapp .empia-train-btn:hover:not(:disabled) {
+  background: #0b7c72;
+}
+.empia-card--instagram .empia-train-btn {
+  background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af);
+}
+.empia-card--instagram .empia-train-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.empia-card--instagram .empia-train-btn:disabled {
+  background: #e2e8f0;
+  filter: none;
+}
+.empia-card--instagram .empia-tag--activo {
+  background: #fce7f3;
+  color: #be185d;
+}
+.empia-card--instagram .empia-switch--on {
+  background: #db2777;
+}
+.empia-card--instagram .empia-canal-label { color: #c026d3; }
+.empia-card--whatsapp .empia-canal-label { color: #059669; }
+
 .empia-avatar-wrap {
   position: relative;
   width: 76px;
