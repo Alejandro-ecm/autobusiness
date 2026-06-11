@@ -63,12 +63,12 @@ class VendedorIA:
         self.pool = pool
         self.business_id = business_id
 
-    async def is_enabled(self) -> bool:
+    async def is_enabled(self, employee_type: str = "vendedor") -> bool:
         async with self.pool.acquire() as conn:
             row = await conn.fetchrow(
                 """SELECT enabled FROM ai_employees
-                   WHERE business_id = $1 AND employee_type = 'vendedor'""",
-                self.business_id,
+                   WHERE business_id = $1 AND employee_type = $2""",
+                self.business_id, employee_type,
             )
         return bool(row and row["enabled"])
 

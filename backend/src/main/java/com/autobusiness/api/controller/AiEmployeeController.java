@@ -19,7 +19,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AiEmployeeController {
 
-    private static final Set<String> KNOWN_TYPES = Set.of("vendedor", "cobrador", "repositor");
+    private static final Set<String> KNOWN_TYPES = Set.of("vendedor", "vendedor_ig", "cobrador", "repositor");
 
     private final AiEmployeeRepository aiEmployeeRepo;
     private final AiEngineClient aiEngineClient;

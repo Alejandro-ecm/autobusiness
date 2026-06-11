@@ -165,6 +165,12 @@ export const whatsapp = {
   logout:  () => client.post('/whatsapp/logout'),
 }
 
+export const instagram = {
+  status:     () => client.get('/settings/instagram'),
+  connectUrl: () => client.get('/settings/instagram/connect-url'),
+  disconnect: () => client.delete('/settings/instagram'),
+}
+
 export const legal = {
   terms:         () => client.get('/legal/terms'),
   privacy:       () => client.get('/legal/privacy'),

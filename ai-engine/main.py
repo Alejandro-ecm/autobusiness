@@ -90,16 +90,19 @@ async def generate_marketing(business_id: str):
 @app.post("/vendedor/{business_id}/reply")
 async def vendedor_reply(business_id: str, body: dict):
     """
-    Responde un mensaje de cliente de WhatsApp con reglas locales (sin LLM).
-    Body: {text: str, from?: str, test?: bool}
+    Responde un mensaje de cliente (WhatsApp o Instagram) con reglas locales (sin LLM).
+    Body: {text: str, from?: str, test?: bool, channel?: 'whatsapp'|'instagram'}
     test=true salta la validación de 'empleado activo' (para el panel de pruebas).
     """
     text = (body.get("text") or "").strip()
     if not text:
         return {"reply": None, "enabled": True}
 
+    channel = body.get("channel") or "whatsapp"
+    employee_type = "vendedor_ig" if channel == "instagram" else "vendedor"
+
     vendedor = VendedorIA(pool, business_id)
-    if not body.get("test") and not await vendedor.is_enabled():
+    if not body.get("test") and not await vendedor.is_enabled(employee_type):
         return {"reply": None, "enabled": False}
 
     try:
@@ -108,7 +111,11 @@ async def vendedor_reply(business_id: str, body: dict):
         log.error("vendedor reply error business=%s: %s", business_id, e)
         return {"reply": None, "enabled": True, "error": str(e)}
 
-    log.info("vendedor business=%s msg=%r replied=%s", business_id, text[:60], bool(reply))
+    # Instagram no renderiza *negritas* — quitar los asteriscos de WhatsApp
+    if reply and channel == "instagram":
+        reply = reply.replace("*", "")
+
+    log.info("vendedor business=%s channel=%s msg=%r replied=%s", business_id, channel, text[:60], bool(reply))
     return {"reply": reply, "enabled": True}
 
 

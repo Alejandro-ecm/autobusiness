@@ -35,10 +35,14 @@ public class AiEngineClient {
 
     /** Pide al motor la respuesta del Vendedor IA para un mensaje de cliente. */
     public Map<?, ?> vendedorReply(UUID businessId, String text, boolean test) {
+        return vendedorReply(businessId, text, test, "whatsapp");
+    }
+
+    public Map<?, ?> vendedorReply(UUID businessId, String text, boolean test, String channel) {
         try {
             return webClient.post()
                     .uri("/vendedor/{businessId}/reply", businessId)
-                    .bodyValue(Map.of("text", text, "test", test))
+                    .bodyValue(Map.of("text", text, "test", test, "channel", channel))
                     .retrieve()
                     .bodyToMono(Map.class)
                     .block();

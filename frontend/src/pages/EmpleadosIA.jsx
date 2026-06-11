@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { aiEmployees, whatsapp } from '../api'
+import { aiEmployees, whatsapp, instagram } from '../api'
 import { useToast } from '../store/ToastContext'
 import './EmpleadosIA.css'
 
@@ -7,9 +7,18 @@ const EMPLEADOS = [
   {
     id: 'vendedor',
     nombre: 'Vendedor IA',
+    canal: 'whatsapp',
     foto: '/vendedora-ia.webp',
     estado: 'activo',
     descripcion: 'Responde automáticamente las consultas de tu WhatsApp las 24hs del día.',
+  },
+  {
+    id: 'vendedor_ig',
+    nombre: 'Vendedor IA',
+    canal: 'instagram',
+    foto: '/vendedora-ia.webp',
+    estado: 'activo',
+    descripcion: 'Responde automáticamente los mensajes directos (DM) de tu Instagram Business.',
   },
   {
     id: 'cobrador',
@@ -39,11 +48,12 @@ export default function EmpleadosIA() {
   const toast = useToast()
   const [activos, setActivos] = useState({})
   const [waStatus, setWaStatus] = useState({ status: 'disconnected' })
+  const [igStatus, setIgStatus] = useState({ connected: false })
   const [qrModal, setQrModal] = useState(false)
   const [testModal, setTestModal] = useState(false)
   const pollRef = useRef(null)
 
-  // Estado inicial: empleados + conexión WhatsApp
+  // Estado inicial: empleados + conexiones
   useEffect(() => {
     aiEmployees.list()
       .then(res => setActivos(res.employees || {}))
@@ -51,8 +61,22 @@ export default function EmpleadosIA() {
     whatsapp.status()
       .then(setWaStatus)
       .catch(() => {})
+    instagram.status()
+      .then(setIgStatus)
+      .catch(() => {})
+
+    // Regreso del OAuth de Instagram
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('ig_connected')) {
+      toast.show('📸 Instagram conectado — tu Vendedor IA ya puede responder DMs', 'success')
+      window.history.replaceState({}, '', window.location.pathname)
+    } else if (params.get('ig_error')) {
+      toast.show('No se pudo conectar Instagram — intenta de nuevo', 'error')
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+
     return () => clearInterval(pollRef.current)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const startPolling = useCallback(() => {
     clearInterval(pollRef.current)
@@ -95,6 +119,25 @@ export default function EmpleadosIA() {
     }
   }
 
+  const connectInstagram = async () => {
+    try {
+      const res = await instagram.connectUrl()
+      window.location.href = res.url
+    } catch (e) {
+      toast.show(e?.error || 'La conexión con Instagram aún no está disponible', 'error')
+    }
+  }
+
+  const disconnectInstagram = async () => {
+    try {
+      await instagram.disconnect()
+      setIgStatus({ connected: false })
+      toast.show('Instagram desconectado')
+    } catch (e) {
+      toast.show(e?.error || 'No se pudo desconectar', 'error')
+    }
+  }
+
   const toggle = async (emp) => {
     if (emp.estado !== 'activo') {
       toast.show(`${emp.nombre} estará disponible muy pronto.`)
@@ -104,8 +147,9 @@ export default function EmpleadosIA() {
     setActivos(prev => ({ ...prev, [emp.id]: next })) // optimista
     try {
       await aiEmployees.toggle(emp.id, next)
-      if (next && waStatus.status !== 'connected') {
-        toast.show('Vendedor IA activado — conecta tu WhatsApp para que empiece a responder', 'success')
+      const canalConectado = emp.canal === 'instagram' ? igStatus.connected : waStatus.status === 'connected'
+      if (next && !canalConectado) {
+        toast.show(`Activado — conecta tu ${emp.canal === 'instagram' ? 'Instagram' : 'WhatsApp'} para que empiece a responder`, 'success')
       } else {
         toast.show(next ? `${emp.nombre} activado ✅` : `${emp.nombre} pausado`)
       }
@@ -129,13 +173,13 @@ export default function EmpleadosIA() {
       <div className="empia-banner">
         <img className="empia-banner-art" src="/empleados-ia-banner.webp" alt="Empleados IA" />
         <div className="empia-banner-text">
-          <h2>Haz que la IA responda WhatsApp por ti</h2>
+          <h2>Haz que la IA responda WhatsApp e Instagram por ti</h2>
           <p>Tu Vendedor IA responde automáticamente 24/7 preguntas de clientes sobre productos, precios y stock.</p>
           <div className="empia-wa-row">
             {connected ? (
               <>
                 <span className="empia-wa-connected">
-                  ✅ Conectado{waStatus.phone ? `: +${waStatus.phone}` : ''}
+                  ✅ WhatsApp conectado{waStatus.phone ? `: +${waStatus.phone}` : ''}
                 </span>
                 <button className="empia-banner-btn empia-banner-btn--outline" onClick={disconnectWA}>
                   Desconectar
@@ -144,6 +188,13 @@ export default function EmpleadosIA() {
             ) : (
               <button className="empia-banner-btn" onClick={openConnect}>
                 Conectar mi WhatsApp
+              </button>
+            )}
+            {igStatus.connected ? (
+              <span className="empia-wa-connected">📸 Instagram: @{igStatus.username}</span>
+            ) : (
+              <button className="empia-banner-btn empia-banner-btn--ig" onClick={connectInstagram}>
+                Conectar mi Instagram
               </button>
             )}
             <span className="empia-wa-status" style={{ color: statusInfo.color }}>
@@ -158,6 +209,8 @@ export default function EmpleadosIA() {
         {EMPLEADOS.map(emp => {
           const on = !!activos[emp.id]
           const disponible = emp.estado === 'activo'
+          const esIG = emp.canal === 'instagram'
+          const canalConectado = esIG ? igStatus.connected : connected
           return (
             <div key={emp.id} className="card empia-card">
               <div className="empia-avatar-wrap">
@@ -165,10 +218,18 @@ export default function EmpleadosIA() {
                   ? <img className="empia-avatar empia-avatar--img" src={emp.foto} alt={emp.nombre} />
                   : <div className="empia-avatar">{emp.avatar}</div>}
                 {disponible && on && <span className="empia-avatar-badge">✓</span>}
+                {emp.canal && (
+                  <span className={`empia-canal-badge empia-canal-badge--${emp.canal}`}>
+                    {esIG ? '📸' : '💬'}
+                  </span>
+                )}
               </div>
 
               <div className="empia-card-head">
-                <h3>{emp.nombre}</h3>
+                <h3>
+                  {emp.nombre}
+                  {emp.canal && <span className="empia-canal-label">{esIG ? ' · Instagram' : ' · WhatsApp'}</span>}
+                </h3>
                 <span className={`empia-tag ${disponible ? (on ? 'empia-tag--activo' : 'empia-tag--paused') : 'empia-tag--soon'}`}>
                   {disponible ? (on ? 'Activo' : 'Pausado') : 'Próximamente'}
                 </span>
@@ -186,8 +247,25 @@ export default function EmpleadosIA() {
 
               <p className="empia-card-desc">{emp.descripcion}</p>
 
-              {emp.id === 'vendedor' && disponible && on && !connected && (
-                <p className="empia-card-warn">⚠ Conecta tu WhatsApp para que empiece a responder.</p>
+              {/* Estado del canal: aviso clicable que conecta directo */}
+              {disponible && on && !canalConectado && (
+                <button
+                  className="empia-card-warn empia-card-warn--btn"
+                  onClick={esIG ? connectInstagram : openConnect}
+                >
+                  ⚠ Falta conectar tu {esIG ? 'Instagram' : 'WhatsApp'} — <strong>Conectar ahora →</strong>
+                </button>
+              )}
+              {disponible && canalConectado && (
+                <div className="empia-card-ok">
+                  ✅ {esIG ? `@${igStatus.username} conectado` : 'WhatsApp conectado'}
+                  <button
+                    className="empia-card-ok-disconnect"
+                    onClick={esIG ? disconnectInstagram : disconnectWA}
+                  >
+                    Desconectar
+                  </button>
+                </div>
               )}
 
               <button
@@ -197,7 +275,7 @@ export default function EmpleadosIA() {
                   ? setTestModal(true)
                   : toast.show(`${emp.nombre} estará disponible muy pronto.`)}
               >
-                {emp.id === 'vendedor' ? '💬 Probar Empleado' : 'Entrenar Empleado'}
+                {disponible ? '💬 Probar Empleado' : 'Entrenar Empleado'}
               </button>
             </div>
           )

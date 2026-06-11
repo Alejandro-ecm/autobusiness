@@ -52,6 +52,12 @@ whatsapp:
   service-url: ${WHATSAPP_SERVICE_URL:http://localhost:8002}
   internal-token: ${WA_INTERNAL_TOKEN:autobusiness_wa_internal_dev}
 
+instagram:
+  app-id: ${IG_APP_ID:}
+  app-secret: ${IG_APP_SECRET:}
+  verify-token: ${IG_VERIFY_TOKEN:autobusiness_ig_verify_dev}
+  redirect-uri: ${IG_REDIRECT_URI:https://autobusiness-production-ccbc.up.railway.app/api/settings/instagram/oauth-callback}
+
 mercadopago:
   access-token: ${MP_ACCESS_TOKEN:TEST-placeholder-change-me}
   public-key: ${MP_PUBLIC_KEY:}

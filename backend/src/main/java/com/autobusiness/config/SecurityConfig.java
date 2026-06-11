@@ -58,6 +58,8 @@ public class SecurityConfig {
                                 "/subscription/plans",                      // precios públicos
                                 "/payments/mercadopago/webhook",            // webhook MP sin JWT
                                 "/settings/mp/oauth-callback",              // redirect de MP OAuth
+                                "/settings/instagram/oauth-callback",       // redirect de Instagram OAuth
+                                "/webhooks/instagram",                      // webhook de DMs de Instagram
                                 "/store/*/process-payment",                 // Checkout Bricks card payment
                                 "/legal/terms",                             // documentos legales públicos
                                 "/legal/privacy",

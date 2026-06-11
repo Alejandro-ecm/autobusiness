@@ -207,6 +207,75 @@
   border-radius: 8px;
   padding: 8px 10px;
 }
+.empia-card-warn--btn {
+  cursor: pointer;
+  text-align: left;
+  transition: background .15s, border-color .15s;
+  width: 100%;
+}
+.empia-card-warn--btn:hover {
+  background: #fef3c7;
+  border-color: #fbbf24;
+}
+.empia-card-warn--btn strong { color: #92400e; }
+
+.empia-card-ok {
+  margin: -10px 0 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.empia-card-ok-disconnect {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 11.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  flex-shrink: 0;
+}
+.empia-card-ok-disconnect:hover { color: #ef4444; }
+
+/* Badge de canal en el avatar (WhatsApp / Instagram) */
+.empia-canal-badge {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
+}
+.empia-canal-badge--whatsapp { background: #dcfce7; }
+.empia-canal-badge--instagram {
+  background: linear-gradient(45deg, #fde2e4, #e9d5ff);
+}
+.empia-canal-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.empia-banner-btn--ig {
+  background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af);
+}
+.empia-banner-btn--ig:hover {
+  filter: brightness(1.08);
+  background: linear-gradient(45deg, #f58529, #dd2a7b 55%, #8134af);
+}
 
 /* ── Fila de estado WhatsApp en el banner ── */
 .empia-wa-row {
