@@ -16,7 +16,7 @@ import fs from 'fs'
 import path from 'path'
 import pino from 'pino'
 import QRCode from 'qrcode'
-import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } from 'baileys'
+import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } from 'baileys'
 
 const PORT = process.env.PORT || 8002
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8001'
@@ -50,7 +50,9 @@ async function startSession(businessId) {
     version,
     auth: authState,
     logger: baileysLog,
-    browser: ['AutoBusiness AI', 'Chrome', '1.0'],
+    // Identificador estándar — nombres custom de plataforma pueden hacer que
+    // el teléfono rechace el emparejamiento ("Check your connection")
+    browser: Browsers.windows('Chrome'),
     syncFullHistory: false,
     markOnlineOnConnect: false, // así el dueño sigue recibiendo notificaciones en su celular
   })
@@ -60,6 +62,13 @@ async function startSession(businessId) {
 
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update
+
+    // Diagnóstico: registrar todo el ciclo de conexión (sin el QR, que es enorme)
+    const { qr: _qr, ...rest } = update
+    if (Object.keys(rest).length) {
+      log.info({ businessId, update: JSON.stringify(rest, (k, v) =>
+        v instanceof Error ? { message: v.message, output: v.output } : v) }, 'connection.update')
+    }
 
     if (qr) {
       try {
@@ -96,7 +105,7 @@ async function startSession(businessId) {
 
       // Caída temporal (restartRequired tras escanear QR, red, etc.) → reconectar
       state.status = 'connecting'
-      log.warn({ businessId, code }, 'conexión cerrada — reintentando en 2s')
+      log.warn({ businessId, code, err: lastDisconnect?.error?.message }, 'conexión cerrada — reintentando en 2s')
       sessions.delete(businessId)
       setTimeout(() => startSession(businessId).catch(e =>
         log.error({ businessId, err: e.message }, 'fallo al reconectar')), 2000)
