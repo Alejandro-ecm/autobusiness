@@ -8,6 +8,12 @@
   color: var(--color-text-soft);
 }
 
+/* Tarjetas en gris (Más vendidos este mes, Mis negocios) */
+.card.card--gray {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
 .page-header {
   display: flex;
   align-items: flex-start;

@@ -395,7 +395,7 @@ export default function Dashboard() {
         )}
 
         {topProducts.length > 0 && (
-          <div className="card">
+          <div className="card card--gray">
             <h3 className="section-title" style={{ marginBottom: 12 }}>🏆 Más vendidos este mes</h3>
             {topProducts.slice(0, 5).map((p, i) => (
               <div key={p.name || `top-${i}`} className="list-item">
@@ -453,7 +453,7 @@ export default function Dashboard() {
       )}
 
       {/* Multi-negocio */}
-      <div className="card" style={{ padding: '16px 20px' }}>
+      <div className="card card--gray" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <h3 className="section-title" style={{ margin: 0 }}>🏢 Mis negocios</h3>
           <button className="btn btn-sm btn-outline" onClick={() => setShowAddBiz(v => !v)}>
