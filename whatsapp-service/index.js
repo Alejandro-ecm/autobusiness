@@ -1,159 +1,154 @@
 /**
- * WhatsApp Service — sesiones Baileys multi-tenant (una por negocio).
+ * WhatsApp Service — sesiones multi-tenant (una por negocio) sobre whatsapp-web.js.
  *
- * El dueño escanea un QR (como WhatsApp Web) y el Vendedor IA responde
- * los mensajes entrantes consultando al ai-engine. El backend Java es el
- * único cliente de este servicio (header x-internal-token).
+ * A diferencia de Baileys (que reimplementa el protocolo), whatsapp-web.js corre
+ * el WhatsApp Web REAL dentro de un Chromium headless. Para Meta luce como un
+ * navegador normal, así que es mucho más difícil de bloquear durante el
+ * emparejamiento por QR.
  *
- * Endpoints:
- *   POST /sessions/:businessId/connect  → inicia sesión / genera QR
- *   GET  /sessions/:businessId/status   → { status, qr?, phone? }
- *   POST /sessions/:businessId/logout   → cierra sesión y borra credenciales
- *   GET  /health                        → sin token
+ * El dueño escanea un QR (como WhatsApp Web) y el Vendedor IA responde los
+ * mensajes entrantes consultando al ai-engine. El backend Java es el único
+ * cliente de este servicio (header x-internal-token).
+ *
+ * Endpoints (idénticos al servicio anterior):
+ *   POST /sessions/:businessId/connect      → inicia sesión / genera QR
+ *   GET  /sessions/:businessId/status        → { status, qr?, phone? }
+ *   POST /sessions/:businessId/send          → mensaje a un cliente por teléfono
+ *   POST /sessions/:businessId/notify-self   → mensaje al chat propio del negocio
+ *   POST /sessions/:businessId/logout        → cierra sesión y borra credenciales
+ *   GET  /health                             → sin token
  */
 import express from 'express'
 import fs from 'fs'
 import path from 'path'
 import pino from 'pino'
 import QRCode from 'qrcode'
-import makeWASocket, { useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, Browsers } from 'baileys'
+import wweb from 'whatsapp-web.js'
+
+const { Client, LocalAuth } = wweb
 
 const PORT = process.env.PORT || 8002
 const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'http://localhost:8001'
 const INTERNAL_TOKEN = process.env.WA_INTERNAL_TOKEN || 'autobusiness_wa_internal_dev'
 const SESSIONS_DIR = process.env.SESSIONS_DIR || path.join(process.cwd(), 'sessions')
+// En Docker apuntamos al chromium del sistema; en local, puppeteer usa el suyo
+const CHROME_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || undefined
 
 const log = pino({ level: process.env.LOG_LEVEL || 'info' })
-const baileysLog = pino({ level: 'silent' }) // Baileys es muy ruidoso
 
 fs.mkdirSync(SESSIONS_DIR, { recursive: true })
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-/** businessId → { sock, status: 'connecting'|'qr'|'connected'|'disconnected', qr, phone, stopping } */
+/** businessId → { client, status, qr, phone, stopping } */
 const sessions = new Map()
 
-const sessionPath = (businessId) => path.join(SESSIONS_DIR, businessId)
+// LocalAuth guarda cada sesión en SESSIONS_DIR/session-<businessId>
+const sessionFolder = (businessId) => path.join(SESSIONS_DIR, `session-${businessId}`)
+
+function puppeteerOpts() {
+  return {
+    headless: true,
+    executablePath: CHROME_PATH,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+    ],
+  }
+}
 
 async function startSession(businessId) {
   const existing = sessions.get(businessId)
   if (existing && ['connecting', 'qr', 'connected'].includes(existing.status)) return existing
 
-  const state = { sock: null, status: 'connecting', qr: null, phone: null, stopping: false }
+  const state = { client: null, status: 'connecting', qr: null, phone: null, stopping: false }
   sessions.set(businessId, state)
 
-  const { state: authState, saveCreds } = await useMultiFileAuthState(sessionPath(businessId))
-  // Versión actual del protocolo WhatsApp Web — sin esto WA rechaza con 405
-  const { version } = await fetchLatestBaileysVersion()
-
-  const sock = makeWASocket({
-    version,
-    auth: authState,
-    logger: baileysLog,
-    // Identificador estándar — nombres custom de plataforma pueden hacer que
-    // el teléfono rechace el emparejamiento ("Check your connection")
-    browser: Browsers.windows('Chrome'),
-    syncFullHistory: false,
-    markOnlineOnConnect: false, // así el dueño sigue recibiendo notificaciones en su celular
+  const client = new Client({
+    authStrategy: new LocalAuth({ clientId: businessId, dataPath: SESSIONS_DIR }),
+    puppeteer: puppeteerOpts(),
   })
-  state.sock = sock
+  state.client = client
 
-  sock.ev.on('creds.update', saveCreds)
-
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update
-
-    // Diagnóstico: registrar todo el ciclo de conexión (sin el QR, que es enorme)
-    const { qr: _qr, ...rest } = update
-    if (Object.keys(rest).length) {
-      log.info({ businessId, update: JSON.stringify(rest, (k, v) =>
-        v instanceof Error ? { message: v.message, output: v.output } : v) }, 'connection.update')
-    }
-
-    if (qr) {
-      try {
-        state.qr = await QRCode.toDataURL(qr, { margin: 1, width: 320 })
-        state.status = 'qr'
-        log.info({ businessId }, 'QR generado')
-      } catch (e) {
-        log.error({ businessId, err: e.message }, 'error generando QR')
-      }
-    }
-
-    if (connection === 'open') {
-      state.status = 'connected'
-      state.qr = null
-      state.phone = sock.user?.id?.split(':')[0] || null
-      log.info({ businessId, phone: state.phone }, 'WhatsApp conectado')
-    }
-
-    if (connection === 'close') {
-      const code = lastDisconnect?.error?.output?.statusCode
-      const loggedOut = code === DisconnectReason.loggedOut
-      state.qr = null
-
-      if (state.stopping || loggedOut) {
-        state.status = 'disconnected'
-        sessions.delete(businessId)
-        if (loggedOut) {
-          // El usuario desvinculó el dispositivo desde su celular → borrar credenciales
-          fs.rmSync(sessionPath(businessId), { recursive: true, force: true })
-          log.info({ businessId }, 'sesión cerrada (logout)')
-        }
-        return
-      }
-
-      // Caída temporal (restartRequired tras escanear QR, red, etc.) → reconectar
-      state.status = 'connecting'
-      log.warn({ businessId, code, err: lastDisconnect?.error?.message }, 'conexión cerrada — reintentando en 2s')
-      sessions.delete(businessId)
-      setTimeout(() => startSession(businessId).catch(e =>
-        log.error({ businessId, err: e.message }, 'fallo al reconectar')), 2000)
+  client.on('qr', async (qr) => {
+    try {
+      state.qr = await QRCode.toDataURL(qr, { margin: 1, width: 320 })
+      state.status = 'qr'
+      log.info({ businessId }, 'QR generado')
+    } catch (e) {
+      log.error({ businessId, err: e.message }, 'error generando QR')
     }
   })
 
-  sock.ev.on('messages.upsert', async ({ type, messages }) => {
-    if (type !== 'notify') return
-    for (const msg of messages) {
-      try {
-        await handleIncoming(businessId, sock, msg)
-      } catch (e) {
-        log.error({ businessId, err: e.message }, 'error procesando mensaje')
-      }
+  client.on('authenticated', () => {
+    state.qr = null
+    log.info({ businessId }, 'autenticado — cargando sesión')
+  })
+
+  client.on('auth_failure', (m) => {
+    state.status = 'disconnected'
+    log.error({ businessId, msg: m }, 'fallo de autenticación')
+  })
+
+  client.on('ready', () => {
+    state.status = 'connected'
+    state.qr = null
+    state.phone = client.info?.wid?.user || null
+    log.info({ businessId, phone: state.phone }, 'WhatsApp conectado')
+  })
+
+  client.on('disconnected', async (reason) => {
+    state.qr = null
+    log.warn({ businessId, reason }, 'conexión cerrada')
+    try { await client.destroy() } catch { /* noop */ }
+    sessions.delete(businessId)
+
+    if (state.stopping || reason === 'LOGOUT') {
+      // El usuario desvinculó el dispositivo → borrar credenciales
+      fs.rmSync(sessionFolder(businessId), { recursive: true, force: true })
+      log.info({ businessId }, 'sesión cerrada (logout)')
+      return
     }
+    // Caída temporal → reintentar
+    setTimeout(() => startSession(businessId).catch(e =>
+      log.error({ businessId, err: e.message }, 'fallo al reconectar')), 3000)
+  })
+
+  client.on('message', async (msg) => {
+    try {
+      await handleIncoming(businessId, client, msg)
+    } catch (e) {
+      log.error({ businessId, err: e.message }, 'error procesando mensaje')
+    }
+  })
+
+  client.initialize().catch(e => {
+    log.error({ businessId, err: e.message }, 'error inicializando cliente')
+    state.status = 'disconnected'
+    sessions.delete(businessId)
   })
 
   return state
 }
 
-function extractText(msg) {
-  const m = msg.message
-  if (!m) return null
-  return (
-    m.conversation ||
-    m.extendedTextMessage?.text ||
-    m.imageMessage?.caption ||
-    m.videoMessage?.caption ||
-    m.ephemeralMessage?.message?.conversation ||
-    m.ephemeralMessage?.message?.extendedTextMessage?.text ||
-    null
-  )
-}
+async function handleIncoming(businessId, client, msg) {
+  if (msg.fromMe) return
+  // Solo chats directos: nada de grupos (@g.us), estados ni difusiones
+  if (!msg.from || !msg.from.endsWith('@c.us')) return
 
-async function handleIncoming(businessId, sock, msg) {
-  if (msg.key.fromMe) return
-  const jid = msg.key.remoteJid || ''
-  // Solo chats directos: nada de grupos, difusiones ni canales
-  if (!jid.endsWith('@s.whatsapp.net')) return
-
-  const text = extractText(msg)
-  if (!text || !text.trim()) return
+  const text = (msg.body || '').trim()
+  if (!text) return
 
   // Preguntar al cerebro (también valida que el Vendedor IA esté activado)
   const res = await fetch(`${AI_ENGINE_URL}/vendedor/${businessId}/reply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: text.trim(), from: jid.split('@')[0] }),
+    body: JSON.stringify({ text, from: msg.from.split('@')[0] }),
   })
   if (!res.ok) {
     log.warn({ businessId, status: res.status }, 'ai-engine respondió error')
@@ -164,14 +159,32 @@ async function handleIncoming(businessId, sock, msg) {
 
   // Marcar leído + "escribiendo..." para que se sienta humano
   try {
-    await sock.readMessages([msg.key])
-    await sock.sendPresenceUpdate('composing', jid)
+    const chat = await msg.getChat()
+    await chat.sendSeen()
+    await chat.sendStateTyping()
     await new Promise(r => setTimeout(r, 1200 + Math.random() * 800))
+    await chat.clearState()
   } catch { /* cosmético — no bloquea la respuesta */ }
 
-  await sock.sendMessage(jid, { text: reply })
-  await sock.sendPresenceUpdate('paused', jid).catch(() => {})
-  log.info({ businessId, jid: jid.split('@')[0] }, 'respuesta enviada')
+  await client.sendMessage(msg.from, reply)
+  log.info({ businessId, from: msg.from.split('@')[0] }, 'respuesta enviada')
+}
+
+/** Resuelve el chatId de WhatsApp de un teléfono (prueba con y sin lada de México). */
+async function resolveChatId(client, phone) {
+  const digits = String(phone).replace(/\D/g, '')
+  const candidates = [...new Set([
+    digits,
+    digits.length === 10 ? '52' + digits : null,
+    digits.length === 10 ? '521' + digits : null,
+  ].filter(Boolean))]
+  for (const c of candidates) {
+    try {
+      const id = await client.getNumberId(c)
+      if (id?._serialized) return id._serialized
+    } catch { /* siguiente candidato */ }
+  }
+  return null
 }
 
 // ── HTTP API ──────────────────────────────────────────────────────────────────
@@ -197,10 +210,14 @@ const publicState = (businessId) => {
   const s = sessions.get(businessId)
   if (!s) {
     // Hay credenciales guardadas pero la sesión no está corriendo
-    const hasCreds = fs.existsSync(path.join(sessionPath(businessId), 'creds.json'))
+    const hasCreds = fs.existsSync(sessionFolder(businessId))
     return { status: hasCreds ? 'paused' : 'disconnected' }
   }
-  return { status: s.status, qr: s.status === 'qr' ? s.qr : undefined, phone: s.phone || undefined }
+  return {
+    status: s.status,
+    qr: s.status === 'qr' ? s.qr : undefined,
+    phone: s.phone || undefined,
+  }
 }
 
 app.post('/sessions/:businessId/connect', async (req, res) => {
@@ -217,23 +234,6 @@ app.get('/sessions/:businessId/status', (req, res) => {
   res.json(publicState(req.params.businessId))
 })
 
-/** Resuelve el jid de WhatsApp de un teléfono (prueba con y sin lada de México). */
-async function resolveJid(sock, phone) {
-  const digits = String(phone).replace(/\D/g, '')
-  const candidates = [...new Set([
-    digits,
-    digits.length === 10 ? '52' + digits : null,
-    digits.length === 10 ? '521' + digits : null,
-  ].filter(Boolean))]
-  for (const c of candidates) {
-    try {
-      const res = await sock.onWhatsApp(c)
-      if (res?.[0]?.exists) return res[0].jid
-    } catch { /* siguiente candidato */ }
-  }
-  return null
-}
-
 // Enviar mensaje a un cliente por teléfono (Cobrador IA: recordatorios de pago)
 app.post('/sessions/:businessId/send', async (req, res) => {
   const s = sessions.get(req.params.businessId)
@@ -241,9 +241,9 @@ app.post('/sessions/:businessId/send', async (req, res) => {
   const { phone, text } = req.body || {}
   if (!phone || !text) return res.status(400).json({ error: 'phone y text son requeridos' })
   try {
-    const jid = await resolveJid(s.sock, phone)
-    if (!jid) return res.status(404).json({ error: 'Ese número no tiene WhatsApp' })
-    await s.sock.sendMessage(jid, { text })
+    const chatId = await resolveChatId(s.client, phone)
+    if (!chatId) return res.status(404).json({ error: 'Ese número no tiene WhatsApp' })
+    await s.client.sendMessage(chatId, text)
     log.info({ businessId: req.params.businessId, phone: String(phone).slice(-4) }, 'mensaje saliente enviado')
     res.json({ sent: true })
   } catch (e) {
@@ -255,14 +255,13 @@ app.post('/sessions/:businessId/send', async (req, res) => {
 // Mensaje al chat propio del negocio (Repositor IA: reportes y alertas de stock)
 app.post('/sessions/:businessId/notify-self', async (req, res) => {
   const s = sessions.get(req.params.businessId)
-  if (!s || s.status !== 'connected' || !s.sock?.user?.id) {
+  if (!s || s.status !== 'connected' || !s.client?.info?.wid?._serialized) {
     return res.status(409).json({ error: 'WhatsApp no conectado' })
   }
   const { text } = req.body || {}
   if (!text) return res.status(400).json({ error: 'text es requerido' })
   try {
-    const selfJid = s.sock.user.id.split(':')[0] + '@s.whatsapp.net'
-    await s.sock.sendMessage(selfJid, { text })
+    await s.client.sendMessage(s.client.info.wid._serialized, text)
     res.json({ sent: true })
   } catch (e) {
     log.error({ err: e.message }, 'error en notify-self')
@@ -274,24 +273,24 @@ app.post('/sessions/:businessId/logout', async (req, res) => {
   const businessId = req.params.businessId
   const s = sessions.get(businessId)
   try {
-    if (s?.sock) {
+    if (s?.client) {
       s.stopping = true
-      await s.sock.logout().catch(() => {})
-      s.sock.end?.()
+      await s.client.logout().catch(() => {})
+      await s.client.destroy().catch(() => {})
     }
   } finally {
     sessions.delete(businessId)
-    fs.rmSync(sessionPath(businessId), { recursive: true, force: true })
+    fs.rmSync(sessionFolder(businessId), { recursive: true, force: true })
   }
   res.json({ status: 'disconnected' })
 })
 
 // Restaurar sesiones existentes al arrancar (negocios ya vinculados)
 for (const dir of fs.readdirSync(SESSIONS_DIR, { withFileTypes: true })) {
-  if (dir.isDirectory() && UUID_RE.test(dir.name) &&
-      fs.existsSync(path.join(SESSIONS_DIR, dir.name, 'creds.json'))) {
-    startSession(dir.name).catch(e => log.error({ businessId: dir.name, err: e.message }, 'no se pudo restaurar sesión'))
+  const m = dir.isDirectory() && dir.name.match(/^session-(.+)$/)
+  if (m && UUID_RE.test(m[1])) {
+    startSession(m[1]).catch(e => log.error({ businessId: m[1], err: e.message }, 'no se pudo restaurar sesión'))
   }
 }
 
-app.listen(PORT, () => log.info(`WhatsApp service escuchando en :${PORT} — sesiones en ${SESSIONS_DIR}`))
+app.listen(PORT, () => log.info(`WhatsApp service (whatsapp-web.js) escuchando en :${PORT} — sesiones en ${SESSIONS_DIR}`))

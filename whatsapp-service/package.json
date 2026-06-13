@@ -1,7 +1,7 @@
 {
   "name": "autobusiness-whatsapp-service",
-  "version": "1.0.0",
-  "description": "Sesiones de WhatsApp (Baileys) multi-tenant para los Empleados IA de AutoBusiness",
+  "version": "2.0.0",
+  "description": "Sesiones de WhatsApp (whatsapp-web.js) multi-tenant para los Empleados IA de AutoBusiness",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -11,9 +11,9 @@
     "node": ">=20"
   },
   "dependencies": {
-    "baileys": "7.0.0-rc13",
     "express": "^4.21.2",
     "pino": "^9.6.0",
-    "qrcode": "^1.5.4"
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.26.0"
   }
 }
