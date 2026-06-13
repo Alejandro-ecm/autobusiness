@@ -10,8 +10,8 @@
 
 /* Tarjetas en gris (Más vendidos este mes, Mis negocios) */
 .card.card--gray {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: #cbd5e1;
+  border-color: #94a3b8;
 }
 
 .page-header {
