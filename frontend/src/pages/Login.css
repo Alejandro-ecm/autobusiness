@@ -108,9 +108,17 @@
   transition: all .15s;
 }
 .login-tab.active {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #1f2937, #030712);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, .45);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .5);
+}
+
+/* Boton Entrar / Crear negocio en negro (solo en el login) */
+.login-page .btn-primary {
+  background: linear-gradient(135deg, #1f2937, #030712);
+}
+.login-page .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #111827, #000);
 }
 
 /* ── Inputs adaptados al card oscuro ── */
