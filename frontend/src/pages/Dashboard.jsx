@@ -4,6 +4,7 @@ import { dashboard as dashboardApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import KpiCard from '../components/ui/KpiCard'
+import { celebrateWorldCup } from '../lib/celebrate'
 import './Dashboard.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`
@@ -218,6 +219,11 @@ export default function Dashboard() {
     dashboardApi.get().then(setData).finally(() => setLoading(false))
     const iv = setInterval(() => dashboardApi.get().then(setData), 60_000)
     return () => clearInterval(iv)
+  }, [])
+
+  // Bienvenida mundialista 🎉⚽ — confeti una vez por sesión al entrar al dashboard
+  useEffect(() => {
+    celebrateWorldCup({ sessionKey: 'worldcup_celebrated' })
   }, [])
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 .sidebar {
   width: 220px;
   min-height: 100vh;
-  background: #0a2240; /* azul marino */
+  background: #0a0a0a; /* negro, combina con el resto */
   display: flex;
   flex-direction: column;
   position: fixed;
