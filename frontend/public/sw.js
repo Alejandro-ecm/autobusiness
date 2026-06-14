@@ -4,7 +4,7 @@
    IndexedDB queue para POS offline
 ═══════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME   = 'autobusiness-v1'
+const CACHE_NAME   = 'autobusiness-v2'
 const API_CACHE    = 'autobusiness-api-v1'
 const OFFLINE_DB   = 'ab-offline'
 const OFFLINE_STORE = 'pending-sales'
@@ -50,6 +50,14 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return
   if (url.origin !== self.location.origin) return
 
+  // Navegaciones / HTML (app shell): Network-First para tomar SIEMPRE la
+  // ultima version tras un deploy. Asi el HTML nunca queda apuntando a
+  // bundles viejos que ya no existen (causa de "pantalla en blanco").
+  if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
+    event.respondWith(networkFirstShell(event.request))
+    return
+  }
+
   // API routes: Network-First con fallback a cache
   if (url.pathname.startsWith('/api/')) {
     const shouldCache = API_CACHE_ROUTES.some(r => url.pathname.startsWith(r))
@@ -60,9 +68,26 @@ self.addEventListener('fetch', event => {
     return
   }
 
-  // Static assets + app shell: Cache-First
+  // Assets con hash (js/css/imagenes): Cache-First (son inmutables por build)
   event.respondWith(cacheFirstWithNetwork(event.request))
 })
+
+// Network-First para el app shell: trae el HTML fresco y solo cae al cache
+// cuando no hay conexion.
+async function networkFirstShell(req) {
+  try {
+    const resp = await fetch(req)
+    if (resp.ok) {
+      const cache = await caches.open(CACHE_NAME)
+      cache.put('/index.html', resp.clone())
+    }
+    return resp
+  } catch {
+    return (await caches.match(req))
+      || (await caches.match('/index.html'))
+      || new Response('Offline', { status: 503 })
+  }
+}
 
 async function cacheFirstWithNetwork(req) {
   const cached = await caches.match(req)
