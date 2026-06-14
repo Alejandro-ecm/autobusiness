@@ -74,11 +74,11 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
   return (
     <aside className={`sidebar${open ? ' sidebar--open' : ''}${collapsed ? ' sidebar--collapsed' : ''}`}>
       <div className="sidebar-brand">
-        <div className="sidebar-logo">AB</div>
+        <img className="sidebar-logo-img" src="/favicon-512.png" alt="AutoBusiness AI" />
         {!collapsed && (
           <div className="sidebar-brand-text">
-            <div className="sidebar-brand-name">AutoBusiness</div>
-            <div className="sidebar-business" title={user?.businessName}>{user?.businessName}</div>
+            <div className="sidebar-brand-name" title={user?.businessName}>{user?.businessName || 'AutoBusiness'}</div>
+            <div className="sidebar-business">AutoBusiness AI</div>
           </div>
         )}
       </div>

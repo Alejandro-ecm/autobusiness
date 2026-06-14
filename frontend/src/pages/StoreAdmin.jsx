@@ -64,7 +64,7 @@ const THEMES = [
 ]
 
 export default function StoreAdmin() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const { show } = useToast()
   const [products, setProducts] = useState([])
   const [orders, setOrders]   = useState([])
@@ -242,6 +242,8 @@ export default function StoreAdmin() {
     setDesignLoading(true)
     try {
       await businessApi.updateSettings({ ...design, businessHours: JSON.stringify(hours) })
+      // Refleja el nuevo nombre del negocio en el sidebar al instante (sin re-login)
+      if (design.name?.trim()) updateUser({ businessName: design.name.trim() })
       show('Diseño guardado correctamente', 'success')
     } catch (e) {
       show(e?.error || 'Error al guardar diseño', 'error')
