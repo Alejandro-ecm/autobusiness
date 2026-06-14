@@ -38,10 +38,10 @@ function LegalAcceptanceScreen({ onDone }) {
           onClose={() => setDocModal(null)}
         />
       )}
-      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>
+      <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 6 }}>
         Acuerdos Legales Requeridos
       </h3>
-      <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16, lineHeight: 1.5 }}>
+      <p style={{ fontSize: 13, color: 'rgba(226,232,240,.8)', marginBottom: 16, lineHeight: 1.5 }}>
         Para continuar usando AutoBusiness AI debes aceptar los siguientes documentos legales actualizados.
       </p>
 
@@ -238,7 +238,7 @@ export default function Login() {
           ← Volver al inicio
         </Link>
         <div className="login-logo">
-          <div className="login-logo-icon">AB</div>
+          <img className="login-logo-img" src="/favicon-512.png" alt="AutoBusiness AI" />
           <h1 className="login-title">AutoBusiness AI</h1>
           <p className="login-subtitle">Plataforma inteligente para tu negocio</p>
         </div>
@@ -295,7 +295,7 @@ export default function Login() {
             )}
 
             {/* Link marketplace abajo */}
-            <div style={{ textAlign: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9' }}>
+            <div style={{ textAlign: 'center', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,.12)' }}>
               <span
                 onClick={() => navigate('/marketplace')}
                 style={{ color: '#6366f1', fontSize: 13, cursor: 'pointer', fontWeight: 600 }}>
