@@ -41,6 +41,34 @@
   z-index: 1;
 }
 
+/* ── Movil: una sola imagen a pantalla completa, rotando con crossfade ── */
+@media (max-width: 768px) {
+  .login-page::before,
+  .login-page::after {
+    width: 100%;
+    left: 0;
+    right: 0;
+    background-position: center center;
+  }
+  /* Earth Day = capa base, siempre visible debajo */
+  .login-page::before { opacity: 1; }
+  /* Mundial 2026 = capa superior que se desvanece para revelar la de abajo */
+  .login-page::after {
+    opacity: 1;
+    animation: loginBgSwap 14s ease-in-out infinite;
+  }
+}
+
+@keyframes loginBgSwap {
+  0%, 42%  { opacity: 1; }   /* muestra Mundial 2026 */
+  50%, 92% { opacity: 0; }   /* desvanece -> muestra Earth Day */
+  100%     { opacity: 1; }   /* regresa a Mundial 2026 */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page::after { animation: none; }
+}
+
 .login-box {
   width: 100%;
   max-width: 400px;
