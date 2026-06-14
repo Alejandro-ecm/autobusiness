@@ -1,7 +1,7 @@
 .sidebar {
   width: 220px;
   min-height: 100vh;
-  background: #0f172a;
+  background: #0a2240; /* azul marino */
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -11,47 +11,6 @@
   z-index: 200;
   transition: width 0.25s cubic-bezier(.4,0,.2,1);
   overflow: hidden;
-}
-
-/* ── Fondo: dos imagenes con crossfade, desenfocadas y oscurecidas ──
-   Quedan detras de los botones; el tint oscuro mantiene legible el texto. */
-.sidebar::before,
-.sidebar::after {
-  content: '';
-  position: absolute;
-  inset: -24px;                 /* margen extra para que el blur no deje bordes claros */
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  filter: blur(9px);
-  z-index: 0;
-  pointer-events: none;
-}
-.sidebar::before {
-  background-image:
-    linear-gradient(rgba(15, 23, 42, .62), rgba(15, 23, 42, .62)),
-    url('/login-bg-earthday.jpg');
-}
-.sidebar::after {
-  background-image:
-    linear-gradient(rgba(15, 23, 42, .62), rgba(15, 23, 42, .62)),
-    url('/login-bg-worldcup.jpg');
-  animation: sidebarBgSwap 14s ease-in-out infinite;
-}
-/* El contenido del sidebar va por encima del fondo */
-.sidebar > * {
-  position: relative;
-  z-index: 1;
-}
-
-@keyframes sidebarBgSwap {
-  0%, 42%  { opacity: 1; }   /* muestra Mundial 2026 */
-  50%, 92% { opacity: 0; }   /* desvanece -> muestra Earth Day */
-  100%     { opacity: 1; }   /* regresa a Mundial 2026 */
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar::after { animation: none; }
 }
 
 /* ── Collapsed (icon-only) mode ── */

@@ -4,6 +4,7 @@
 }
 
 .app-content {
+  position: relative;
   margin-left: 220px;
   flex: 1;
   /* min-width 0: sin esto, contenido con ancho intrínseco grande (p. ej. la pasarela
@@ -15,9 +16,58 @@
   transition: margin-left 0.25s cubic-bezier(.4,0,.2,1);
 }
 
+/* ── Fondo ambiental: dos imagenes con crossfade, difuminadas detras del
+   contenido. Velo claro encima para mantener legible el texto oscuro. ── */
+.app-content::before,
+.app-content::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 220px;                 /* empieza despues del sidebar */
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  filter: blur(7px);
+  z-index: 0;
+  pointer-events: none;
+  transition: left 0.25s cubic-bezier(.4,0,.2,1);
+}
+.app-content::before {
+  background-image:
+    linear-gradient(rgba(248, 250, 252, .58), rgba(248, 250, 252, .58)),
+    url('/login-bg-earthday.jpg');
+}
+.app-content::after {
+  background-image:
+    linear-gradient(rgba(248, 250, 252, .58), rgba(248, 250, 252, .58)),
+    url('/login-bg-worldcup.jpg');
+  animation: appBgSwap 14s ease-in-out infinite;
+}
+/* El contenido (topbar + main) va por encima del fondo */
+.app-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes appBgSwap {
+  0%, 42%  { opacity: 1; }   /* muestra Mundial 2026 */
+  50%, 92% { opacity: 0; }   /* desvanece -> muestra Earth Day */
+  100%     { opacity: 1; }   /* regresa a Mundial 2026 */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-content::after { animation: none; }
+}
+
 /* Collapsed sidebar: content shifts left */
 .sidebar-collapsed .app-content {
   margin-left: 62px;
+}
+.sidebar-collapsed .app-content::before,
+.sidebar-collapsed .app-content::after {
+  left: 62px;
 }
 
 .app-main {
@@ -54,6 +104,10 @@
   .app-content {
     margin-left: 0 !important;
     width: 100%;
+  }
+  .app-content::before,
+  .app-content::after {
+    left: 0;
   }
 
   .app-main {
