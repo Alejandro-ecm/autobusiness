@@ -221,7 +221,7 @@ export default function Login() {
         onClick={() => navigate('/marketplace')}
         style={{
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 10,
-          background: 'linear-gradient(90deg,#1f2937,#030712)',
+          background: '#000',
           color: '#fff', textAlign: 'center', padding: '10px',
           cursor: 'pointer', fontSize: 13, fontWeight: 600,
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
