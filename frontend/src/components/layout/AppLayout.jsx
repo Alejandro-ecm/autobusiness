@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
+import { celebrateWorldCup } from '../../lib/celebrate'
 import './AppLayout.css'
 
 export default function AppLayout({ children }) {
@@ -11,6 +12,9 @@ export default function AppLayout({ children }) {
   const location = useLocation()
 
   useEffect(() => { setOpen(false) }, [location.pathname])
+
+  // 🎉⚽ Confeti mundialista cada vez que se entra a una sección
+  useEffect(() => { celebrateWorldCup({ quick: true }) }, [location.pathname])
 
   const toggleCollapse = () => {
     const next = !collapsed

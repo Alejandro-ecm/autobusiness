@@ -11,8 +11,10 @@ let lastRun = 0
  * @param {object} opts
  * @param {string} [opts.sessionKey] si se pasa, solo se dispara una vez por
  *   sesión del navegador (evita repetirlo en cada visita).
+ * @param {boolean} [opts.quick] versión corta (solo estallido, sin los
+ *   cañones laterales de 2.5s). Ideal para cada cambio de sección.
  */
-export function celebrateWorldCup({ sessionKey } = {}) {
+export function celebrateWorldCup({ sessionKey, quick } = {}) {
   if (sessionKey) {
     try {
       if (sessionStorage.getItem(sessionKey)) return
@@ -22,11 +24,19 @@ export function celebrateWorldCup({ sessionKey } = {}) {
 
   // Throttle: evita re-disparos encimados
   const now = Date.now()
-  if (now - lastRun < 1500) return
+  if (now - lastRun < 1200) return
   lastRun = now
 
   import('canvas-confetti').then(({ default: confetti }) => {
     const base = { zIndex: 3000, disableForReducedMotion: true, colors: WORLDCUP_COLORS }
+
+    if (quick) {
+      // Estallido rápido para cada navegación
+      confetti({ ...base, particleCount: 70, spread: 80, startVelocity: 45, origin: { x: 0.5, y: 0.45 } })
+      confetti({ ...base, particleCount: 30, angle: 60, spread: 60, origin: { x: 0, y: 0.75 } })
+      confetti({ ...base, particleCount: 30, angle: 120, spread: 60, origin: { x: 1, y: 0.75 } })
+      return
+    }
 
     // Estallido inicial: centro + ambas esquinas inferiores
     confetti({ ...base, particleCount: 130, spread: 95, startVelocity: 55, origin: { x: 0.5, y: 0.5 } })
