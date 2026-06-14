@@ -898,7 +898,11 @@ export default function Storefront() {
                 <div key={p.id} className={`sf-product ${soldOut ? 'sf-product--sold-out' : ''}`}>
                   <div className="sf-product-img">
                     {p.imageUrl
-                      ? <img src={p.imageUrl} alt={p.name} />
+                      ? <img src={p.imageUrl} alt={p.name}
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            e.currentTarget.parentNode.classList.add('sf-product-img--broken')
+                          }} />
                       : <div className="sf-product-placeholder">
                           <span>📦</span>
                           <span className="sf-placeholder-name">{p.name[0]}</span>

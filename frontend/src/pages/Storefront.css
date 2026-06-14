@@ -170,6 +170,10 @@
   position: relative; overflow: hidden;
 }
 .sf-product-img img { width: 100%; height: 100%; object-fit: cover; }
+/* Imagen externa que no cargó (hotlink bloqueado): mostrar emoji de fondo */
+.sf-product-img--broken::after {
+  content: '📦'; font-size: 40px; opacity: .5;
+}
 .sf-product-placeholder {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 4px; width: 100%; height: 100%;

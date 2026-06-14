@@ -4,6 +4,7 @@ import com.autobusiness.config.JwtAuthFilter.AuthPrincipal;
 import com.autobusiness.domain.model.Product;
 import com.autobusiness.domain.repository.CategoryRepository;
 import com.autobusiness.domain.repository.InventoryMovementRepository;
+import com.autobusiness.domain.service.CloudinaryService;
 import com.autobusiness.domain.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,13 @@ public class InventoryController {
     private final InventoryService inventoryService;
     private final InventoryMovementRepository movementRepo;
     private final CategoryRepository categoryRepo;
+    private final CloudinaryService cloudinaryService;
+
+    /** Si el usuario pegó un link externo, lo re-alojamos en Cloudinary para que sí se vea. */
+    private String resolveImage(Object raw) {
+        if (raw == null) return null;
+        return cloudinaryService.rehostIfExternal(raw.toString(), "products");
+    }
 
     @GetMapping
     public ResponseEntity<List<Product>> getInventory(
@@ -51,7 +59,7 @@ public class InventoryController {
                     .minStock(body.get("minStock") != null ? new BigDecimal(body.get("minStock").toString()) : BigDecimal.valueOf(5))
                     .sku(body.get("sku") != null ? body.get("sku").toString() : null)
                     .description(body.get("description") != null ? body.get("description").toString() : null)
-                    .imageUrl(body.get("imageUrl") != null ? body.get("imageUrl").toString() : null)
+                    .imageUrl(resolveImage(body.get("imageUrl")))
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
                     .saleMode(body.get("saleMode") != null ? body.get("saleMode").toString() : "UNIT")
                     .baseUnit(body.get("baseUnit") != null ? body.get("baseUnit").toString() : "unit")
@@ -121,7 +129,7 @@ public class InventoryController {
                     .sku(body.get("sku") != null ? body.get("sku").toString() : null)
                     .description(body.get("description") != null ? body.get("description").toString() : null)
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
-                    .imageUrl(body.get("imageUrl") != null ? body.get("imageUrl").toString() : null)
+                    .imageUrl(resolveImage(body.get("imageUrl")))
                     .saleMode(body.get("saleMode") != null ? body.get("saleMode").toString() : null)
                     .baseUnit(body.get("baseUnit") != null ? body.get("baseUnit").toString() : null)
                     .allowsDecimal(body.get("allowsDecimal") != null && Boolean.parseBoolean(body.get("allowsDecimal").toString()))
