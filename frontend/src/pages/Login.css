@@ -1,17 +1,44 @@
 .login-page {
+  position: relative;
   min-height: 100vh;
-  /* Dos imagenes a los lados: Earth Day a la izquierda, Mundial 2026 a la derecha */
   background-color: #0b1020;
-  background-image:
-    url('/login-bg-earthday.jpg'),
-    url('/login-bg-worldcup.jpg');
-  background-position: left center, right center;
-  background-size: auto 100%, auto 100%;
-  background-repeat: no-repeat, no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow: hidden;
+}
+
+/* Cada imagen cubre su mitad de la pantalla, juntas en el centro sin hueco */
+.login-page::before,
+.login-page::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  z-index: 0;
+}
+/* Izquierda: Earth Day */
+.login-page::before {
+  left: 0;
+  background-image: url('/login-bg-earthday.jpg');
+  background-position: center center;
+}
+/* Derecha: Mundial 2026 */
+.login-page::after {
+  right: 0;
+  background-image: url('/login-bg-worldcup.jpg');
+  background-position: center center;
+}
+
+/* El card de login va por encima de las imagenes */
+.login-page .login-box,
+.login-page > div {
+  position: relative;
+  z-index: 1;
 }
 
 .login-box {
