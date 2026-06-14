@@ -66,3 +66,35 @@
   width: 20px; height: 20px; font-size: 11px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
+
+/* ── Barra de acciones masivas del catálogo ── */
+.catalog-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.catalog-toolbar-bulk,
+.catalog-toolbar-selected {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.catalog-toolbar-selected {
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid #cbd5e1;
+}
+.catalog-selected-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #4f46e5;
+}
+.inv-table tr.row-selected {
+  background: #eef2ff;
+}

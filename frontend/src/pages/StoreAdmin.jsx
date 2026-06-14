@@ -71,6 +71,10 @@ export default function StoreAdmin() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab]         = useState('catalogo')
 
+  // Selección múltiple para acciones masivas en el catálogo
+  const [selected, setSelected]       = useState(() => new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+
   const [showQr, setShowQr] = useState(false)
   const storeUrl     = user?.businessSlug ? `/tienda/${user.businessSlug}` : null
   const fullStoreUrl = storeUrl ? `${window.location.origin}${storeUrl}` : null
@@ -179,6 +183,51 @@ export default function StoreAdmin() {
     }
   }
 
+  // ── Acciones masivas (publicar / quitar varios o todos) ──────────────────
+  const setProductOnline = (product, online) => inventoryApi.update(product.id, {
+    name: product.name, price: product.price, cost: product.cost || 0,
+    minStock: product.minStock || 5, description: product.description, isOnline: online,
+  })
+
+  const bulkSetOnline = async (targets, online) => {
+    if (targets.length === 0) {
+      show(online ? 'No hay productos por publicar' : 'No hay productos por quitar')
+      return
+    }
+    setBulkLoading(true)
+    const ids = new Set(targets.map(t => t.id))
+    // Optimista: todos cambian al instante
+    setProducts(prev => prev.map(p => ids.has(p.id) ? { ...p, isOnline: online } : p))
+    try {
+      await Promise.all(targets.map(t => setProductOnline(t, online)))
+      show(online
+        ? `${targets.length} producto${targets.length !== 1 ? 's' : ''} publicado${targets.length !== 1 ? 's' : ''}`
+        : `${targets.length} producto${targets.length !== 1 ? 's' : ''} quitado${targets.length !== 1 ? 's' : ''}`,
+        'success')
+      setSelected(new Set())
+    } catch {
+      show('Error al actualizar algunos productos', 'error')
+      load()
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  const publishAll = () => bulkSetOnline(products.filter(p => !p.isOnline && p.stock > 0), true)
+  const removeAll  = () => bulkSetOnline(products.filter(p => p.isOnline), false)
+
+  const toggleSelect = (id) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+  const allSelected = products.length > 0 && selected.size === products.length
+  const toggleSelectAll = () => setSelected(allSelected ? new Set() : new Set(products.map(p => p.id)))
+
+  const selectedProducts  = products.filter(p => selected.has(p.id))
+  const publishSelected = () => bulkSetOnline(selectedProducts.filter(p => !p.isOnline && p.stock > 0), true)
+  const removeSelected  = () => bulkSetOnline(selectedProducts.filter(p => p.isOnline), false)
+
   const updateOrderStatus = async (id, status) => {
     try {
       await ordersApi.updateStatus(id, status)
@@ -283,10 +332,47 @@ export default function StoreAdmin() {
 
       {/* Catálogo */}
       {tab === 'catalogo' && (
+        <>
+        {products.length > 0 && (
+          <div className="catalog-toolbar">
+            <div className="catalog-toolbar-bulk">
+              <button className="btn btn-sm btn-primary" onClick={publishAll} disabled={bulkLoading}>
+                ✓ Publicar todo
+              </button>
+              <button className="btn btn-sm btn-outline" onClick={removeAll} disabled={bulkLoading}>
+                ✕ Quitar todo
+              </button>
+            </div>
+            {selected.size > 0 && (
+              <div className="catalog-toolbar-selected">
+                <span className="catalog-selected-count">{selected.size} seleccionado{selected.size !== 1 ? 's' : ''}</span>
+                <button className="btn btn-sm btn-primary" onClick={publishSelected} disabled={bulkLoading}>
+                  Publicar selección
+                </button>
+                <button className="btn btn-sm btn-danger" onClick={removeSelected} disabled={bulkLoading}>
+                  Quitar selección
+                </button>
+                <button className="btn btn-sm btn-outline" onClick={() => setSelected(new Set())} disabled={bulkLoading}>
+                  Limpiar
+                </button>
+              </div>
+            )}
+            {bulkLoading && <span className="spinner" style={{ width: 16, height: 16 }} />}
+          </div>
+        )}
         <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
           <table className="inv-table">
             <thead>
               <tr>
+                <th style={{ width: 36 }}>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    title="Seleccionar todos"
+                    style={{ cursor: 'pointer', width: 16, height: 16 }}
+                  />
+                </th>
                 <th>Producto</th>
                 <th>Precio</th>
                 <th>Stock</th>
@@ -296,7 +382,15 @@ export default function StoreAdmin() {
             </thead>
             <tbody>
               {products.map(p => (
-                <tr key={p.id}>
+                <tr key={p.id} className={selected.has(p.id) ? 'row-selected' : ''}>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(p.id)}
+                      onChange={() => toggleSelect(p.id)}
+                      style={{ cursor: 'pointer', width: 16, height: 16 }}
+                    />
+                  </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       {p.imageUrl
@@ -350,6 +444,7 @@ export default function StoreAdmin() {
             </div>
           )}
         </div>
+        </>
       )}
 
       {/* Pedidos */}
