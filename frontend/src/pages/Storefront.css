@@ -52,6 +52,18 @@
     radial-gradient(1px 1px at 75% 10%, rgba(255,255,255,.4) 0%, transparent 100%);
 }
 
+/* Banner subido por el negocio: cubre el degradado de respaldo */
+.sf-hero-banner {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; pointer-events: none;
+}
+/* Capa oscura sobre el banner para que el logo y el texto sean legibles */
+.sf-hero-overlay {
+  position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(13,27,46,.55) 0%, rgba(13,27,46,.35) 50%, rgba(13,27,46,.7) 100%);
+}
+
 .sf-hero-content {
   position: relative; z-index: 1;
   max-width: 680px; margin: 0 auto; text-align: center;

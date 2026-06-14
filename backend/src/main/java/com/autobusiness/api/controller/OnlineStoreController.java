@@ -3,6 +3,7 @@ package com.autobusiness.api.controller;
 import com.autobusiness.config.JwtAuthFilter.AuthPrincipal;
 import com.autobusiness.domain.model.Business;
 import com.autobusiness.domain.repository.BusinessRepository;
+import com.autobusiness.domain.service.CloudinaryService;
 import com.autobusiness.domain.service.MercadoPagoService;
 import com.autobusiness.domain.service.OnlineStoreService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class OnlineStoreController {
     private final OnlineStoreService storeService;
     private final MercadoPagoService mpService;
     private final BusinessRepository businessRepo;
+    private final CloudinaryService cloudinaryService;
 
     // Público — catálogo de la tienda online
     @GetMapping("/store/{slug}")
@@ -134,10 +136,15 @@ public class OnlineStoreController {
             }
             if (body.containsKey("description"))
                 business.setDescription(body.get("description") != null ? body.get("description").toString() : null);
-            if (body.containsKey("logoUrl"))
-                business.setLogoUrl(body.get("logoUrl") != null ? body.get("logoUrl").toString() : null);
-            if (body.containsKey("bannerUrl"))
-                business.setBannerUrl(body.get("bannerUrl") != null ? body.get("bannerUrl").toString() : null);
+            if (body.containsKey("logoUrl")) {
+                String logoUrl = body.get("logoUrl") != null ? body.get("logoUrl").toString() : null;
+                // Re-aloja en Cloudinary si es un link externo (evita bloqueo de hotlinking)
+                business.setLogoUrl(cloudinaryService.rehostIfExternal(logoUrl, "logos"));
+            }
+            if (body.containsKey("bannerUrl")) {
+                String bannerUrl = body.get("bannerUrl") != null ? body.get("bannerUrl").toString() : null;
+                business.setBannerUrl(cloudinaryService.rehostIfExternal(bannerUrl, "banners"));
+            }
             if (body.containsKey("storeTheme")) {
                 String theme = body.get("storeTheme") != null ? body.get("storeTheme").toString() : "modern";
                 business.setStoreTheme(ALLOWED_THEMES.contains(theme) ? theme : "modern");

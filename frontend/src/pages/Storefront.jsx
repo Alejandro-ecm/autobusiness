@@ -420,6 +420,7 @@ export default function Storefront() {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('all')
   const [logoError, setLogoError] = useState(false)
+  const [bannerError, setBannerError] = useState(false)
 
   useEffect(() => {
     storeApi.storefront(slug).then(setStorefront).finally(() => setLoading(false))
@@ -817,11 +818,21 @@ export default function Storefront() {
     <div className={`sf-page sf-theme-${theme}`} style={isAdmin ? { paddingTop: 41 } : {}}>
       <AdminBar />
       {/* ── HERO BANNER ─────────────────────────────────────────────────── */}
-      <div
-        className="sf-hero"
-        style={bannerUrl ? { backgroundImage: `url(${bannerUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
-      >
-        {!bannerUrl && <div className="sf-hero-bg" />}
+      <div className="sf-hero">
+        {/* Degradado de fondo: siempre presente como respaldo si el banner no carga */}
+        <div className="sf-hero-bg" />
+        {bannerUrl && !bannerError && (
+          <>
+            <img
+              className="sf-hero-banner"
+              src={bannerUrl}
+              alt=""
+              aria-hidden="true"
+              onError={() => setBannerError(true)}
+            />
+            <div className="sf-hero-overlay" />
+          </>
+        )}
         <div className="sf-hero-content">
           <div className="sf-hero-logo-wrap">
             <img
