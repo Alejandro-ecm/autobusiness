@@ -1,9 +1,7 @@
 .login-page {
   min-height: 100vh;
-  /* Fondo Mundial 2026 con capa oscura encima para legibilidad del formulario */
-  background:
-    linear-gradient(135deg, rgba(15,23,42,.78) 0%, rgba(30,27,75,.82) 100%),
-    url('/login-bg-worldcup.jpg') center / cover no-repeat;
+  /* Fondo Mundial 2026 completo y centrado (sin recorte), sobre fondo oscuro */
+  background: #0b1020 url('/login-bg-worldcup.jpg') center / contain no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
