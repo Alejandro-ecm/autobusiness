@@ -23,6 +23,11 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getCategories(p.businessId()));
     }
 
+    @GetMapping("/earnings")
+    public ResponseEntity<?> earnings(@AuthenticationPrincipal AuthPrincipal p) {
+        return ResponseEntity.ok(categoryService.getEarningsByCategory(p.businessId()));
+    }
+
     @PostMapping
     @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
     public ResponseEntity<?> create(@AuthenticationPrincipal AuthPrincipal p,

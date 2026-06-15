@@ -110,6 +110,12 @@ public class Product {
         return stock.compareTo(minStock) <= 0;
     }
 
+    // Expone el id de la categoría en el JSON (el frontend lee `categoryId`).
+    // Sin esto, la categoría sólo llega anidada en `category` y el front no la veía.
+    public UUID getCategoryId() {
+        return category != null ? category.getId() : null;
+    }
+
     // Devuelve el precio efectivo dado un modo de venta
     public BigDecimal effectivePrice(String mode) {
         if ("WEIGHT".equals(mode) && pricePerKg != null) return pricePerKg;

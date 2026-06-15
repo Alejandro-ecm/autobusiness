@@ -33,10 +33,11 @@ export const inventory = {
 }
 
 export const categories = {
-  list:   ()          => client.get('/categories'),
-  create: (data)      => client.post('/categories', data),
-  update: (id, data)  => client.put(`/categories/${id}`, data),
-  delete: (id)        => client.delete(`/categories/${id}`),
+  list:     ()          => client.get('/categories'),
+  earnings: ()          => client.get('/categories/earnings'),
+  create:   (data)      => client.post('/categories', data),
+  update:   (id, data)  => client.put(`/categories/${id}`, data),
+  delete:   (id)        => client.delete(`/categories/${id}`),
 }
 
 export const customers = {

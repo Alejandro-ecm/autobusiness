@@ -130,6 +130,8 @@ export default function Inventory() {
   const [sortBy, setSortBy] = useState('name')
   const [filterStock, setFilterStock] = useState('all')
   const [showStats,   setShowStats]   = useState(true)
+  const [catEarnings, setCatEarnings] = useState([])
+  const [showEarnings, setShowEarnings] = useState(false)
   const [showImport,    setShowImport]    = useState(false)
   const [importRows,    setImportRows]    = useState([])
   const [importing,     setImporting]     = useState(false)
@@ -151,6 +153,14 @@ export default function Inventory() {
   }).finally(() => setLoading(false))
 
   const loadCategories = () => categoriesApi.list().then(setCategories).catch(() => {})
+
+  const loadEarnings = () => categoriesApi.earnings().then(setCatEarnings).catch(() => {})
+
+  const toggleEarnings = () => {
+    const next = !showEarnings
+    setShowEarnings(next)
+    if (next) loadEarnings()
+  }
 
   useEffect(() => {
     load()
@@ -699,12 +709,32 @@ export default function Inventory() {
           {isOwner && (
             <button className="btn btn-sm btn-outline" onClick={() => setShowCatModal(true)}>+ Categoría</button>
           )}
+          <button className="btn btn-sm btn-outline" onClick={toggleEarnings}>
+            {showEarnings ? 'Ocultar ganancias' : '💰 Ganancias por categoría'}
+          </button>
         </div>
       )}
       {categories.length === 0 && isOwner && (
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <span className="text-soft text-sm">Sin categorías.</span>
           <button className="btn btn-sm btn-outline" onClick={() => setShowCatModal(true)}>+ Agregar categoría</button>
+        </div>
+      )}
+
+      {showEarnings && (
+        <div className="cat-earnings">
+          {catEarnings.length === 0 && (
+            <p className="cat-earnings-empty">Aún no hay ventas registradas por categoría.</p>
+          )}
+          {catEarnings.map(c => (
+            <div className="cat-earn-row" key={c.categoryId || 'sin-cat'}>
+              <span className="cat-earn-dot" style={{ background: c.color }} />
+              <span className="cat-earn-name">{c.name}</span>
+              <span className="cat-earn-units">{Number(c.units || 0).toLocaleString('es-MX')} uds</span>
+              <span className="cat-earn-rev">{fmt(c.revenue)} <small>ingresos</small></span>
+              <span className="cat-earn-profit">{fmt(c.profit)} <small>ganancia</small></span>
+            </div>
+          ))}
         </div>
       )}
 

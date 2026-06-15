@@ -67,6 +67,13 @@ public class InventoryController {
                     .pricePerKg(body.get("pricePerKg") != null ? new BigDecimal(body.get("pricePerKg").toString()) : null)
                     .variants(body.get("variants") != null ? body.get("variants").toString() : null)
                     .build();
+            // Asigna la categoría si viene en el body
+            if (body.get("categoryId") != null) {
+                try {
+                    var cat = categoryRepo.findById(UUID.fromString(body.get("categoryId").toString()));
+                    cat.ifPresent(product::setCategory);
+                } catch (Exception ignored) {}
+            }
             return ResponseEntity.ok(inventoryService.createProduct(principal.businessId(), product));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

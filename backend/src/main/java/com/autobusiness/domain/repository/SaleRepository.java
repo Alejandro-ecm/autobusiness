@@ -123,4 +123,16 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     List<Object[]> cashierCosts(@Param("businessId") UUID businessId,
                                 @Param("from") Instant from,
                                 @Param("to") Instant to);
+
+    // ----- Ganancias totales por categoría -----
+    // Devuelve: [categoryId (puede ser null), ingresos, ganancia, unidades vendidas]
+    // LEFT JOIN para incluir también los productos sin categoría asignada.
+    @Query("SELECT c.id, " +
+           "COALESCE(SUM(si.subtotal), 0), " +
+           "COALESCE(SUM((si.unitPrice - si.unitCost) * si.quantity), 0), " +
+           "COALESCE(SUM(si.quantity), 0) " +
+           "FROM SaleItem si JOIN si.sale s JOIN si.product p LEFT JOIN p.category c " +
+           "WHERE s.business.id = :businessId AND s.status = 'completed' " +
+           "GROUP BY c.id")
+    List<Object[]> earningsByCategory(@Param("businessId") UUID businessId);
 }
