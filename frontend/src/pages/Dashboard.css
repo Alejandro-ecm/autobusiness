@@ -144,9 +144,12 @@
 
 .main-insight-impact {
   font-size: 13px;
-  color: var(--color-success);
-  font-weight: 600;
+  color: #1d4ed8;
+  font-weight: 700;
 }
+
+/* Todos los números de la sección en azul */
+.dashboard-page .text-success { color: #1d4ed8 !important; }
 
 /* ── Consejo del día ── */
 .tip-card {
@@ -310,6 +313,27 @@
   flex-wrap: wrap;
 }
 
+/* ── Botones del dashboard en gris ── */
+/* Sólidos (no transparentes) → gris sólido */
+.dashboard-page .btn-primary {
+  background: #475569;
+}
+.dashboard-page .btn-primary:hover:not(:disabled) {
+  background: #334155;
+}
+/* Transparentes (outline) → velo gris translúcido */
+.dashboard-page .btn-outline {
+  background: rgba(100, 116, 139, .28);
+  border-color: rgba(148, 163, 184, .6);
+  color: #1e293b;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.dashboard-page .btn-outline:hover {
+  background: rgba(100, 116, 139, .42);
+  color: #0f172a;
+}
+
 /* ═══════════════════════════════════
    TABLET (769–1024px)
    ═══════════════════════════════════ */
@@ -424,8 +448,8 @@
 }
 .cr-sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
 .cr-figures { text-align: right; flex-shrink: 0; }
-.cr-revenue { font-weight: 800; font-size: 16px; color: #6366f1; }
-.cr-profit { font-size: 12px; color: #10b981; font-weight: 600; margin-top: 2px; }
+.cr-revenue { font-weight: 800; font-size: 16px; color: #1d4ed8; }
+.cr-profit { font-size: 12px; color: #1d4ed8; font-weight: 600; margin-top: 2px; }
 
 @media (max-width: 560px) {
   .cr-rank { font-size: 22px; width: 28px; }
