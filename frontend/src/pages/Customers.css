@@ -6,14 +6,33 @@
   gap: 12px;
 }
 .cust-stat {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  /* Tarjetas en azul pastel */
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
   border-radius: var(--radius);
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 4px;
 }
-.cust-stat-val  { font-size: 22px; font-weight: 800; color: #0f172a; }
-.cust-stat-lbl  { font-size: 12px; color: var(--color-text-soft); }
+.cust-stat-val  { font-size: 22px; font-weight: 800; color: #1e3a8a; }
+.cust-stat-lbl  { font-size: 12px; color: #1e40af; }
+
+/* Botón "+ Agregar cliente" en azul pastel (antes morado) */
+.customers-page .btn-primary {
+  background: #93c5fd;
+  color: #1e3a8a;
+}
+.customers-page .btn-primary:hover:not(:disabled) {
+  background: #60a5fa;
+  color: #1e3a8a;
+}
+
+/* Buscador en azul pastel claro */
+.customers-page > .input {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e3a8a;
+}
+.customers-page > .input::placeholder { color: #3b82f6; }
 
 .cust-name-cell { display: flex; align-items: center; gap: 10px; }
 .cust-avatar {
