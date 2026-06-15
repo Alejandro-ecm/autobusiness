@@ -8,11 +8,10 @@
   color: var(--color-text-soft);
 }
 
-/* Tarjetas (Más vendidos este mes, Mis negocios) — blancas y limpias */
+/* Tarjetas en gris (Más vendidos este mes, Mis negocios) */
 .card.card--gray {
-  background: #ffffff;
-  border-color: #e8edf3;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .06), 0 4px 12px rgba(15, 23, 42, .05);
+  background: #cbd5e1;
+  border-color: #94a3b8;
 }
 
 .page-header {
@@ -151,9 +150,7 @@
   padding: 24px 24px 20px;
   margin-bottom: 24px;
   color: #fff;
-  /* Tono sobrio y consistente (slate→indigo) en vez de degradados saturados */
-  background: linear-gradient(135deg, #1f2937 0%, #312e81 100%);
-  box-shadow: 0 4px 20px rgba(0,0,0,.18);
+  box-shadow: 0 4px 20px rgba(0,0,0,.15);
   position: relative;
   overflow: hidden;
 }

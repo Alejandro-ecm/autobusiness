@@ -1,15 +1,15 @@
 .kpi-card {
-  background: #ffffff;
-  border: 1px solid #e8edf3;
+  background: #cbd5e1;
+  border: 1px solid #94a3b8;
   border-radius: var(--radius);
   padding: 20px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, .06), 0 4px 12px rgba(15, 23, 42, .05);
+  box-shadow: var(--shadow);
   transition: transform .25s ease, box-shadow .25s ease;
 }
 
 .kpi-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, .12);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .10);
 }
 
 .kpi-header {
