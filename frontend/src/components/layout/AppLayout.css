@@ -16,7 +16,8 @@
   transition: margin-left 0.25s cubic-bezier(.4,0,.2,1);
 }
 
-/* ── Fondo: una sola imagen difuminada detras del contenido, sin velo ── */
+/* ── Fondo: imagen del estadio MUY atenuada (velo claro fuerte + blur) para
+   que sea solo una ambientacion sutil y los datos/tarjetas resalten. ── */
 .app-content::before {
   content: '';
   position: fixed;
@@ -24,11 +25,13 @@
   bottom: 0;
   right: 0;
   left: 220px;                 /* empieza despues del sidebar */
-  background-image: url('/dashboard-bg.jpg');
+  background-image:
+    linear-gradient(rgba(244, 247, 251, .88), rgba(244, 247, 251, .88)),
+    url('/dashboard-bg.jpg');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-  filter: blur(7px);
+  filter: blur(4px);
   z-index: 0;
   pointer-events: none;
   transition: left 0.25s cubic-bezier(.4,0,.2,1);

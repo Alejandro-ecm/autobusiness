@@ -363,7 +363,7 @@ export default function Dashboard() {
       )}
 
       {/* ── CONSEJO DEL DÍA ── */}
-      <div className="tip-card" style={{ background: todayTip.gradient }}>
+      <div className="tip-card">
         <div className="tip-card-top">
           <span className="tip-category">{todayTip.category}</span>
           <span className="tip-icon">{todayTip.icon}</span>
