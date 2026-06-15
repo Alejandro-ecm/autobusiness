@@ -63,7 +63,7 @@ const WA_STATUS_LABEL = {
   qr:           { text: 'Esperando escaneo de QR', color: '#b45309' },
   connecting:   { text: 'Conectando…', color: '#b45309' },
   paused:       { text: 'Sesión vinculada (reconectando)', color: '#b45309' },
-  disconnected: { text: 'WhatsApp sin conectar', color: '#64748b' },
+  disconnected: { text: 'WhatsApp sin conectar', color: '#1e293b' },
 }
 
 export default function EmpleadosIA() {

@@ -14,7 +14,7 @@
 .sub-badge-due     { background: #fef3c7; color: #92400e; }
 .sub-badge-canceled{ background: #fee2e2; color: #991b1b; }
 
-.sub-days    { font-size: 13px; color: #64748b; margin: 0; }
+.sub-days    { font-size: 13px; color: #1e293b; margin: 0; }
 .sub-expired { font-size: 13px; color: #ef4444; margin: 0; font-weight: 500; }
 
 .sub-current-features {
@@ -30,7 +30,7 @@
 .sub-usage-grid { display: flex; gap: 32px; }
 .sub-usage-item { display: flex; flex-direction: column; gap: 4px; }
 .sub-usage-val  { font-size: 28px; font-weight: 800; color: #6366f1; }
-.sub-usage-lbl  { font-size: 13px; color: #64748b; }
+.sub-usage-lbl  { font-size: 13px; color: #1e293b; }
 
 .sub-plans {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
@@ -49,7 +49,7 @@
 }
 .sub-plan-title { font-size: 14px; font-weight: 700; letter-spacing: 1px; }
 .sub-plan-price { font-size: 30px; font-weight: 900; color: #0f172a; }
-.sub-plan-price span { font-size: 14px; color: #64748b; font-weight: 400; }
+.sub-plan-price span { font-size: 14px; color: #1e293b; font-weight: 400; }
 .sub-plan-feats {
   list-style: none; padding: 0; margin: 0;
   display: flex; flex-direction: column; gap: 7px; flex: 1;
@@ -57,6 +57,6 @@
 .sub-plan-feats li { font-size: 13px; color: #334155; }
 .sub-upgrade-btn { width: 100%; justify-content: center; }
 .sub-current-tag {
-  background: #f1f5f9; color: #64748b; text-align: center;
+  background: #f1f5f9; color: #1e293b; text-align: center;
   padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
 }

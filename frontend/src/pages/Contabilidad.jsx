@@ -21,7 +21,7 @@ function Tooltip({ text }) {
   return (
     <span style={{ position: 'relative', display: 'inline-block' }}>
       <button
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 14, padding: '0 4px' }}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#1e293b', fontSize: 14, padding: '0 4px' }}
         onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>ℹ️</button>
       {show && (
         <div style={{
@@ -64,7 +64,7 @@ export default function Contabilidad() {
   if (loading) return (
     <div className="page-loading">
       <div className="spinner" style={{ width: 36, height: 36 }} />
-      <p style={{ marginTop: 12, color: '#64748b' }}>Cargando datos contables...</p>
+      <p style={{ marginTop: 12, color: '#1e293b' }}>Cargando datos contables...</p>
     </div>
   )
   if (error) return (

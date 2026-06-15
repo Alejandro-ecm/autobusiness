@@ -261,7 +261,7 @@ export default function Customers() {
             <div className="modal-header">
               <div>
                 <h3>{selected.name}</h3>
-                {selected.phone && <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>{selected.phone}</p>}
+                {selected.phone && <p style={{ margin: 0, fontSize: 13, color: '#1e293b' }}>{selected.phone}</p>}
               </div>
               <button className="modal-close" onClick={() => setSelected(null)}>×</button>
             </div>

@@ -2,7 +2,7 @@
 
 /* Tabs — reuse finance-tabs from Finance.css */
 .finance-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 10px; flex-wrap: wrap; }
-.tab-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 7px; cursor: pointer; font-size: 13px; color: #64748b; font-weight: 500; transition: all .15s; white-space: nowrap; }
+.tab-btn { padding: 6px 14px; border: none; background: transparent; border-radius: 7px; cursor: pointer; font-size: 13px; color: #1e293b; font-weight: 500; transition: all .15s; white-space: nowrap; }
 .tab-btn.active { background: #fff; color: #6366f1; box-shadow: 0 1px 4px rgba(0,0,0,.08); font-weight: 600; }
 
 .conta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -23,7 +23,7 @@
   padding: 12px 0; border-bottom: 1px solid #f1f5f9; font-size: 14px; gap: 8px;
 }
 .conta-row:last-child { border-bottom: none; }
-.conta-row--header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; padding: 6px 0; }
+.conta-row--header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #1e293b; padding: 6px 0; }
 .conta-row--income { background: #f0fdf4; margin: 0 -4px; padding: 12px 4px; border-radius: 6px; border-bottom: none; margin-bottom: 2px; }
 .conta-row--cost { background: #fff7ed; margin: 0 -4px; padding: 12px 4px; border-radius: 6px; border-bottom: none; margin-bottom: 2px; }
 .conta-row--subtotal { border-top: 2px solid #e2e8f0; padding-top: 14px; font-size: 15px; border-bottom: none; }
@@ -46,7 +46,7 @@
 .conta-guide { display: flex; flex-direction: column; gap: 16px; }
 .conta-guide-item { display: flex; gap: 14px; }
 .conta-guide-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-.conta-guide-item p { font-size: 13px; color: #64748b; margin-top: 3px; line-height: 1.5; }
+.conta-guide-item p { font-size: 13px; color: #1e293b; margin-top: 3px; line-height: 1.5; }
 .conta-guide-icon.danger { filter: saturate(0); }
 
 /* Balance */
@@ -73,8 +73,8 @@
 .conta-kpi-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
 .conta-kpi-val { font-size: 22px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
 .conta-kpi-label { font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 6px; }
-.conta-kpi-desc { font-size: 12px; color: #64748b; line-height: 1.5; }
-.conta-kpi-bench { font-size: 11px; color: #94a3b8; margin-top: 6px; font-style: italic; }
+.conta-kpi-desc { font-size: 12px; color: #1e293b; line-height: 1.5; }
+.conta-kpi-bench { font-size: 11px; color: #1e293b; margin-top: 6px; font-style: italic; }
 
 /* Glosario */
 .conta-glosario { display: flex; flex-direction: column; gap: 0; }
@@ -84,7 +84,7 @@
 }
 .conta-glosario-item:last-child { border-bottom: none; }
 .conta-glosario-item strong { color: #334155; }
-.conta-glosario-item span { color: #64748b; line-height: 1.5; }
+.conta-glosario-item span { color: #1e293b; line-height: 1.5; }
 @media (max-width: 560px) { .conta-glosario-item { grid-template-columns: 1fr; } }
 
 /* Print */

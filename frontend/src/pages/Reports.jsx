@@ -121,7 +121,7 @@ export default function Reports() {
     td{padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:12px}
     </style></head><body>
     <h2>Reporte de Ventas</h2>
-    <p style="color:#64748b">${filteredSales.length} ventas · Total: ${fmt(totalRevenue)}</p>
+    <p style="color:#1e293b">${filteredSales.length} ventas · Total: ${fmt(totalRevenue)}</p>
     <table><thead><tr><th>Fecha</th><th>Pago</th><th>Cajero</th><th>Productos</th><th>Total</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <script>window.onload=()=>{window.print()}<\/script>
@@ -260,9 +260,9 @@ export default function Reports() {
                       </tr>
                       {expanded === s.id && s.items.map((item, i) => (
                         <tr key={i} className="reports-item-row">
-                          <td colSpan={2} style={{ paddingLeft:32, color:'#64748b', fontSize:12 }}>{item.name}</td>
-                          <td style={{ color:'#94a3b8', fontSize:12 }}>×{item.qty}</td>
-                          <td style={{ color:'#94a3b8', fontSize:12 }}>{fmt(item.price)} c/u</td>
+                          <td colSpan={2} style={{ paddingLeft:32, color:'#1e293b', fontSize:12 }}>{item.name}</td>
+                          <td style={{ color:'#1e293b', fontSize:12 }}>×{item.qty}</td>
+                          <td style={{ color:'#1e293b', fontSize:12 }}>{fmt(item.price)} c/u</td>
                           <td style={{ textAlign:'right', fontSize:12, color:'#334155' }}>{fmt(item.subtotal)}</td>
                         </tr>
                       ))}

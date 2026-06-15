@@ -4,7 +4,9 @@
   --color-surface: #ffffff;
   --color-border: #e2e8f0;
   --color-text: #0f172a;
-  --color-text-soft: #64748b;
+  /* Texto secundario: antes #64748b (gris claro) — casi no se leía sobre
+     el cristal translúcido. Ahora gris muy oscuro para que se lea en todas las secciones. */
+  --color-text-soft: #1e293b;
   --color-primary: #6366f1;
   --color-primary-hover: #4f46e5;
   --color-success: #10b981;

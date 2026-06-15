@@ -679,7 +679,7 @@ export default function StoreAdmin() {
                             background: '#fff', cursor: 'pointer',
                           }}
                         />
-                        <span style={{ color: '#64748b', fontSize: 13 }}>—</span>
+                        <span style={{ color: '#1e293b', fontSize: 13 }}>—</span>
                         <input
                           type="time"
                           value={day.to}
@@ -692,7 +692,7 @@ export default function StoreAdmin() {
                         />
                       </div>
                     ) : (
-                      <span style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic' }}>Cerrado</span>
+                      <span style={{ fontSize: 12, color: '#1e293b', fontStyle: 'italic' }}>Cerrado</span>
                     )}
                   </div>
                 )
@@ -737,7 +737,7 @@ function DeliveryCodePanel({ code, baseApi, show }) {
         <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 4, color: '#0f172a' }}>
           Código de sincronización Delivery
         </h2>
-        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 24 }}>
+        <p style={{ fontSize: 13, color: '#1e293b', marginBottom: 24 }}>
           Comparte este código con tu app de repartidores para que reciban los pedidos automáticamente.
         </p>
 
@@ -783,7 +783,7 @@ function DeliveryCodePanel({ code, baseApi, show }) {
       {/* Endpoint para desarrollador */}
       <div className="card">
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>🔌 Endpoint para tu app</div>
-        <p style={{ fontSize: 13, color: '#64748b', marginBottom: 14 }}>
+        <p style={{ fontSize: 13, color: '#1e293b', marginBottom: 14 }}>
           Tu app de delivery hace una petición GET a esta URL para obtener los pedidos activos con ubicación GPS.
         </p>
         <div style={{
@@ -821,7 +821,7 @@ function DeliveryCodePanel({ code, baseApi, show }) {
             ].map(([field, desc]) => (
               <div key={field} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
                 <span style={{ fontFamily: 'monospace', color: '#6366f1', fontWeight: 700, minWidth: 120, flexShrink: 0 }}>{field}</span>
-                <span style={{ color: '#64748b' }}>— {desc}</span>
+                <span style={{ color: '#1e293b' }}>— {desc}</span>
               </div>
             ))}
           </div>
@@ -841,7 +841,7 @@ function DeliveryCodePanel({ code, baseApi, show }) {
                   <span style={{ color: method === 'GET' ? '#34d399' : method === 'PATCH' ? '#fbbf24' : '#60a5fa', fontFamily: 'monospace', fontWeight: 700, fontSize: 11 }}>{method}</span>
                   <code style={{ color: '#a5f3fc', fontSize: 11, wordBreak: 'break-all' }}>{path}</code>
                 </div>
-                <span style={{ color: '#64748b', fontSize: 11 }}>{desc}</span>
+                <span style={{ color: '#1e293b', fontSize: 11 }}>{desc}</span>
               </div>
             ))}
           </div>

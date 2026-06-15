@@ -30,7 +30,7 @@ function SubPaymentBrick({ plan, amount, period = 'MONTHLY', preferenceId, initP
         <div className="modal-header">
           <div>
             <h3>Suscripción {plan}{period === 'ANNUAL' ? ' anual' : ''}</h3>
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#1e293b' }}>
               Total: ${amount}/{per}{period === 'ANNUAL' ? ' · +2 meses gratis' : ''}
             </p>
           </div>
@@ -51,14 +51,14 @@ function SubPaymentBrick({ plan, amount, period = 'MONTHLY', preferenceId, initP
                 }}>
                 Pagar ${amount}/{per} con Mercado Pago →
               </a>
-              <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 16 }}>
+              <p style={{ color: '#1e293b', fontSize: 12, marginTop: 16 }}>
                 Después de pagar, tu plan se activará automáticamente.
               </p>
             </div>
           ) : !BrickComponent ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              <p style={{ color: '#64748b' }}>Cargando métodos de pago...</p>
+              <p style={{ color: '#1e293b' }}>Cargando métodos de pago...</p>
             </div>
           ) : (
             <BrickComponent
@@ -96,7 +96,7 @@ function SubPaymentBrick({ plan, amount, period = 'MONTHLY', preferenceId, initP
 }
 
 const PLAN_INFO = {
-  FREE:    { color: '#64748b', features: ['20 productos', '2 usuarios', 'POS básico', 'Inventario'] },
+  FREE:    { color: '#1e293b', features: ['20 productos', '2 usuarios', 'POS básico', 'Inventario'] },
   BASIC:   { color: '#3b82f6', features: ['100 productos', '5 usuarios', 'Tienda online + QR', 'Reportes'] },
   PRO:     { color: '#6366f1', features: ['Productos ilimitados', '15 usuarios', 'Todo en BASIC', 'IA diagnósticos', 'Mercado Pago'] },
   PREMIUM: { color: '#8b5cf6', features: ['Todo ilimitado', 'Usuarios ilimitados', 'CFDI', 'Soporte prioritario', 'Multi-sucursal'] },
@@ -300,7 +300,7 @@ export default function Subscription() {
 
       {/* Planes disponibles */}
       <h2 style={{ fontSize: 20, fontWeight: 700, margin: '8px 0 4px' }}>Cambiar plan</h2>
-      <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 16px' }}>
+      <p style={{ fontSize: 14, color: '#1e293b', margin: '0 0 16px' }}>
         Paga con tarjeta directo aquí. El plan se activa automáticamente.
       </p>
 

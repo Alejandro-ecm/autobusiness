@@ -211,10 +211,10 @@ export default function Inventory() {
       h2 { color: #6366f1; } table { width: 100%; border-collapse: collapse; margin-top: 16px; }
       th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-size: 12px; }
       td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-      .footer { margin-top: 20px; font-size: 11px; color: #94a3b8; }
+      .footer { margin-top: 20px; font-size: 11px; color: #1e293b; }
     </style></head><body>
       <h2>Inventario — ${new Date().toLocaleDateString('es-MX')}</h2>
-      <p style="color:#64748b">${filtered.length} productos · Valor a costo: $${totalValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+      <p style="color:#1e293b">${filtered.length} productos · Valor a costo: $${totalValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
       <table><thead><tr><th>Producto</th><th>SKU</th><th>Precio</th><th>Costo</th><th>Margen</th><th>Stock</th></tr></thead>
       <tbody>${rows}</tbody></table>
       <p class="footer">Generado por AutoBusiness AI · ${new Date().toLocaleString('es-MX')}</p>
@@ -653,10 +653,10 @@ export default function Inventory() {
       {showStats && (
         <div className="inv-stats-bar">
           <div className="inv-stat"><span className="inv-stat-val">{products.length}</span><span className="inv-stat-label">Total productos</span></div>
-          <div className="inv-stat"><span className="inv-stat-val" style={{ color: '#6366f1' }}>${totalValue.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span><span className="inv-stat-label">Valor a costo</span></div>
-          <div className="inv-stat"><span className="inv-stat-val" style={{ color: '#10b981' }}>${totalRetailValue.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span><span className="inv-stat-label">Valor a precio venta</span></div>
-          <div className="inv-stat"><span className="inv-stat-val" style={{ color: outOfStock > 0 ? '#ef4444' : '#10b981' }}>{outOfStock}</span><span className="inv-stat-label">Agotados</span></div>
-          <div className="inv-stat"><span className="inv-stat-val" style={{ color: lowStockCount > 0 ? '#f59e0b' : '#10b981' }}>{lowStockCount}</span><span className="inv-stat-label">Stock bajo</span></div>
+          <div className="inv-stat"><span className="inv-stat-val" style={{ color: '#1d4ed8' }}>${totalValue.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span><span className="inv-stat-label">Valor a costo</span></div>
+          <div className="inv-stat"><span className="inv-stat-val" style={{ color: '#15803d' }}>${totalRetailValue.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span><span className="inv-stat-label">Valor a precio venta</span></div>
+          <div className="inv-stat"><span className="inv-stat-val" style={{ color: outOfStock > 0 ? '#b91c1c' : '#15803d' }}>{outOfStock}</span><span className="inv-stat-label">Agotados</span></div>
+          <div className="inv-stat"><span className="inv-stat-val" style={{ color: lowStockCount > 0 ? '#b45309' : '#15803d' }}>{lowStockCount}</span><span className="inv-stat-label">Stock bajo</span></div>
         </div>
       )}
 
@@ -701,7 +701,7 @@ export default function Inventory() {
                 {c.name}
               </button>
               {isOwner && (
-                <button style={{ background:'none', border:'none', cursor:'pointer', color:'#94a3b8', fontSize:12, padding:'0 2px' }}
+                <button style={{ background:'none', border:'none', cursor:'pointer', color:'#1e293b', fontSize:12, padding:'0 2px' }}
                   onClick={() => deleteCategory(c.id)} title="Eliminar categoría">×</button>
               )}
             </div>
@@ -949,7 +949,7 @@ export default function Inventory() {
               <div className="input-group">
                 <label style={{ display:'flex', alignItems:'center', gap:6 }}>
                   Variantes (empaque)
-                  <span style={{ fontSize:11, color:'#94a3b8', fontWeight:400 }}>
+                  <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>
                     ej: Costal:50,Tonelada:1000
                   </span>
                 </label>
@@ -1098,7 +1098,7 @@ export default function Inventory() {
               <div className="input-group">
                 <label style={{ display:'flex', alignItems:'center', gap:6 }}>
                   Variantes (empaque)
-                  <span style={{ fontSize:11, color:'#94a3b8', fontWeight:400 }}>
+                  <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>
                     ej: Costal:50,Tonelada:1000
                   </span>
                 </label>
@@ -1206,7 +1206,7 @@ export default function Inventory() {
                 }
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{adjustProduct.name}</div>
-                  <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+                  <div style={{ fontSize: 13, color: '#1e293b', marginTop: 2 }}>
                     Stock actual: <strong style={{ color: adjustProduct.stock === 0 ? '#ef4444' : '#0f172a' }}>
                       {adjustProduct.stock} uds
                     </strong>

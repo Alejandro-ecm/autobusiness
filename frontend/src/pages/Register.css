@@ -48,7 +48,7 @@
   padding: 40px 36px; box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
 .register-form-wrap h2 { font-size: 24px; font-weight: 800; margin: 0 0 6px; color: #0f172a; }
-.register-sub { font-size: 14px; color: #64748b; margin: 0 0 28px; }
+.register-sub { font-size: 14px; color: #1e293b; margin: 0 0 28px; }
 .register-sub a { color: #6366f1; text-decoration: none; font-weight: 600; }
 
 .register-error {

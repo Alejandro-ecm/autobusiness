@@ -497,14 +497,14 @@
 .pos-search { position: relative; }
 .pos-search-clear {
   position: absolute; right: .75rem; top: 50%; transform: translateY(-50%);
-  background: none; border: none; color: #94a3b8; font-size: .9rem; cursor: pointer; padding: .25rem;
+  background: none; border: none; color: #1e293b; font-size: .9rem; cursor: pointer; padding: .25rem;
 }
 .pos-section-label {
-  font-size: .78rem; font-weight: 600; color: #94a3b8;
+  font-size: .78rem; font-weight: 600; color: #1e293b;
   text-transform: uppercase; letter-spacing: .05em;
 }
 .pos-no-results {
-  grid-column: 1/-1; text-align: center; color: #94a3b8;
+  grid-column: 1/-1; text-align: center; color: #1e293b;
   padding: 2rem; font-size: .9rem;
 }
 .pos-show-all {
@@ -543,12 +543,12 @@
 .disc-type-btn {
   border: 1.5px solid #e2e8f0; border-radius: .4rem; background: #fff;
   width: 2.2rem; height: 2.2rem; font-size: .85rem; font-weight: 700;
-  cursor: pointer; color: #64748b;
+  cursor: pointer; color: #1e293b;
 }
 .disc-type-btn.active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; }
 .discount-input { flex: 1; min-width: 0; }
 .disc-clear {
-  background: none; border: none; color: #94a3b8; font-size: .85rem;
+  background: none; border: none; color: #1e293b; font-size: .85rem;
   cursor: pointer; padding: .25rem; flex-shrink: 0;
 }
 .disc-clear:hover { color: #ef4444; }

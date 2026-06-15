@@ -64,7 +64,7 @@ function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, onSuccess,
         <div className="modal-header">
           <div>
             <h3>Pago con tarjeta</h3>
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>Total a cobrar: {fmt(amount)}</p>
+            <p style={{ margin: 0, fontSize: 13, color: '#1e293b' }}>Total a cobrar: {fmt(amount)}</p>
           </div>
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
@@ -72,7 +72,7 @@ function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, onSuccess,
           {!BrickComponent ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
-              <p style={{ color: '#64748b' }}>Cargando métodos de pago...</p>
+              <p style={{ color: '#1e293b' }}>Cargando métodos de pago...</p>
             </div>
           ) : (
             <BrickComponent
@@ -919,7 +919,7 @@ export default function POS() {
                   </a>.
                 </p>
               </div>
-              <p style={{ color: '#64748b', fontSize: 13, marginBottom: 16 }}>
+              <p style={{ color: '#1e293b', fontSize: 13, marginBottom: 16 }}>
                 Por ahora puedes cobrar con tu terminal física y registrar el pago aquí.
               </p>
               <div style={{ display: 'flex', gap: 10 }}>

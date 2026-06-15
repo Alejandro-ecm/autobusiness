@@ -56,7 +56,7 @@
 .cust-tx-left { display: flex; align-items: center; gap: 10px; }
 .cust-tx-icon { font-size: 16px; }
 .cust-tx-desc { font-size: 13px; font-weight: 500; color: #334155; }
-.cust-tx-date { font-size: 11px; color: #94a3b8; }
+.cust-tx-date { font-size: 11px; color: #1e293b; }
 .cust-tx-amt  { font-size: 14px; font-weight: 700; }
 .cust-tx-amt.neg { color: #ef4444; }
 .cust-tx-amt.pos { color: #10b981; }

@@ -7,7 +7,7 @@
 .store-kpi-icon { font-size: 28px; margin-bottom: 8px; }
 .store-kpi-val { font-size: 28px; font-weight: 800; color: #0f172a; }
 .store-kpi-val--alert { color: #f59e0b; }
-.store-kpi-label { font-size: 13px; color: #64748b; margin-top: 4px; }
+.store-kpi-label { font-size: 13px; color: #1e293b; margin-top: 4px; }
 
 .store-tabs { display: flex; gap: 4px; background: #f1f5f9; padding: 4px; border-radius: 10px; width: fit-content; }
 
@@ -25,16 +25,16 @@
 
 .design-section { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
 .design-section-title { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0; }
-.design-section-sub { font-size: 13px; color: #64748b; margin: -10px 0 0; }
+.design-section-sub { font-size: 13px; color: #1e293b; margin: -10px 0 0; }
 
 .design-field { display: flex; flex-direction: column; gap: 6px; }
-.design-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; }
+.design-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #1e293b; }
 
 .design-preview-wrap { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
 .design-logo-preview { width: 72px; height: 72px; border-radius: 10px; object-fit: cover; border: 1px solid #e2e8f0; }
 .design-banner-preview-wrap { margin-top: 6px; }
 .design-banner-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 10px; border: 1px solid #e2e8f0; display: block; }
-.design-preview-label { font-size: 11px; color: #94a3b8; }
+.design-preview-label { font-size: 11px; color: #1e293b; }
 .design-preview-error { font-size: 12px; color: #ef4444; margin: 4px 0 0; }
 
 /* Theme picker */
@@ -58,7 +58,7 @@
 
 .design-theme-info { padding: 12px 14px; }
 .design-theme-name { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
-.design-theme-desc { font-size: 11px; color: #64748b; line-height: 1.45; }
+.design-theme-desc { font-size: 11px; color: #1e293b; line-height: 1.45; }
 
 .design-theme-check {
   position: absolute; top: 8px; right: 8px;

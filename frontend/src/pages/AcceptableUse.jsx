@@ -18,21 +18,21 @@ export default function AcceptableUse() {
         </Link>
         <div style={{ background: '#fff', borderRadius: 16, padding: '40px 48px', boxShadow: '0 1px 3px rgba(0,0,0,.1)' }}>
           {loading ? (
-            <p style={{ color: '#64748b', textAlign: 'center', padding: 40 }}>Cargando...</p>
+            <p style={{ color: '#1e293b', textAlign: 'center', padding: 40 }}>Cargando...</p>
           ) : doc ? (
             <>
               <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>{doc.title}</h1>
-              <p style={{ fontSize: 12, color: '#94a3b8', marginBottom: 28 }}>Versión {doc.version}</p>
+              <p style={{ fontSize: 12, color: '#1e293b', marginBottom: 28 }}>Versión {doc.version}</p>
               <div style={{ fontSize: 14, lineHeight: 1.8, color: '#374151', whiteSpace: 'pre-line' }}>
                 {doc.content}
               </div>
             </>
           ) : (
-            <p style={{ color: '#64748b' }}>Documento no disponible</p>
+            <p style={{ color: '#1e293b' }}>Documento no disponible</p>
           )}
         </div>
-        <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginTop: 24 }}>
-          © 2025 AutoBusiness AI · <a href="mailto:soporte@skytechnologieslatam.com" style={{ color: '#94a3b8' }}>soporte@skytechnologieslatam.com</a>
+        <p style={{ textAlign: 'center', color: '#1e293b', fontSize: 12, marginTop: 24 }}>
+          © 2025 AutoBusiness AI · <a href="mailto:soporte@skytechnologieslatam.com" style={{ color: '#1e293b' }}>soporte@skytechnologieslatam.com</a>
         </p>
       </div>
     </div>

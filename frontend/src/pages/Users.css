@@ -10,7 +10,7 @@
 .stats-modal { max-width: 720px; width: 100%; }
 .stats-body { display: flex; flex-direction: column; gap: 18px; }
 .stats-empty {
-  background: #f1f5f9; color: #64748b; border-radius: 10px;
+  background: #f1f5f9; color: #1e293b; border-radius: 10px;
   padding: 12px 14px; font-size: 14px; margin: 0;
 }
 
@@ -28,7 +28,7 @@
 .stats-rows { display: flex; flex-direction: column; gap: 8px; }
 .stats-row {
   display: flex; justify-content: space-between; align-items: baseline;
-  font-size: 13px; color: #64748b;
+  font-size: 13px; color: #1e293b;
 }
 .stats-row strong { color: #0f172a; font-size: 14px; }
 .stats-revenue { color: #6366f1 !important; }
@@ -41,7 +41,7 @@
 .stats-pay-item {
   display: flex; justify-content: space-between; align-items: center;
   background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
-  padding: 12px 14px; font-size: 14px; color: #64748b;
+  padding: 12px 14px; font-size: 14px; color: #1e293b;
 }
 .stats-pay-item strong { color: #0f172a; }
 .stats-top { width: 100%; }

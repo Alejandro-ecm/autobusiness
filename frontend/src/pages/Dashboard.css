@@ -417,7 +417,7 @@
 }
 .cashier-ranking-filter { display: flex; gap: 6px; }
 .crf-btn {
-  border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+  border: 1px solid #e2e8f0; background: #fff; color: #1e293b;
   border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600;
   cursor: pointer; transition: all .15s;
 }
@@ -446,7 +446,7 @@
   height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
   border-radius: 3px; transition: width .4s;
 }
-.cr-sub { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+.cr-sub { font-size: 11px; color: #1e293b; margin-top: 4px; }
 .cr-figures { text-align: right; flex-shrink: 0; }
 .cr-revenue { font-weight: 800; font-size: 16px; color: #1d4ed8; }
 .cr-profit { font-size: 12px; color: #1d4ed8; font-weight: 600; margin-top: 2px; }

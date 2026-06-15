@@ -216,7 +216,7 @@ export default function AccountDeletion() {
         {/* Alternative: contact support */}
         {step !== 'done' && (
           <div style={styles.altContact}>
-            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+            <p style={{ margin: 0, fontSize: 13, color: '#1e293b' }}>
               ¿Prefieres contactar a soporte?{' '}
               <a href={`mailto:${SUPPORT_EMAIL}?subject=Solicitud%20eliminaci%C3%B3n%20de%20cuenta`}
                 style={styles.link}>
@@ -410,7 +410,7 @@ const styles = {
   cancelLink: {
     background: 'none',
     border: 'none',
-    color: '#64748b',
+    color: '#1e293b',
     fontSize: 13,
     cursor: 'pointer',
     textAlign: 'center',

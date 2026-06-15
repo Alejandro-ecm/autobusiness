@@ -482,18 +482,18 @@ export default function Dashboard() {
           <div style={{ padding: '10px 16px', background: '#ede9fe', borderRadius: 10, border: '2px solid #6366f1', minWidth: 160 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Activo</div>
             <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.businessName}</div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>{user?.name}</div>
+            <div style={{ fontSize: 12, color: '#1e293b' }}>{user?.name}</div>
           </div>
 
           {accounts.map(acc => (
             <div key={acc.businessId} style={{ padding: '10px 16px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', minWidth: 160, position: 'relative' }}>
               <button
                 onClick={() => removeAccount(acc.businessId)}
-                style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}
+                style={{ position: 'absolute', top: 6, right: 8, background: 'none', border: 'none', color: '#1e293b', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}
                 title="Quitar">×</button>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Otro negocio</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>Otro negocio</div>
               <div style={{ fontWeight: 600, fontSize: 14 }}>{acc.businessName}</div>
-              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>{acc.name}</div>
+              <div style={{ fontSize: 12, color: '#1e293b', marginBottom: 8 }}>{acc.name}</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button
                   className="btn btn-sm btn-primary"
@@ -513,7 +513,7 @@ export default function Dashboard() {
           ))}
 
           {accounts.length === 0 && !showAddBiz && (
-            <div style={{ fontSize: 13, color: '#94a3b8', padding: '10px 0', alignSelf: 'center' }}>
+            <div style={{ fontSize: 13, color: '#1e293b', padding: '10px 0', alignSelf: 'center' }}>
               Conecta tus otros negocios para verlos aquí
             </div>
           )}
@@ -540,7 +540,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#15803d' }}>
                     {fmt(globalData.reduce((s, d) => s + (d.kpis?.todayRevenue || 0), 0))}
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                  <div style={{ fontSize: 11, color: '#1e293b' }}>
                     {globalData.reduce((s, d) => s + (d.kpis?.todaySales || 0), 0)} ventas entre todos
                   </div>
                 </div>
@@ -549,7 +549,7 @@ export default function Dashboard() {
                   <div style={{ fontSize: 24, fontWeight: 800, color: '#1d4ed8' }}>
                     {fmt(globalData.reduce((s, d) => s + (d.kpis?.monthRevenue || 0), 0))}
                   </div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                  <div style={{ fontSize: 11, color: '#1e293b' }}>
                     {globalData.reduce((s, d) => s + (d.kpis?.monthSales || 0), 0)} ventas entre todos
                   </div>
                 </div>
@@ -586,19 +586,19 @@ export default function Dashboard() {
                         <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3 }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width .4s' }} />
                         </div>
-                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 3 }}>{pct}% del total de hoy</div>
+                        <div style={{ fontSize: 10, color: '#1e293b', marginTop: 3 }}>{pct}% del total de hoy</div>
                       </div>
                       {/* Datos financieros */}
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                         <div style={{ background: '#f8fafc', borderRadius: 6, padding: '8px 10px' }}>
-                          <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Ingresos hoy</div>
+                          <div style={{ fontSize: 10, color: '#1e293b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Ingresos hoy</div>
                           <div style={{ fontSize: 18, fontWeight: 800, color: color }}>{fmt(d.kpis?.todayRevenue)}</div>
-                          <div style={{ fontSize: 10, color: '#94a3b8' }}>{d.kpis?.todaySales || 0} ventas</div>
+                          <div style={{ fontSize: 10, color: '#1e293b' }}>{d.kpis?.todaySales || 0} ventas</div>
                         </div>
                         <div style={{ background: '#f8fafc', borderRadius: 6, padding: '8px 10px' }}>
-                          <div style={{ fontSize: 10, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Ingresos del mes</div>
+                          <div style={{ fontSize: 10, color: '#1e293b', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Ingresos del mes</div>
                           <div style={{ fontSize: 18, fontWeight: 800, color: color }}>{fmt(d.kpis?.monthRevenue)}</div>
-                          <div style={{ fontSize: 10, color: '#94a3b8' }}>{d.kpis?.monthSales || 0} ventas</div>
+                          <div style={{ fontSize: 10, color: '#1e293b' }}>{d.kpis?.monthSales || 0} ventas</div>
                         </div>
                       </div>
                     </div>
@@ -608,7 +608,7 @@ export default function Dashboard() {
 
               <button
                 onClick={loadGlobal}
-                style={{ marginTop: 10, background: 'none', border: 'none', color: '#94a3b8', fontSize: 11, cursor: 'pointer', width: '100%', textAlign: 'center' }}
+                style={{ marginTop: 10, background: 'none', border: 'none', color: '#1e293b', fontSize: 11, cursor: 'pointer', width: '100%', textAlign: 'center' }}
               >
                 Actualizar datos
               </button>

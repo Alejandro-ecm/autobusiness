@@ -93,12 +93,12 @@ export default function Marketplace() {
               borderTopColor: '#6366f1', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite', margin: '0 auto 16px'
             }} />
-            <p style={{ color: '#94a3b8' }}>Cargando tiendas...</p>
+            <p style={{ color: '#1e293b' }}>Cargando tiendas...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 60 }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>🏪</div>
-            <p style={{ color: '#64748b', fontSize: 16, fontWeight: 600 }}>
+            <p style={{ color: '#1e293b', fontSize: 16, fontWeight: 600 }}>
               {search ? `No encontramos tiendas con "${search}"` : 'Aún no hay tiendas registradas'}
             </p>
             {search && (
@@ -110,7 +110,7 @@ export default function Marketplace() {
           </div>
         ) : (
           <>
-            <p style={{ color: '#64748b', fontSize: 13, marginBottom: 20 }}>
+            <p style={{ color: '#1e293b', fontSize: 13, marginBottom: 20 }}>
               {filtered.length} {filtered.length === 1 ? 'tienda encontrada' : 'tiendas encontradas'}
             </p>
             <div style={{
@@ -127,7 +127,7 @@ export default function Marketplace() {
 
         {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 60, paddingTop: 32, borderTop: '1px solid #e2e8f0' }}>
-          <p style={{ color: '#94a3b8', fontSize: 13 }}>
+          <p style={{ color: '#1e293b', fontSize: 13 }}>
             ¿Tienes un negocio? {' '}
             <span
               onClick={() => navigate('/register')}
@@ -197,7 +197,7 @@ function StoreCard({ store }) {
         </div>
         {store.description && (
           <div style={{
-            fontSize: 12, color: '#64748b', lineHeight: 1.5,
+            fontSize: 12, color: '#1e293b', lineHeight: 1.5,
             display: '-webkit-box', WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical', overflow: 'hidden',
             marginBottom: 12

@@ -113,7 +113,7 @@ export default function PaymentSettings() {
           }}>💳</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 17, color: '#0f172a' }}>Mercado Pago</div>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: '#1e293b', marginTop: 2 }}>
               Cobra con tarjeta, OXXO, transferencia y más
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function PaymentSettings() {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between'
               }}>
               <span>{needsPublicKey ? '➕ Agregar Public Key' : '✏️ Actualizar credenciales'}</span>
-              <span style={{ fontSize: 10, color: '#94a3b8' }}>{updateOpen ? '▲' : '▼'}</span>
+              <span style={{ fontSize: 10, color: '#1e293b' }}>{updateOpen ? '▲' : '▼'}</span>
             </button>
 
             {updateOpen && (
@@ -213,7 +213,7 @@ export default function PaymentSettings() {
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                     Access Token de producción
-                    <span style={{ fontWeight: 400, color: '#94a3b8' }}> (deja vacío para no cambiar)</span>
+                    <span style={{ fontWeight: 400, color: '#1e293b' }}> (deja vacío para no cambiar)</span>
                   </label>
                   <input
                     className="input"
@@ -228,7 +228,7 @@ export default function PaymentSettings() {
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>
                     Public Key de producción
                     <span style={{ color: '#ef4444' }}> *</span>
-                    <span style={{ fontWeight: 400, color: '#64748b' }}> — necesaria para cobrar con tarjeta en caja</span>
+                    <span style={{ fontWeight: 400, color: '#1e293b' }}> — necesaria para cobrar con tarjeta en caja</span>
                   </label>
                   <input
                     className="input"
@@ -286,7 +286,7 @@ export default function PaymentSettings() {
                 <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>
                   1. Access Token de producción <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: '#1e293b', marginBottom: 6 }}>
                   Empieza con APP_USR-... — en el panel de MP en "Credenciales de producción"
                 </div>
                 <input
@@ -303,7 +303,7 @@ export default function PaymentSettings() {
                 <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', display: 'block', marginBottom: 4 }}>
                   2. Public Key de producción <span style={{ color: '#ef4444' }}>*</span>
                 </label>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, color: '#1e293b', marginBottom: 6 }}>
                   También en "Credenciales de producción" — necesaria para que tus clientes ingresen su tarjeta en la caja
                 </div>
                 <input
@@ -366,14 +366,14 @@ function ComingSoonCard({ icon, gradient, title, subtitle, features }) {
         }}>{icon}</div>
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 17, color: '#0f172a' }}>{title}</div>
-          <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{subtitle}</div>
+          <div style={{ fontSize: 13, color: '#1e293b', marginTop: 2 }}>{subtitle}</div>
         </div>
         <span style={{
-          background: '#f1f5f9', color: '#94a3b8', borderRadius: 20,
+          background: '#f1f5f9', color: '#1e293b', borderRadius: 20,
           padding: '4px 12px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap'
         }}>Próximamente</span>
       </div>
-      <ul style={{ margin: 0, paddingLeft: 20, color: '#64748b', fontSize: 13, lineHeight: 2 }}>
+      <ul style={{ margin: 0, paddingLeft: 20, color: '#1e293b', fontSize: 13, lineHeight: 2 }}>
         {features.map(f => <li key={f}>{f}</li>)}
       </ul>
     </div>

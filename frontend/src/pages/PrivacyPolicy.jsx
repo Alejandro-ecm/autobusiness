@@ -316,7 +316,7 @@ const styles = {
   },
   meta: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#1e293b',
     margin: 0,
   },
   content: {

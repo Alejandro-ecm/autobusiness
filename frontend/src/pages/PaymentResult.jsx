@@ -83,15 +83,15 @@ export default function PaymentResult() {
             <>
               <div style={{ fontSize:48, marginBottom:16 }}>⚡</div>
               <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:'0 0 12px' }}>Activando tu cuenta...</h1>
-              <p style={{ color:'#64748b', fontSize:15 }}>Pago confirmado. Creando tu negocio en AutoBusiness.</p>
+              <p style={{ color:'#1e293b', fontSize:15 }}>Pago confirmado. Creando tu negocio en AutoBusiness.</p>
             </>
           ) : activateError ? (
             <>
               <div style={{ fontSize:48, marginBottom:16 }}>⚠️</div>
               <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:'0 0 12px' }}>Pago recibido</h1>
-              <p style={{ color:'#64748b', fontSize:14, marginBottom:20 }}>{activateError}</p>
-              <p style={{ color:'#64748b', fontSize:13 }}>Envía tu referencia de pago a <strong>soporte@skytechnologieslatam.com</strong> y activamos tu cuenta manualmente.</p>
-              <p style={{ color:'#94a3b8', fontSize:12, marginTop:8 }}>Ref: {ref}</p>
+              <p style={{ color:'#1e293b', fontSize:14, marginBottom:20 }}>{activateError}</p>
+              <p style={{ color:'#1e293b', fontSize:13 }}>Envía tu referencia de pago a <strong>soporte@skytechnologieslatam.com</strong> y activamos tu cuenta manualmente.</p>
+              <p style={{ color:'#1e293b', fontSize:12, marginTop:8 }}>Ref: {ref}</p>
             </>
           ) : null}
         </div>
@@ -116,12 +116,12 @@ export default function PaymentResult() {
         }}>{c.icon}</div>
 
         <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>{c.title}</h1>
-        <p style={{ fontSize: 16, color: '#64748b', margin: '0 0 28px', lineHeight: 1.6 }}>{c.msg}</p>
+        <p style={{ fontSize: 16, color: '#1e293b', margin: '0 0 28px', lineHeight: 1.6 }}>{c.msg}</p>
 
         {(ref || paymentId) && (
           <div style={{
             background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10,
-            padding: '12px 16px', marginBottom: 28, fontSize: 13, color: '#64748b',
+            padding: '12px 16px', marginBottom: 28, fontSize: 13, color: '#1e293b',
           }}>
             {ref && <div>Referencia: <strong style={{ color: '#0f172a' }}>{ref}</strong></div>}
             {paymentId && <div style={{ marginTop: 4 }}>ID de pago: <strong style={{ color: '#0f172a' }}>{paymentId}</strong></div>}

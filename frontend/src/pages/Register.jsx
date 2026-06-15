@@ -33,13 +33,13 @@ function DocModal({ type, title, onClose }) {
         }}>
           <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#0f172a' }}>{title}</h3>
           <button onClick={onClose} style={{
-            background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#64748b',
+            background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#1e293b',
             width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6,
           }}>x</button>
         </div>
         <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Cargando...</div>
+            <div style={{ textAlign: 'center', padding: 40, color: '#1e293b' }}>Cargando...</div>
           ) : (
             <div style={{ fontSize: 13, lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-line' }}>
               {content}
@@ -173,7 +173,7 @@ export default function Register() {
               <div style={{ fontWeight: 700, fontSize: 13, color: '#0f172a', marginBottom: 4 }}>
                 Acuerdos Legales
               </div>
-              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 12, color: '#1e293b', margin: '0 0 14px', lineHeight: 1.5 }}>
                 Debes leer y aceptar todos los documentos para continuar.
               </p>
 

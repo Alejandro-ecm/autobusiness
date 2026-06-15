@@ -11,8 +11,8 @@
 /* ── Import modal ─────────────────────────────────────────────── */
 .import-modal { max-width: 760px !important; width: 95vw !important; }
 .import-preview { overflow-x: auto; max-height: 320px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
-.import-more  { text-align:center; font-size:12px; color:#94a3b8; padding:8px; margin:0; }
-.import-hint  { margin: 0 0 12px; font-size: 13px; color: #64748b; padding: 0 20px; }
+.import-more  { text-align:center; font-size:12px; color:#1e293b; padding:8px; margin:0; }
+.import-hint  { margin: 0 0 12px; font-size: 13px; color: #1e293b; padding: 0 20px; }
 
 /* ── Barcode column ───────────────────────────────────────────── */
 .barcode-chip {
@@ -132,7 +132,7 @@
 .cat-earn-units { font-size: 12px; color: #475569; min-width: 70px; text-align: right; }
 .cat-earn-rev { font-size: 13px; font-weight: 700; color: #1d4ed8; min-width: 120px; text-align: right; }
 .cat-earn-profit { font-size: 14px; font-weight: 800; color: #15803d; min-width: 120px; text-align: right; }
-.cat-earn-rev small, .cat-earn-profit small { display: block; font-size: 10px; font-weight: 500; color: #64748b; }
+.cat-earn-rev small, .cat-earn-profit small { display: block; font-size: 10px; font-weight: 500; color: #1e293b; }
 
 @media (max-width: 560px) {
   .cat-earn-row { flex-wrap: wrap; }
@@ -149,22 +149,42 @@
   text-align: left;
   padding: 12px 16px;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-soft);
+  font-weight: 800;
+  color: #0f172a;
   text-transform: uppercase;
   letter-spacing: .04em;
-  border-bottom: 1px solid rgba(148, 163, 184, .4);
-  background: rgba(148, 163, 184, .18);
+  border-bottom: 1px solid rgba(100, 116, 139, .55);
+  background: rgba(148, 163, 184, .3);
 }
 
 .inv-table td {
   padding: 13px 16px;
-  border-bottom: 1px solid rgba(148, 163, 184, .22);
+  border-bottom: 1px solid rgba(148, 163, 184, .35);
   font-size: 13.5px;
   vertical-align: middle;
+  color: #0f172a;
 }
 
-.inv-table tr:hover td { background: rgba(148, 163, 184, .14); }
+.inv-table tr:hover td { background: rgba(148, 163, 184, .2); }
+
+/* ── Texto de la tabla más oscuro para leerse sobre el cristal gris ── */
+.inv-table .inv-name { color: #0f172a; font-weight: 700; }
+.inv-table .font-semibold { color: #0f172a; font-weight: 700; }
+/* La columna Costo era casi invisible (text-soft) */
+.inv-table .text-soft { color: #1e293b !important; font-weight: 600; }
+.inv-table .barcode-chip {
+  color: #0f172a;
+  background: rgba(255, 255, 255, .6);
+  border-color: rgba(100, 116, 139, .4);
+}
+
+/* Badges (margen, stock, online) más opacos y con texto más oscuro */
+.inv-table .badge { font-weight: 700; }
+.inv-table .badge-green  { background: #bbf7d0; color: #14532d; }
+.inv-table .badge-yellow { background: #fde68a; color: #713f12; }
+.inv-table .badge-blue   { background: #bfdbfe; color: #1e3a8a; }
+.inv-table .badge-red    { background: #fecaca; color: #7f1d1d; }
+.inv-table .badge-gray   { background: #cbd5e1; color: #1e293b; }
 .inv-table tr:last-child td { border-bottom: none; }
 
 .inv-name { font-weight: 500; }

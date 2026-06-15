@@ -303,7 +303,7 @@ const styles = {
   },
   meta: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#1e293b',
     margin: 0,
   },
   content: {
@@ -356,11 +356,11 @@ const styles = {
   planPer: {
     fontSize: 13,
     fontWeight: 400,
-    color: '#94a3b8',
+    color: '#1e293b',
   },
   planDesc: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#1e293b',
     lineHeight: 1.5,
   },
   contactBox: {

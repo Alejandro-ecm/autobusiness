@@ -193,7 +193,7 @@ export default function Finance() {
   if (loading) return (
     <div className="page-loading">
       <div className="spinner" style={{ width: 36, height: 36 }} />
-      <p style={{ marginTop: 12, color: '#64748b' }}>Cargando datos financieros...</p>
+      <p style={{ marginTop: 12, color: '#1e293b' }}>Cargando datos financieros...</p>
     </div>
   )
   if (error) return (

@@ -6,7 +6,7 @@
 /* Config bar */
 .mkt-config-bar { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; padding: 16px 20px; }
 .mkt-config-group { display: flex; flex-direction: column; gap: 8px; }
-.mkt-config-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #64748b; }
+.mkt-config-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #1e293b; }
 
 .mkt-radio-btn {
   display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px;
@@ -60,7 +60,7 @@
 }
 .post-image-dl:hover { background: rgba(0,0,0,.8); }
 
-.post-product { font-size: 13px; color: #64748b; margin-bottom: 10px; }
+.post-product { font-size: 13px; color: #1e293b; margin-bottom: 10px; }
 
 .post-content {
   white-space: pre-wrap; font-family: var(--font); font-size: 13.5px; line-height: 1.65;

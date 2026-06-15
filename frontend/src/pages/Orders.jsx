@@ -71,10 +71,10 @@ export default function Orders() {
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 17 }}>{selected.orderNumber}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{fmtDate(selected.createdAt)}</div>
+                <div style={{ fontSize: 12, color: '#1e293b' }}>{fmtDate(selected.createdAt)}</div>
               </div>
               <button onClick={() => setSelected(null)}
-                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#94a3b8' }}>×</button>
+                style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#1e293b' }}>×</button>
             </div>
 
             {/* Cliente info */}
@@ -93,7 +93,7 @@ export default function Orders() {
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                     <span style={{ fontSize: 16, marginTop: 1 }}>🗺️</span>
                     <div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>UBICACIÓN</div>
+                      <div style={{ fontSize: 11, color: '#1e293b', fontWeight: 600 }}>UBICACIÓN</div>
                       <a href={selected.mapsUrl} target="_blank" rel="noreferrer"
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 2,
@@ -113,7 +113,7 @@ export default function Orders() {
               <div style={{ fontWeight: 700, fontSize: 13, color: '#374151', marginBottom: 8 }}>PRODUCTOS</div>
               {selected.items?.map(i => (
                 <div key={i.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: 14 }}>{i.product?.name} <span style={{ color: '#94a3b8' }}>×{i.quantity}</span></span>
+                  <span style={{ fontSize: 14 }}>{i.product?.name} <span style={{ color: '#1e293b' }}>×{i.quantity}</span></span>
                   <span style={{ fontWeight: 600, fontSize: 14 }}>{fmt(i.subtotal)}</span>
                 </div>
               ))}
@@ -265,7 +265,7 @@ function InfoRow({ icon, label, value, link, linkLabel }) {
     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
       <span style={{ fontSize: 16, marginTop: 1 }}>{icon}</span>
       <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{label.toUpperCase()}</div>
+        <div style={{ fontSize: 11, color: '#1e293b', fontWeight: 600 }}>{label.toUpperCase()}</div>
         <div style={{ fontSize: 14, color: '#1e293b', marginTop: 1 }}>
           {value}
           {link && (
