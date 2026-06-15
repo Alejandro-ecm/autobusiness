@@ -8,10 +8,14 @@
   color: var(--color-text-soft);
 }
 
-/* Tarjetas en gris (Más vendidos este mes, Mis negocios) */
+/* Tarjetas del dashboard en cristal translúcido (deja ver el fondo con velo) */
+.dashboard-page .card,
 .card.card--gray {
-  background: #cbd5e1;
-  border-color: #94a3b8;
+  background: rgba(255, 255, 255, .42);
+  border: 1px solid rgba(255, 255, 255, .65);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
 }
 
 .page-header {

@@ -281,6 +281,7 @@ export default function Dashboard() {
           value={fmt(kpis.todayRevenue)}
           sub={`${kpis.todaySales || 0} transacciones`}
           icon="💰"
+          color="green"
         />
         <KpiCard
           label="Ingresos del mes"
@@ -288,12 +289,14 @@ export default function Dashboard() {
           trend={Number(kpis.revenueGrowth || 0)}
           sub="vs mes anterior"
           icon="📈"
+          color="blue"
         />
         <KpiCard
           label="Productos sin stock"
           value={kpis.lowStockCount || 0}
           icon={kpis.lowStockCount > 0 ? '⚠️' : '✅'}
           sub={kpis.lowStockCount > 0 ? 'Requieren atención' : 'Inventario OK'}
+          color={kpis.lowStockCount > 0 ? 'red' : 'green'}
         />
       </div>
 
