@@ -11,7 +11,7 @@
 /* Tarjetas del dashboard en cristal gris translúcido (deja ver el fondo con velo) */
 .dashboard-page .card,
 .card.card--gray {
-  background: rgba(203, 213, 225, .42);
+  background: rgba(203, 213, 225, .22);
   border: 1px solid rgba(148, 163, 184, .5);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);

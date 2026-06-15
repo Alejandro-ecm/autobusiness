@@ -1,6 +1,6 @@
 .kpi-card {
-  /* Cristal gris translúcido: deja ver el fondo con un velo desenfocado */
-  background: rgba(203, 213, 225, .42);
+  /* Cristal gris translúcido: deja ver el fondo con un velo más transparente */
+  background: rgba(203, 213, 225, .22);
   border: 1px solid rgba(148, 163, 184, .5);
   border-radius: var(--radius);
   padding: 20px;
@@ -24,8 +24,8 @@
 
 .kpi-label {
   font-size: 12px;
-  font-weight: 700;
-  color: #334155;
+  font-weight: 800;
+  color: #000;
   text-transform: uppercase;
   letter-spacing: .05em;
 }
@@ -82,7 +82,8 @@
 
 .kpi-sub {
   font-size: 12px;
-  color: var(--color-text-soft);
+  font-weight: 600;
+  color: #1e293b;
 }
 
 @media (max-width: 768px) {
