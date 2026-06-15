@@ -77,17 +77,13 @@
   -webkit-backdrop-filter: blur(14px) saturate(140%);
   box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
 }
-/* Números KPI en azul claro, grandes y con halo blanco para que resalten */
+/* Números KPI en azul claro y grandes */
 .inv-stat-val {
   font-size: clamp(22px, 2.4vw, 32px);
   font-weight: 900;
   color: #3b82f6 !important;
   letter-spacing: -.02em;
   line-height: 1.1;
-  text-shadow:
-    0 0 2px rgba(255, 255, 255, .95),
-    0 0 6px rgba(255, 255, 255, .7),
-    0 1px 1px rgba(255, 255, 255, .9);
 }
 .inv-stat-label { font-size: 15px; font-weight: 700; color: #2563eb; }
 
