@@ -65,16 +65,39 @@
 @media (max-width: 560px) { .inv-stats-bar { grid-template-columns: repeat(2, 1fr); } }
 
 .inv-stat {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  /* Cristal gris translúcido (igual que el dashboard) */
+  background: rgba(203, 213, 225, .22);
+  border: 1px solid rgba(148, 163, 184, .5);
   border-radius: var(--radius);
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
 }
 .inv-stat-val { font-size: 20px; font-weight: 800; color: #0f172a; }
-.inv-stat-label { font-size: 12px; color: var(--color-text-soft); }
+.inv-stat-label { font-size: 12px; font-weight: 600; color: #1e293b; }
+
+/* Buscador y filtros en cristal gris translúcido */
+.inventory-bar .input {
+  background: rgba(203, 213, 225, .28);
+  border: 1px solid rgba(148, 163, 184, .55);
+  color: #0f172a;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.inventory-bar .input::placeholder { color: #475569; }
+
+/* Tarjeta de la tabla en cristal gris (no afecta los modales) */
+.inventory-page > .card {
+  background: rgba(203, 213, 225, .22);
+  border: 1px solid rgba(148, 163, 184, .5);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
+}
 
 .inventory-bar {
   display: flex;
@@ -95,18 +118,18 @@
   color: var(--color-text-soft);
   text-transform: uppercase;
   letter-spacing: .04em;
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-bg);
+  border-bottom: 1px solid rgba(148, 163, 184, .4);
+  background: rgba(148, 163, 184, .18);
 }
 
 .inv-table td {
   padding: 13px 16px;
-  border-bottom: 1px solid var(--color-bg);
+  border-bottom: 1px solid rgba(148, 163, 184, .22);
   font-size: 13.5px;
   vertical-align: middle;
 }
 
-.inv-table tr:hover td { background: #fafbfc; }
+.inv-table tr:hover td { background: rgba(148, 163, 184, .14); }
 .inv-table tr:last-child td { border-bottom: none; }
 
 .inv-name { font-weight: 500; }
