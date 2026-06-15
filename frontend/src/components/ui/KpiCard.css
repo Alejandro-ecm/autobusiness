@@ -1,11 +1,11 @@
 .kpi-card {
-  /* Cristal translúcido: deja ver el fondo con un velo desenfocado */
-  background: rgba(255, 255, 255, .42);
-  border: 1px solid rgba(255, 255, 255, .65);
+  /* Cristal gris translúcido: deja ver el fondo con un velo desenfocado */
+  background: rgba(203, 213, 225, .42);
+  border: 1px solid rgba(148, 163, 184, .5);
   border-radius: var(--radius);
   padding: 20px;
-  backdrop-filter: blur(14px) saturate(150%);
-  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
   transition: transform .25s ease, box-shadow .25s ease;
 }
@@ -36,9 +36,14 @@
 }
 
 .kpi-value {
-  font-size: 34px;
+  font-size: 36px;
   font-weight: 900;
-  color: var(--color-text);
+  /* Azul fuerte con halo blanco en las orillas para que resalte */
+  color: #1d4ed8;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, .95),
+    0 0 6px rgba(255, 255, 255, .7),
+    0 1px 1px rgba(255, 255, 255, .9);
   line-height: 1.05;
   margin-bottom: 8px;
   letter-spacing: -.02em;
@@ -48,13 +53,6 @@
   transform-origin: left center;
   animation: kpiPop .55s cubic-bezier(.22, 1, .36, 1) both;
 }
-
-/* Colores fuertes por tipo de KPI — para que los números resalten */
-.kpi-card--green  .kpi-value { color: #15803d; }
-.kpi-card--blue   .kpi-value { color: #1d4ed8; }
-.kpi-card--amber  .kpi-value { color: #b45309; }
-.kpi-card--red    .kpi-value { color: #b91c1c; }
-.kpi-card--primary .kpi-value { color: #4f46e5; }
 
 @keyframes kpiPop {
   0%   { transform: scale(.82); opacity: .35; }

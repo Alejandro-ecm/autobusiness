@@ -14,8 +14,8 @@ const STATUS_CONFIG = {
   RED:    { label: 'Acción urgente ahora', cls: 'red', emoji: '🔴' },
 }
 
-const INSIGHT_BG = { RED: '#fff1f0', YELLOW: '#fffbeb', GREEN: '#f0fdf4' }
-const INSIGHT_BORDER = { RED: '#ef4444', YELLOW: '#f59e0b', GREEN: '#10b981' }
+const INSIGHT_BG = { RED: '#fff1f0', YELLOW: '#eef2f6', GREEN: '#f0fdf4' }
+const INSIGHT_BORDER = { RED: '#ef4444', YELLOW: '#94a3b8', GREEN: '#10b981' }
 
 // Consejos que rotan diariamente — alineados con el eslogan del negocio
 const DAILY_TIPS = [
@@ -366,7 +366,7 @@ export default function Dashboard() {
       )}
 
       {/* ── CONSEJO DEL DÍA ── */}
-      <div className="tip-card" style={{ background: todayTip.gradient }}>
+      <div className="tip-card">
         <div className="tip-card-top">
           <span className="tip-category">{todayTip.category}</span>
           <span className="tip-icon">{todayTip.icon}</span>

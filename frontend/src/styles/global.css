@@ -42,9 +42,9 @@ input, textarea, select { font-family: var(--font); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
 
 .card {
-  /* Cristal translúcido en toda la app: deja ver el fondo con velo desenfocado */
-  background: rgba(255, 255, 255, .42);
-  border: 1px solid rgba(255, 255, 255, .65);
+  /* Cristal gris translúcido en toda la app: deja ver el fondo con velo desenfocado */
+  background: rgba(203, 213, 225, .42);
+  border: 1px solid rgba(148, 163, 184, .5);
   border-radius: var(--radius);
   padding: 20px;
   color: #0f172a;
