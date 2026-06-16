@@ -173,7 +173,31 @@ export default function Finance() {
       tips.push({ level: 'yellow', icon: '💡', title: 'Registra tus costos', text: 'No tienes costos registrados en los productos. Sin costos, el margen real es desconocido. Actualiza el costo de cada producto en Inventario.' })
     }
 
-    return tips
+    // ── Consejos de crecimiento (siempre disponibles) ──
+    // Sirven para completar hasta 8 consejos útiles para hacer crecer la tienda.
+    const growth = [
+      { level: 'blue', icon: '🌐', title: 'Activa tu tienda online', text: 'Publica tus productos en tu tienda online y comparte el link por WhatsApp. Vender en línea no cuesta extra y te trae clientes fuera del horario de la tienda.' },
+      { level: 'blue', icon: '📲', title: 'Vende por WhatsApp', text: 'Usa la sección de Marketing para generar promociones y mándalas por WhatsApp a tus clientes frecuentes. Un mensaje a 50 contactos suele traer ventas el mismo día.' },
+      { level: 'blue', icon: '🎁', title: 'Crea combos y paquetes', text: 'Arma paquetes de productos que se compran juntos (ej. cuaderno + plumas + lápiz). Los combos suben tu ticket promedio sin que sientas que "regalas" producto.' },
+      { level: 'blue', icon: '🛒', title: 'Sube el ticket promedio', text: 'Entrena a tu cajero para ofrecer un producto extra al cobrar ("¿Te llevas también…?"). Una venta cruzada de $10 por cliente al día son cientos de pesos al mes.' },
+      { level: 'blue', icon: '⭐', title: 'Cuida a tus clientes frecuentes', text: 'Registra a tus clientes en la sección Clientes y dales un trato preferente. Es 5 veces más barato venderle de nuevo a un cliente que conseguir uno nuevo.' },
+      { level: 'blue', icon: '📦', title: 'Evita quedarte sin stock', text: 'Revisa Inventario cada semana y reabastece tus productos más vendidos antes de que se agoten. Un producto agotado es una venta que se va con la competencia.' },
+      { level: 'blue', icon: '🏷️', title: 'Acomoda lo más rentable al frente', text: 'Pon los productos de mayor margen a la altura de los ojos y junto a la caja. Lo que está a la mano se vende más; lo que está escondido casi no rota.' },
+      { level: 'blue', icon: '📅', title: 'Aprovecha fechas y temporadas', text: 'Planea tu surtido para fechas fuertes (regreso a clases, fin de mes, días festivos). Tener el producto correcto en la fecha correcta dispara tus ventas.' },
+      { level: 'blue', icon: '💳', title: 'Acepta más formas de pago', text: 'Ofrece pago con tarjeta y transferencia además de efectivo. Muchos clientes compran más cuando no dependen del efectivo que traen encima.' },
+      { level: 'blue', icon: '🧮', title: 'Registra TODO en la Caja', text: 'Cobra siempre desde la Caja, aunque sea una venta pequeña. Mientras más completos tus datos, mejores y más exactos serán estos consejos para tu tienda.' },
+      { level: 'blue', icon: '🔄', title: 'Detecta productos que no rotan', text: 'Identifica los productos que llevan semanas sin venderse y ponlos en oferta o promoción. Ese dinero "dormido" en el estante lo puedes reinvertir en lo que sí vende.' },
+      { level: 'blue', icon: '🤝', title: 'Negocia con tus proveedores', text: 'Pide descuento por volumen o busca un segundo proveedor para comparar precios. Bajar 5% tu costo es ganancia directa sin vender un solo producto más.' },
+    ]
+
+    // Completa hasta 8 consejos sin repetir títulos
+    const seen = new Set(tips.map(t => t.title))
+    for (const g of growth) {
+      if (tips.length >= 8) break
+      if (!seen.has(g.title)) { tips.push(g); seen.add(g.title) }
+    }
+
+    return tips.slice(0, 8)
   }
 
   useEffect(() => {

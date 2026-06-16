@@ -90,6 +90,7 @@
 .advice-card--red { background: #fff1f2; border-color: #fca5a5; }
 .advice-card--yellow { background: #fffbeb; border-color: #fcd34d; }
 .advice-card--green { background: #f0fdf4; border-color: #86efac; }
+.advice-card--blue { background: #eff6ff; border-color: #bfdbfe; }
 .advice-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
 .advice-title { font-weight: 700; font-size: 15px; color: #0f172a; margin-bottom: 4px; }
 .advice-text { font-size: 14px; color: #334155; line-height: 1.5; }
