@@ -73,11 +73,14 @@ public class DeliveryController {
                         map.put("total",           o.getTotal());
                         map.put("paymentMethod",   o.getPaymentMethod() != null ? o.getPaymentMethod() : "cash_on_delivery");
                         map.put("createdAt",       o.getCreatedAt());
-                        map.put("items",           o.getItems().stream().map(i -> Map.of(
-                                "name",     i.getProduct() != null ? i.getProduct().getName() : "Producto",
-                                "quantity", i.getQuantity(),
-                                "price",    i.getUnitPrice()
-                        )).collect(Collectors.toList()));
+                        map.put("items",           o.getItems().stream().map(i -> {
+                                Map<String, Object> im = new java.util.LinkedHashMap<>();
+                                im.put("name",     i.getProduct() != null ? i.getProduct().getName() : "Producto");
+                                im.put("quantity", i.getQuantity());
+                                im.put("price",    i.getUnitPrice());
+                                im.put("imageUrl", i.getProduct() != null ? i.getProduct().getImageUrl() : null);
+                                return im;
+                        }).collect(Collectors.toList()));
                         return map;
                     }).collect(Collectors.toList());
 
