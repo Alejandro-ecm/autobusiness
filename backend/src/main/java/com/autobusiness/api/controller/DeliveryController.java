@@ -81,10 +81,12 @@ public class DeliveryController {
                         return map;
                     }).collect(Collectors.toList());
 
-                    return ResponseEntity.ok(Map.of(
-                            "businessName", business.getName(),
-                            "orders",       result
-                    ));
+                    Map<String, Object> resp = new LinkedHashMap<>();
+                    resp.put("businessName", business.getName());
+                    resp.put("logoUrl",      business.getLogoUrl());
+                    resp.put("bannerUrl",    business.getBannerUrl());
+                    resp.put("orders",       result);
+                    return ResponseEntity.ok(resp);
                 })
                 .orElse(ResponseEntity.status(404).body(Map.of("error", "Código de delivery inválido")));
     }
