@@ -17,12 +17,12 @@ shell.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden
 "@
 Set-Content -Path $vbsPath -Value $vbs -Encoding ASCII
 
-# Detener instancia previa si existe (busca el proceso escuchando el puerto)
-$prev = Get-NetTCPConnection -LocalPort 17891 -State Listen -ErrorAction SilentlyContinue
-if ($prev) {
-    $prev | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
-    Start-Sleep -Seconds 1
-}
+# Detener TODAS las instancias previas del bridge (por linea de comandos,
+# no solo la que tiene el puerto — evita zombis con versiones viejas)
+Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'AutoBusinessPrintBridge' -and $_.ProcessId -ne $PID } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Start-Sleep -Seconds 1
 
 # Arrancar ahora mismo
 Start-Process 'wscript.exe' -ArgumentList "`"$vbsPath`""

@@ -38,12 +38,12 @@ try {
 Write-Host ""
 Write-Host "Llave guardada en config.json." -ForegroundColor Green
 
-# Reiniciar el bridge para que tome la configuración
-$prev = Get-NetTCPConnection -LocalPort 17891 -State Listen -ErrorAction SilentlyContinue
-if ($prev) {
-    $prev | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
-    Start-Sleep -Seconds 1
-}
+# Reiniciar el bridge para que tome la configuración (matar todas las
+# instancias previas por línea de comandos, no solo la dueña del puerto)
+Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" -ErrorAction SilentlyContinue |
+    Where-Object { $_.CommandLine -match 'AutoBusinessPrintBridge' -and $_.ProcessId -ne $PID } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+Start-Sleep -Seconds 1
 $vbs = Join-Path ([Environment]::GetFolderPath('Startup')) 'AutoBusinessPrintBridge.vbs'
 if (Test-Path $vbs) { Start-Process 'wscript.exe' -ArgumentList "`"$vbs`"" }
 else { Write-Host "Ejecuta también instalar.ps1 para dejar el bridge en el arranque." -ForegroundColor Yellow }

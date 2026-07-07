@@ -295,7 +295,13 @@ function Invoke-CloudPoll {
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
 $listener.Prefixes.Add("http://127.0.0.1:$Port/")
-$listener.Start()
+try {
+    $listener.Start()
+} catch {
+    # Otra instancia ya tiene el puerto — salir en lugar de quedar zombi
+    Write-Host "ERROR: el puerto $Port ya esta en uso (¿otro bridge corriendo?). Saliendo." -ForegroundColor Red
+    exit 1
+}
 Write-Host "AutoBusiness Print Bridge escuchando en http://localhost:$Port"
 Write-Host "Impresora detectada: $(Find-Printer)"
 if ($CloudConfig) { Write-Host "Cola en la nube: ACTIVA (poll cada $PollIntervalSec s)" }
