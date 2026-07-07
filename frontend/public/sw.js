@@ -18,7 +18,9 @@ const STATIC_ASSETS = [
 const API_CACHE_ROUTES = [
   '/api/inventory',
   '/api/pos/products',
+  '/api/pos/top-products',
   '/api/dashboard',
+  '/api/categories',
 ]
 
 // ── Install: pre-cache static assets ─────────────────────────
@@ -155,7 +157,7 @@ async function syncPendingSales() {
   if (synced > 0) {
     self.registration.showNotification('AutoBusiness', {
       body: `${synced} venta${synced > 1 ? 's' : ''} sincronizada${synced > 1 ? 's' : ''} correctamente`,
-      icon: '/icon-192.png',
+      icon: '/favicon-192.png',
     })
   }
 }
@@ -168,8 +170,8 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'AutoBusiness', {
       body:  data.body || '',
-      icon:  '/icon-192.png',
-      badge: '/icon-192.png',
+      icon:  '/favicon-192.png',
+      badge: '/favicon-192.png',
       data:  { url: data.url || '/' },
       vibrate: [200, 100, 200],
     })

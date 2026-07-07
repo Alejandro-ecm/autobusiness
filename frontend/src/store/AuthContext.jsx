@@ -52,6 +52,9 @@ export function AuthProvider({ children }) {
   const logout = useCallback(() => {
     safeLocalRemove('ab_token')
     safeLocalRemove('ab_user')
+    // Borrar datos de API cacheados offline — evita que otra cuenta en el
+    // mismo dispositivo vea datos del negocio anterior
+    if ('caches' in window) caches.delete('autobusiness-api-v1').catch(() => {})
     setUser(null)
   }, [])
 
@@ -83,6 +86,7 @@ export function AuthProvider({ children }) {
       try { localStorage.setItem('multi_accounts', JSON.stringify(filtered)) } catch {}
     }
     try { localStorage.setItem('ab_token', acc.token) } catch {}
+    if ('caches' in window) caches.delete('autobusiness-api-v1').catch(() => {})
     _persist({
       id: acc.id,
       name: acc.name,
