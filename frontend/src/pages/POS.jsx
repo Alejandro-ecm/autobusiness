@@ -150,6 +150,48 @@ const PAY_METHODS = [
   { id: 'transfer', label: 'Transfer', icon: '📲' },
 ]
 
+const PAY_LABELS = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia' }
+
+// Print Bridge local: imprime en térmica ESC/POS sin diálogo del navegador.
+// Si el bridge no corre en esta PC, devuelve false y el caller usa el fallback.
+const PRINT_BRIDGE_URL = 'http://localhost:17891'
+
+async function printViaBridge(sale, user) {
+  try {
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 2500)
+    const folio = sale.saleId ? String(sale.saleId).replace(/-/g, '').slice(0, 8).toUpperCase() : 'PENDIENTE'
+    const res = await fetch(`${PRINT_BRIDGE_URL}/print`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: ctrl.signal,
+      body: JSON.stringify({
+        business: user.businessName || 'AutoBusiness',
+        folio,
+        date: (sale.time instanceof Date ? sale.time : new Date()).toLocaleString('es-MX', {
+          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+        }),
+        cashier: user.name || '',
+        payMethod: PAY_LABELS[sale.payMethod] || 'Efectivo',
+        offline: !!sale.offline,
+        items: sale.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, subtotal: i.subtotal })),
+        subtotal: sale.items.reduce((s, i) => s + i.subtotal, 0),
+        discountAmount: sale.discountAmount || 0,
+        total: sale.total,
+        received: sale.received || 0,
+        change: sale.change || 0,
+        storeUrl: user.businessSlug
+          ? `${window.location.origin.replace(/^https?:\/\//, '')}/tienda/${user.businessSlug}`
+          : '',
+      }),
+    })
+    clearTimeout(timer)
+    return res.ok && (await res.json()).ok === true
+  } catch {
+    return false
+  }
+}
+
 export default function POS() {
   const { user } = useAuth()
   const { show } = useToast()
@@ -382,6 +424,7 @@ export default function POS() {
       setSessionHistory(prev => [saleEntry, ...prev].slice(0, 20))
       setCart([]); setCashReceived(''); setDiscount('')
       show('📴 Sin internet — venta guardada localmente', 'warning')
+      autoPrint(saleEntry)
       return
     }
 
@@ -396,6 +439,7 @@ export default function POS() {
     setCart([]); setCashReceived(''); setDiscount('')
     posApi.products().then(setProducts)
     posApi.topProducts().then(setTopProducts).catch(() => {})
+    autoPrint(saleEntry)
   }
 
   const handleCardPaymentSuccess = (result, status = 'approved') => {
@@ -415,6 +459,7 @@ export default function POS() {
     posApi.products().then(setProducts)
     posApi.topProducts().then(setTopProducts).catch(() => {})
     show(status === 'approved' ? '💳 Pago con tarjeta aprobado' : '⏳ Pago pendiente de confirmación', status === 'approved' ? 'success' : 'warning')
+    autoPrint(saleEntry)
   }
 
   const checkout = async () => {
@@ -460,8 +505,6 @@ export default function POS() {
   }
 
   const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-
-  const PAY_LABELS = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia' }
 
   // HTML del ticket — el mismo para la vista previa y para imprimir
   const buildTicketHtml = (sale) => {
@@ -535,11 +578,19 @@ export default function POS() {
     </body></html>`
   }
 
-  const printTicket = (sale) => {
+  const printTicket = async (sale) => {
+    // Primero el Print Bridge local (térmica ESC/POS, sin diálogo)
+    if (await printViaBridge(sale, user)) { show('🖨️ Ticket impreso', 'success'); return }
+    // Fallback: diálogo de impresión del navegador
     const w = window.open('', '_blank', 'width=380,height=600')
     if (!w) { show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'); return }
     w.document.write(buildTicketHtml(sale))
     w.document.close(); w.print()
+  }
+
+  // Impresión automática al cobrar — solo si el bridge está corriendo en esta PC
+  const autoPrint = (saleEntry) => {
+    printViaBridge(saleEntry, user).then(ok => { if (ok) show('🖨️ Ticket impreso', 'success') })
   }
 
   // ── Hooks de catálogo — SIEMPRE antes del return temprano del comprobante,
@@ -588,11 +639,9 @@ export default function POS() {
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          {!lastSale.offline && (
-            <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => printTicket(lastSale)}>
-              🖨️ Imprimir
-            </button>
-          )}
+          <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => printTicket(lastSale)}>
+            🖨️ Imprimir
+          </button>
           <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => setLastSale(null)}>
             Nueva venta
           </button>
