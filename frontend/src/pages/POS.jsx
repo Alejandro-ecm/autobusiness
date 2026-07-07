@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { pos as posApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
+import { buildEscposTicket } from '../utils/escposTicket'
+import { bluetoothSupported, bluetoothConnected, bluetoothPrint } from '../utils/bluetoothPrinter'
 import './POS.css'
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
@@ -152,6 +154,30 @@ const PAY_METHODS = [
 
 const PAY_LABELS = { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia' }
 
+// Datos del ticket en el formato que entienden el Print Bridge y el
+// generador ESC/POS de Bluetooth
+function buildTicketData(sale, user) {
+  return {
+    business: user.businessName || 'AutoBusiness',
+    folio: sale.saleId ? String(sale.saleId).replace(/-/g, '').slice(0, 8).toUpperCase() : 'PENDIENTE',
+    date: (sale.time instanceof Date ? sale.time : new Date()).toLocaleString('es-MX', {
+      day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }),
+    cashier: user.name || '',
+    payMethod: PAY_LABELS[sale.payMethod] || 'Efectivo',
+    offline: !!sale.offline,
+    items: sale.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, subtotal: i.subtotal })),
+    subtotal: sale.items.reduce((s, i) => s + i.subtotal, 0),
+    discountAmount: sale.discountAmount || 0,
+    total: sale.total,
+    received: sale.received || 0,
+    change: sale.change || 0,
+    storeUrl: user.businessSlug
+      ? `${window.location.origin.replace(/^https?:\/\//, '')}/tienda/${user.businessSlug}`
+      : '',
+  }
+}
+
 // Print Bridge local: imprime en térmica ESC/POS sin diálogo del navegador.
 // Si el bridge no corre en esta PC, devuelve false y el caller usa el fallback.
 const PRINT_BRIDGE_URL = 'http://localhost:17891'
@@ -160,30 +186,11 @@ async function printViaBridge(sale, user) {
   try {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 2500)
-    const folio = sale.saleId ? String(sale.saleId).replace(/-/g, '').slice(0, 8).toUpperCase() : 'PENDIENTE'
     const res = await fetch(`${PRINT_BRIDGE_URL}/print`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: ctrl.signal,
-      body: JSON.stringify({
-        business: user.businessName || 'AutoBusiness',
-        folio,
-        date: (sale.time instanceof Date ? sale.time : new Date()).toLocaleString('es-MX', {
-          day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-        }),
-        cashier: user.name || '',
-        payMethod: PAY_LABELS[sale.payMethod] || 'Efectivo',
-        offline: !!sale.offline,
-        items: sale.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, subtotal: i.subtotal })),
-        subtotal: sale.items.reduce((s, i) => s + i.subtotal, 0),
-        discountAmount: sale.discountAmount || 0,
-        total: sale.total,
-        received: sale.received || 0,
-        change: sale.change || 0,
-        storeUrl: user.businessSlug
-          ? `${window.location.origin.replace(/^https?:\/\//, '')}/tienda/${user.businessSlug}`
-          : '',
-      }),
+      body: JSON.stringify(buildTicketData(sale, user)),
     })
     clearTimeout(timer)
     return res.ok && (await res.json()).ok === true
@@ -579,18 +586,41 @@ export default function POS() {
   }
 
   const printTicket = async (sale) => {
-    // Primero el Print Bridge local (térmica ESC/POS, sin diálogo)
+    // 1) Print Bridge local (PC con térmica USB, sin diálogo)
     if (await printViaBridge(sale, user)) { show('🖨️ Ticket impreso', 'success'); return }
-    // Fallback: diálogo de impresión del navegador
+
+    // 2) Bluetooth (Android/Chrome): si ya hay impresora conectada, o en
+    //    celular donde el diálogo de imprimir del navegador no sirve de nada
+    const isAndroid = /android/i.test(navigator.userAgent)
+    if (bluetoothSupported() && (bluetoothConnected() || isAndroid)) {
+      try {
+        await bluetoothPrint(buildEscposTicket(buildTicketData(sale, user)))
+        show('🖨️ Ticket impreso por Bluetooth', 'success')
+        return
+      } catch (err) {
+        if (err?.name === 'NotFoundError') return // el usuario cerró el selector
+        show(err?.message || 'No se pudo imprimir por Bluetooth', 'error')
+        if (isAndroid) return // en Android el diálogo del navegador no imprime tickets
+      }
+    }
+
+    // 3) Fallback: diálogo de impresión del navegador
     const w = window.open('', '_blank', 'width=380,height=600')
     if (!w) { show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'); return }
     w.document.write(buildTicketHtml(sale))
     w.document.close(); w.print()
   }
 
-  // Impresión automática al cobrar — solo si el bridge está corriendo en esta PC
-  const autoPrint = (saleEntry) => {
-    printViaBridge(saleEntry, user).then(ok => { if (ok) show('🖨️ Ticket impreso', 'success') })
+  // Impresión automática al cobrar — solo por vías silenciosas: el bridge de
+  // la PC, o Bluetooth si la impresora ya quedó conectada en esta sesión
+  const autoPrint = async (saleEntry) => {
+    if (await printViaBridge(saleEntry, user)) { show('🖨️ Ticket impreso', 'success'); return }
+    if (bluetoothConnected()) {
+      try {
+        await bluetoothPrint(buildEscposTicket(buildTicketData(saleEntry, user)))
+        show('🖨️ Ticket impreso por Bluetooth', 'success')
+      } catch { /* el cajero puede reintentar con el botón Imprimir */ }
+    }
   }
 
   // ── Hooks de catálogo — SIEMPRE antes del return temprano del comprobante,

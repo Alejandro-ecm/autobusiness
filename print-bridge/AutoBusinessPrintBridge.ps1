@@ -101,12 +101,24 @@ function T-Row($t, [string]$left, [string]$right) {
     T-Line $t ($left + (' ' * $space) + $right)
 }
 
-# Partir texto largo en lineas de ancho maximo
+# Partir texto en lineas cortando por palabras; solo parte una palabra
+# cuando es mas larga que la linea completa
 function Split-Wrap([string]$s, [int]$max) {
     $out = @()
-    while ($s.Length -gt $max) { $out += $s.Substring(0, $max); $s = $s.Substring($max) }
-    if ($s.Length -gt 0) { $out += $s }
-    return $out
+    $cur = ''
+    foreach ($w in $s.Split(' ')) {
+        while ($w.Length -gt $max) {
+            if ($cur) { $out += $cur; $cur = '' }
+            $out += $w.Substring(0, $max)
+            $w = $w.Substring($max)
+        }
+        if (-not $cur) { $cur = $w }
+        elseif (($cur.Length + 1 + $w.Length) -le $max) { $cur = "$cur $w" }
+        else { $out += $cur; $cur = $w }
+    }
+    if ($cur) { $out += $cur }
+    if ($out.Count -eq 0) { $out = @('') }
+    return ,$out
 }
 
 # QR nativo ESC/POS (GS ( k) — la 58-LL lo soporta segun su self-test
@@ -124,22 +136,35 @@ function T-QR($t, [string]$data) {
 function Format-Money($n) { '$' + ([decimal]$n).ToString('N2') }
 
 # ── Ticket de venta desde el JSON del POS ────────────────────────
+# Mismo diseño que el ticket HTML de la Caja (buildTicketHtml en POS.jsx):
+# encabezado centrado, tabla CANT/DESCRIPCION/IMPORTE, totales y pie.
 function Build-SaleTicket($j) {
     $t = New-Ticket
     T-Init $t
-    T-Center $t
 
+    # ── Encabezado ──
+    T-Center $t
     T-Big $t
-    T-Line $t ([string]$j.business).ToUpper()
+    foreach ($line in (Split-Wrap ([string]$j.business).ToUpper() ([int]($LineWidth / 2)))) { T-Line $t $line }
     T-Normal $t
-    if ($j.storeUrl) { T-Line $t "Pedidos en linea:"; T-Line $t ([string]$j.storeUrl) }
+    if ($j.storeUrl) {
+        T-Line $t 'Pedidos en linea:'
+        foreach ($line in (Split-Wrap ([string]$j.storeUrl) $LineWidth)) { T-Line $t $line }
+    }
     T-Left $t
     T-Sep $t
 
+    # ── Datos de la venta ──
     $fecha = if ($j.date) { [string]$j.date } else { (Get-Date).ToString('dd/MM/yyyy HH:mm') }
     T-Row $t ("Folio: " + [string]$j.folio) $fecha
     if ($j.cashier)   { T-Line $t ("Le atendio: " + [string]$j.cashier) }
-    if ($j.payMethod) { T-Line $t ("Pago: " + [string]$j.payMethod + $(if ($j.offline) {' (offline)'} else {''})) }
+    if ($j.payMethod) { T-Line $t ("Forma de pago: " + [string]$j.payMethod + $(if ($j.offline) {' (offline)'} else {''})) }
+    T-Sep $t
+
+    # ── Tabla de articulos: CANT(4) DESCRIPCION(19) IMPORTE(9 der) ──
+    T-Bold $t $true
+    T-Line $t ('CANT'.PadRight(5) + 'DESCRIPCION'.PadRight(18) + '  IMPORTE')
+    T-Bold $t $false
     T-Sep $t
 
     $piezas = 0
@@ -147,36 +172,52 @@ function Build-SaleTicket($j) {
         $qty = [decimal]$item.quantity
         $piezas += $qty
         $qtyStr = if ($qty -eq [Math]::Truncate($qty)) { [string][int]$qty } else { $qty.ToString('0.###') }
-        foreach ($line in (Split-Wrap ("$qtyStr x " + [string]$item.name) $LineWidth)) { T-Line $t $line }
-        $unit = if ($qty -ne 1) { (Format-Money $item.price) + ' c/u' } else { '' }
-        T-Row $t ('  ' + $unit) (Format-Money $item.subtotal)
+        $amt  = Format-Money $item.subtotal
+        $nameWidth = $LineWidth - 5 - $amt.Length - 1
+        $chunks = Split-Wrap ([string]$item.name) $nameWidth
+        # Primera linea: cantidad + inicio del nombre + importe a la derecha
+        T-Row $t ($qtyStr.PadRight(5) + $chunks[0]) $amt
+        # Nombre largo: continuar en lineas indentadas
+        for ($i = 1; $i -lt $chunks.Count; $i++) { T-Line $t ('     ' + $chunks[$i]) }
+        # Precio unitario cuando lleva mas de una pieza
+        if ($qty -ne 1) { T-Line $t ('     ' + (Format-Money $item.price) + ' c/u') }
     }
     T-Sep $t
 
-    T-Row $t ("Articulos: " + $piezas.ToString('0.###')) ''
+    # ── Totales ──
+    T-Line $t ("Articulos: " + $piezas.ToString('0.###'))
     T-Row $t 'Subtotal' (Format-Money $j.subtotal)
     if ($j.discountAmount -and [decimal]$j.discountAmount -gt 0) {
         T-Row $t 'Descuento' ('-' + (Format-Money $j.discountAmount))
     }
+    T-Line $t ('=' * $LineWidth)
     T-Bold $t $true
     T-Tall $t
     T-Row $t 'TOTAL' (Format-Money $j.total)
     T-Normal $t
     T-Bold $t $false
-    if ($j.received -and [decimal]$j.received -gt 0) { T-Row $t 'Efectivo' (Format-Money $j.received) }
-    if ($j.change -and [decimal]$j.change -gt 0)     { T-Row $t 'Su cambio' (Format-Money $j.change) }
-    T-Sep $t
+    T-Line $t ('=' * $LineWidth)
+    if ($j.received -and [decimal]$j.received -gt 0) { T-Row $t 'Efectivo recibido' (Format-Money $j.received) }
+    if ($j.change -and [decimal]$j.change -gt 0) {
+        T-Bold $t $true
+        T-Row $t 'Su cambio' (Format-Money $j.change)
+        T-Bold $t $false
+    }
 
+    # ── Pie ──
+    T-Feed $t 1
     T-Center $t
     T-Bold $t $true
-    T-Line $t '* Gracias por su compra *'
+    T-Line $t '* !Gracias por su compra! *'
     T-Bold $t $false
     T-Line $t 'Te esperamos pronto'
     if ($j.storeUrl) {
+        T-Line $t 'Tambien puedes pedir en linea:'
         T-Feed $t 1
         T-QR $t ('https://' + ([string]$j.storeUrl -replace '^https?://',''))
-        T-Line $t 'Escanea para pedir en linea'
     }
+    T-Feed $t 1
+    T-Line $t '- Ticket de AutoBusiness AI -'
     T-Feed $t 4
     T-Cut $t
     return $t.ToArray()
