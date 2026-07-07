@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -25,6 +26,9 @@ import java.util.UUID;
 @RequestMapping("/users")
 @RequiredArgsConstructor
 public class UserController {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final String PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!#$%";
 
     private final UserRepository userRepo;
     private final BusinessRepository businessRepo;
@@ -88,6 +92,60 @@ public class UserController {
         user.setActive(active);
         userRepo.save(user);
         return ResponseEntity.ok(Map.of("id", user.getId(), "isActive", user.isActive()));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
+    public ResponseEntity<?> update(@AuthenticationPrincipal AuthPrincipal p,
+                                    @PathVariable UUID id,
+                                    @RequestBody Map<String, Object> body) {
+        User user = getEditableUser(p, id);
+
+        String name = body.getOrDefault("name", user.getName()).toString().trim();
+        String email = body.getOrDefault("email", user.getEmail()).toString().trim().toLowerCase();
+        if (name.isBlank())
+            return ResponseEntity.badRequest().body(Map.of("error", "El nombre no puede estar vacío"));
+        if (!email.matches("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"))
+            return ResponseEntity.badRequest().body(Map.of("error", "Email inválido"));
+
+        userRepo.findByEmail(email).ifPresent(existing -> {
+            if (!existing.getId().equals(user.getId()))
+                throw new IllegalArgumentException("El email ya está registrado");
+        });
+
+        user.setName(name);
+        user.setEmail(email);
+        userRepo.save(user);
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "role", user.getRole(),
+                "isActive", user.isActive()
+        ));
+    }
+
+    @PatchMapping("/{id}/password")
+    @PreAuthorize("hasAnyRole('OWNER','ADMIN')")
+    public ResponseEntity<?> resetPassword(@AuthenticationPrincipal AuthPrincipal p,
+                                           @PathVariable UUID id,
+                                           @RequestBody(required = false) Map<String, Object> body) {
+        User user = getEditableUser(p, id);
+        String password = body != null && body.get("password") != null
+                ? body.get("password").toString().trim()
+                : "";
+        if (password.isBlank()) password = generatePassword();
+        if (password.length() < 6)
+            return ResponseEntity.badRequest().body(Map.of("error", "La contraseña debe tener mínimo 6 caracteres"));
+
+        user.setPasswordHash(encoder.encode(password));
+        userRepo.save(user);
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "temporaryPassword", password,
+                "message", "Contraseña actualizada. Compártela solo con este usuario."
+        ));
     }
 
     /** Estadísticas y rendimiento de ventas de un usuario (cajero). */
@@ -158,5 +216,25 @@ public class UserController {
             ));
         }
         return out;
+    }
+
+    private User getEditableUser(AuthPrincipal p, UUID id) {
+        User user = userRepo.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (!user.getBusiness().getId().equals(p.businessId()))
+            throw new IllegalArgumentException("Acceso denegado");
+        if (user.getRole().equals("OWNER"))
+            throw new IllegalArgumentException("No se puede editar al propietario desde este panel");
+        if (user.getId().equals(p.userId()))
+            throw new IllegalArgumentException("No puedes editar tu propio usuario desde aquí");
+        return user;
+    }
+
+    private String generatePassword() {
+        StringBuilder sb = new StringBuilder("Sky");
+        for (int i = 0; i < 9; i++) {
+            sb.append(PASSWORD_CHARS.charAt(RANDOM.nextInt(PASSWORD_CHARS.length())));
+        }
+        return sb.toString();
     }
 }

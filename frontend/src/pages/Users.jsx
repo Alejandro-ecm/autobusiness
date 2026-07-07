@@ -19,6 +19,11 @@ export default function Users() {
   const [showAdd,   setShowAdd]   = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [form,      setForm]      = useState({ name: '', email: '', password: '', role: 'CASHIER' })
+  const [editUser,  setEditUser]  = useState(null)
+  const [editForm,  setEditForm]  = useState({ name: '', email: '' })
+  const [passwordUser, setPasswordUser] = useState(null)
+  const [passwordForm, setPasswordForm] = useState('')
+  const [newPassword,  setNewPassword]  = useState('')
 
   const [statsUser,    setStatsUser]    = useState(null)   // usuario seleccionado
   const [stats,        setStats]        = useState(null)   // datos cargados
@@ -40,6 +45,17 @@ export default function Users() {
 
   const load = () => api.list().then(setUserList).finally(() => setLoading(false))
   useEffect(() => { load() }, [])
+
+  const openEdit = (u) => {
+    setEditUser(u)
+    setEditForm({ name: u.name || '', email: u.email || '' })
+  }
+
+  const openPassword = (u) => {
+    setPasswordUser(u)
+    setPasswordForm('')
+    setNewPassword('')
+  }
 
   const handleCreate = async (e) => {
     e.preventDefault()
@@ -64,6 +80,46 @@ export default function Users() {
       show(u.isActive ? 'Usuario desactivado' : 'Usuario activado', 'success')
       load()
     } catch { show('Error', 'error') }
+  }
+
+  const handleEdit = async (e) => {
+    e.preventDefault()
+    if (!editForm.name.trim() || !editForm.email.trim()) {
+      show('Completa nombre y email', 'error'); return
+    }
+    setSaving(true)
+    try {
+      await api.update(editUser.id, editForm)
+      show('Usuario actualizado', 'success')
+      setEditUser(null)
+      load()
+    } catch (err) {
+      show(err?.error || 'Error al actualizar usuario', 'error')
+    } finally { setSaving(false) }
+  }
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault()
+    if (passwordForm && passwordForm.length < 6) {
+      show('La contraseña debe tener mínimo 6 caracteres', 'error'); return
+    }
+    setSaving(true)
+    try {
+      const res = await api.resetPassword(passwordUser.id, passwordForm)
+      setNewPassword(res.temporaryPassword)
+      show('Contraseña actualizada', 'success')
+    } catch (err) {
+      show(err?.error || 'Error al cambiar contraseña', 'error')
+    } finally { setSaving(false) }
+  }
+
+  const copyPassword = async () => {
+    try {
+      await navigator.clipboard.writeText(newPassword)
+      show('Contraseña copiada', 'success')
+    } catch {
+      show('No se pudo copiar automáticamente', 'error')
+    }
   }
 
   if (loading) return <div className="page-loading"><div className="spinner" /></div>
@@ -111,6 +167,16 @@ export default function Users() {
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    {u.role !== 'OWNER' && u.id !== me?.id && (
+                      <>
+                        <button className="btn btn-sm btn-outline" onClick={() => openEdit(u)}>
+                          Editar
+                        </button>
+                        <button className="btn btn-sm btn-outline" onClick={() => openPassword(u)}>
+                          Contraseña
+                        </button>
+                      </>
+                    )}
                     <button className="btn btn-sm btn-outline" onClick={() => openStats(u)}>
                       📊 Estadísticas
                     </button>
@@ -163,6 +229,77 @@ export default function Users() {
                 <button type="button" className="btn btn-outline" onClick={() => setShowAdd(false)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary" disabled={saving}>
                   {saving ? <div className="spinner" /> : 'Crear usuario'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editUser && (
+        <div className="modal-overlay" onClick={() => setEditUser(null)}>
+          <div className="modal-box card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Editar usuario</h3>
+              <button className="modal-close" onClick={() => setEditUser(null)}>×</button>
+            </div>
+            <form onSubmit={handleEdit} className="modal-form">
+              <div className="input-group">
+                <label>Nombre *</label>
+                <input className="input" value={editForm.name}
+                  onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} required />
+              </div>
+              <div className="input-group">
+                <label>Email *</label>
+                <input className="input" type="email" value={editForm.email}
+                  onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} required />
+              </div>
+              <p className="users-help">
+                Este cambio actualiza el correo con el que el cajero entra al sistema.
+              </p>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setEditUser(null)}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? <div className="spinner" /> : 'Guardar cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {passwordUser && (
+        <div className="modal-overlay" onClick={() => setPasswordUser(null)}>
+          <div className="modal-box card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Contraseña de {passwordUser.name}</h3>
+              <button className="modal-close" onClick={() => setPasswordUser(null)}>×</button>
+            </div>
+            <form onSubmit={handleResetPassword} className="modal-form">
+              <p className="users-help">
+                Por seguridad no se puede ver la contraseña anterior. Puedes escribir una nueva o dejarlo vacío para generar una segura.
+              </p>
+              <div className="input-group">
+                <label>Nueva contraseña</label>
+                <input className="input" type="text" value={passwordForm}
+                  onChange={e => setPasswordForm(e.target.value)}
+                  minLength={6} placeholder="Vacío = generar automáticamente" />
+              </div>
+
+              {newPassword && (
+                <div className="password-result">
+                  <span>Nueva contraseña</span>
+                  <strong>{newPassword}</strong>
+                  <button type="button" className="btn btn-sm btn-outline" onClick={copyPassword}>
+                    Copiar
+                  </button>
+                </div>
+              )}
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline" onClick={() => setPasswordUser(null)}>Cerrar</button>
+                <button type="submit" className="btn btn-primary" disabled={saving}>
+                  {saving ? <div className="spinner" /> : 'Actualizar contraseña'}
                 </button>
               </div>
             </form>

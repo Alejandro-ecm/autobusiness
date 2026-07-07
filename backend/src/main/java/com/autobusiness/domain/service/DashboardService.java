@@ -23,6 +23,7 @@ public class DashboardService {
     private final AlertRepository alertRepo;
     private final BranchRepository branchRepo;
     private final PurchaseRepository purchaseRepo;
+    private final InventoryTransferRepository transferRepo;
 
     public Map<String, Object> getOwnerDashboard(UUID businessId) {
         Instant now = Instant.now();
@@ -78,6 +79,10 @@ public class DashboardService {
         BigDecimal revenue = Objects.requireNonNullElse(saleRepo.sumByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
         BigDecimal cost = Objects.requireNonNullElse(saleRepo.sumCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
         BigDecimal purchases = Objects.requireNonNullElse(purchaseRepo.sumByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
+        BigDecimal incomingTransferCost = Objects.requireNonNullElse(
+                transferRepo.sumIncomingCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
+        BigDecimal outgoingTransferCost = Objects.requireNonNullElse(
+                transferRepo.sumOutgoingCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
         BigDecimal grossProfit = revenue.subtract(cost);
         BigDecimal margin = revenue.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO :
                 grossProfit.divide(revenue, 4, RoundingMode.HALF_UP)
@@ -102,6 +107,8 @@ public class DashboardService {
                         .multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
 
         BigDecimal netCash = revenue.subtract(purchases);
+        BigDecimal inventoryInvestment = purchases.add(incomingTransferCost);
+        BigDecimal inventoryReleased = outgoingTransferCost;
 
         var result = new java.util.HashMap<String, Object>();
         result.put("period", "ultimos 30 dias");
@@ -109,6 +116,10 @@ public class DashboardService {
         result.put("cost", cost);
         result.put("purchases", purchases);
         result.put("netCash", netCash);
+        result.put("incomingTransferCost", incomingTransferCost);
+        result.put("outgoingTransferCost", outgoingTransferCost);
+        result.put("inventoryInvestment", inventoryInvestment);
+        result.put("inventoryReleased", inventoryReleased);
         result.put("grossProfit", grossProfit);
         result.put("margin", margin);
         result.put("daily", daily);

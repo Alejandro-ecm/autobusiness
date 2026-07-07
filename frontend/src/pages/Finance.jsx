@@ -317,6 +317,17 @@ export default function Finance() {
           trend={weekTrend} sub={weekTrend != null ? 'vs semana anterior' : 'semana en curso'} />
       </div>
 
+      <div className="finance-kpis">
+        <KpiCard icon="🔁" label="Entradas por transferencia" value={fmt(data.incomingTransferCost)} color="success"
+          trend={null} sub="Inventario recibido a costo" />
+        <KpiCard icon="📤" label="Salidas por transferencia" value={fmt(data.outgoingTransferCost)} color="warning"
+          trend={null} sub="Inventario enviado a costo" />
+        <KpiCard icon="🏪" label="Inversión en inventario" value={fmt(data.inventoryInvestment)} color="primary"
+          trend={null} sub="Compras + entradas por transferencia" />
+        <KpiCard icon="🧾" label="Caja operativa" value={fmt(data.netCash)} color="info"
+          trend={null} sub="Ventas - compras a proveedores" />
+      </div>
+
       {/* Tab: Resumen */}
       {activeTab === 'resumen' && (
         <>
@@ -390,6 +401,30 @@ export default function Finance() {
             <p className="text-soft" style={{ fontSize: 11, marginTop: 12 }}>
               * La simulación asume que el volumen de ventas se mantiene igual
             </p>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 20 }}>
+          <h3 className="section-title">Transferencias entre negocios</h3>
+          <p className="text-soft" style={{ marginBottom: 16, fontSize: 13 }}>
+            Estas transferencias no se cuentan como ventas. Se registran aparte para cuidar inventario, presupuesto y valuación contable.
+          </p>
+          <div className="sim-table">
+            <div className="sim-row">
+              <div className="sim-scenario">Inventario recibido</div>
+              <div className="sim-value">{fmt(data.incomingTransferCost)}</div>
+              <div className="sim-delta positive">Entrada a costo</div>
+            </div>
+            <div className="sim-row">
+              <div className="sim-scenario">Inventario enviado</div>
+              <div className="sim-value">{fmt(data.outgoingTransferCost)}</div>
+              <div className="sim-delta neutral">Salida interna</div>
+            </div>
+            <div className="sim-row highlight2">
+              <div className="sim-scenario">Inversión total en inventario</div>
+              <div className="sim-value">{fmt(data.inventoryInvestment)}</div>
+              <div className="sim-delta neutral">Compras + transferencias recibidas</div>
+            </div>
           </div>
         </div>
         </>

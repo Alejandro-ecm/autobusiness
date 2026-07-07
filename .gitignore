@@ -38,3 +38,8 @@ postgres_data/
 # Logs
 *.log
 logs/
+
+.vercel
+
+# Respaldos de base de datos — nunca subir a git
+backups/

@@ -190,7 +190,7 @@ export default function AccountDeletion() {
         {/* Step: Email fallback (endpoint not yet implemented) */}
         {step === 'email-fallback' && (
           <div style={styles.card}>
-            <div style={styles.infoBox} style={{ ...styles.infoBox, marginBottom: 20 }}>
+              <div style={{ ...styles.infoBox, marginBottom: 20 }}>
               <strong>Solicitud recibida</strong>
             </div>
             <p style={styles.bodyText}>

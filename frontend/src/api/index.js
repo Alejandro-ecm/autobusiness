@@ -1,8 +1,27 @@
 import client from './client'
 
+async function authRequest(path, data) {
+  let response
+  try {
+    response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+  } catch {
+    throw { error: 'No se pudo conectar con el servidor' }
+  }
+
+  const payload = await response.json().catch(() => ({}))
+  if (!response.ok) {
+    throw payload?.error ? payload : { error: 'No se pudo iniciar sesión' }
+  }
+  return payload
+}
+
 export const auth = {
-  login:    (email, password) => client.post('/auth/login', { email, password }),
-  register: (data)            => client.post('/auth/register', data),
+  login:    (email, password) => authRequest('/auth/login', { email, password }),
+  register: (data)            => authRequest('/auth/register', data),
 }
 
 export const dashboard = {
@@ -30,6 +49,8 @@ export const inventory = {
     client.patch(`/inventory/products/${id}/stock`, { delta, reason }),
   import:      (rows)          => client.post('/inventory/products/import', rows),
   movements:   ()              => client.get('/inventory/movements'),
+  transfer:    (data)          => client.post('/inventory/transfers', data),
+  transferHistory: ()          => client.get('/inventory/transfers'),
 }
 
 export const categories = {
@@ -53,7 +74,9 @@ export const customers = {
 export const users = {
   list:         ()            => client.get('/users'),
   create:       (data)        => client.post('/users', data),
+  update:       (id, data)    => client.patch(`/users/${id}`, data),
   toggleActive: (id, active)  => client.patch(`/users/${id}/active`, { isActive: active }),
+  resetPassword:(id, password) => client.patch(`/users/${id}/password`, password ? { password } : {}),
   stats:        (id)          => client.get(`/users/${id}/stats`),
 }
 

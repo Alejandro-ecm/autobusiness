@@ -7,6 +7,7 @@
   position: relative;
   margin-left: 220px;
   flex: 1;
+  background: #fff;
   /* min-width 0: sin esto, contenido con ancho intrínseco grande (p. ej. la pasarela
      de Caja) infla esta columna más allá del viewport y empuja todo fuera de pantalla */
   min-width: 0;
@@ -18,20 +19,7 @@
 
 /* ── Fondo: una sola imagen difuminada detras del contenido, sin velo ── */
 .app-content::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  right: 0;
-  left: 220px;                 /* empieza despues del sidebar */
-  background-image: url('/dashboard-bg.jpg');
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  filter: blur(7px);
-  z-index: 0;
-  pointer-events: none;
-  transition: left 0.25s cubic-bezier(.4,0,.2,1);
+  display: none;
 }
 /* El contenido (topbar + main) va por encima del fondo */
 .app-content > * {

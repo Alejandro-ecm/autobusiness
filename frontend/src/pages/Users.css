@@ -6,6 +6,45 @@
   font-size: 14px; font-weight: 700; flex-shrink: 0;
 }
 
+.users-help {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.password-result {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #bbf7d0;
+}
+
+.password-result span {
+  color: #166534;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.password-result strong {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 14px;
+}
+
 /* ---- Modal de estadísticas del cajero ---- */
 .stats-modal { max-width: 720px; width: 100%; }
 .stats-body { display: flex; flex-direction: column; gap: 18px; }

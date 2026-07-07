@@ -81,6 +81,9 @@ export default function Contabilidad() {
   const revenue     = Number(finance.revenue    || 0)
   const cogs        = Number(finance.cost       || 0)
   const purchasesTotal = Number(finance.purchases || 0)
+  const incomingTransferCost = Number(finance.incomingTransferCost || 0)
+  const outgoingTransferCost = Number(finance.outgoingTransferCost || 0)
+  const inventoryInvestment = Number(finance.inventoryInvestment || 0)
   const grossProfit = Number(finance.grossProfit || 0)
   const grossMargin = Number(finance.margin     || 0)
   const opexVal     = parseFloat(opex) || 0
@@ -152,6 +155,13 @@ export default function Contabilidad() {
                 </span>
                 <span className="conta-amount negative">({fmt(cogs)})</span>
               </div>
+              <div className="conta-row conta-row--cost">
+                <span>
+                  🔁 Transferencias internas recibidas
+                  <Tooltip text="Mercancía recibida desde otro negocio conectado. Aumenta tu inventario, pero no cuenta como venta." />
+                </span>
+                <span className="conta-amount">{fmt(incomingTransferCost)}</span>
+              </div>
               <div className="conta-row conta-row--subtotal">
                 <span><strong>= Utilidad Bruta</strong> <span className="text-soft text-sm">[margen {pct(grossMargin)}]</span></span>
                 <strong className="conta-amount">{fmt(grossProfit)}</strong>
@@ -204,6 +214,13 @@ export default function Contabilidad() {
                     <Tooltip text="Total pagado a proveedores por mercancía en los últimos 30 días. Este dinero ya salió de tu caja." />
                   </span>
                   <span className="conta-amount negative">({fmt(purchasesTotal)})</span>
+                </div>
+                <div className="conta-row">
+                  <span>
+                    📦 Transferencias entre negocios
+                    <Tooltip text="Se muestran por separado para control interno. No se toman como ventas ni como efectivo cobrado." />
+                  </span>
+                  <span>{fmt(incomingTransferCost)} entrada / {fmt(outgoingTransferCost)} salida</span>
                 </div>
                 <div className={`conta-row conta-row--total ${netCash >= 0 ? 'green' : 'red'}`}>
                   <span><strong>= {netCash >= 0 ? '💰 Saldo neto de caja' : '⚠️ Déficit de caja'}</strong></span>
@@ -299,6 +316,12 @@ export default function Contabilidad() {
                       <Tooltip text="Suma del (costo × stock) de todos tus productos actuales. Es tu dinero en mercancía." />
                     </span>
                     <span className="font-semibold">{fmt(inventoryValue)}</span>
+                  </div>
+                  <div className="conta-row">
+                    <span>🔁 Inversión en inventario del período
+                      <Tooltip text="Compras a proveedores más inventario recibido por transferencias internas." />
+                    </span>
+                    <span className="font-semibold">{fmt(inventoryInvestment)}</span>
                   </div>
                   <div className="conta-row">
                     <span>💵 Efectivo estimado

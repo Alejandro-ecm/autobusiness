@@ -2,11 +2,21 @@
   position: relative;
   min-height: 100vh;
   background-color: #0b1020;
+  background-image: url('/login-bg-store.jpg');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
   overflow: hidden;
+}
+
+/* La tienda es ahora el unico fondo del acceso. */
+.login-page::before,
+.login-page::after {
+  display: none;
 }
 
 /* Cada imagen cubre su mitad de la pantalla, juntas en el centro sin hueco */

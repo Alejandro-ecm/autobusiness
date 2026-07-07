@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { inventory as inventoryApi, categories as categoriesApi, upload as uploadApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
+import { useLocation, useNavigate } from 'react-router-dom'
 import './Inventory.css'
 
 const API = import.meta.env.VITE_API_URL || '/api'
@@ -111,6 +112,8 @@ const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').
 export default function Inventory() {
   const { show } = useToast()
   const { isOwner } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -168,6 +171,21 @@ export default function Inventory() {
     const iv = setInterval(load, 15_000)
     return () => clearInterval(iv)
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('new') !== '1') return
+    setShowModal(true)
+    params.delete('new')
+    const nextSearch = params.toString()
+    navigate(
+      {
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : '',
+      },
+      { replace: true },
+    )
+  }, [location.pathname, location.search, navigate])
 
   const filtered = products
     .filter(p => {

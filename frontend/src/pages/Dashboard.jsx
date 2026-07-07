@@ -4,6 +4,7 @@ import { dashboard as dashboardApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import KpiCard from '../components/ui/KpiCard'
+import InventoryTransferModal from '../components/inventory/InventoryTransferModal'
 import './Dashboard.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`
@@ -129,6 +130,7 @@ export default function Dashboard() {
   const [showGlobal, setShowGlobal] = useState(false)
   const [globalData, setGlobalData] = useState([])
   const [globalLoading, setGlobalLoading] = useState(false)
+  const [showTransfer, setShowTransfer] = useState(false)
 
   const BIZ_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4']
 
@@ -459,9 +461,17 @@ export default function Dashboard() {
       <div className="card card--gray" style={{ padding: '16px 20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <h3 className="section-title" style={{ margin: 0 }}>🏢 Mis negocios</h3>
-          <button className="btn btn-sm btn-outline" onClick={() => setShowAddBiz(v => !v)}>
-            {showAddBiz ? 'Cancelar' : '+ Conectar negocio'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button
+              className="btn btn-sm inventory-transfer-trigger"
+              onClick={() => accounts.length ? setShowTransfer(true) : (setShowAddBiz(true), show('Primero conecta la tienda destino', 'info'))}
+            >
+              ↔ Transferir inventario
+            </button>
+            <button className="btn btn-sm btn-outline" onClick={() => setShowAddBiz(v => !v)}>
+              {showAddBiz ? 'Cancelar' : '+ Conectar negocio'}
+            </button>
+          </div>
         </div>
 
         {showAddBiz && (
@@ -624,6 +634,9 @@ export default function Dashboard() {
           <button className="btn btn-primary" onClick={() => navigate('/caja')}>
             💰 Nueva venta
           </button>
+          <button className="btn btn-outline" onClick={() => navigate('/inventory?new=1')}>
+            ➕ Agregar al inventario
+          </button>
           <button className="btn btn-outline" onClick={() => navigate('/inventory')}>
             📦 Inventario
           </button>
@@ -638,6 +651,13 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
+      {showTransfer && (
+        <InventoryTransferModal
+          accounts={accounts}
+          currentBusinessName={user?.businessName}
+          onClose={() => setShowTransfer(false)}
+        />
+      )}
     </div>
   )
 }

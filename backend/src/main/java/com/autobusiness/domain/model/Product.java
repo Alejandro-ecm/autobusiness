@@ -93,9 +93,11 @@ public class Product {
     private String variants;
 
     @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
+    @Column(name = "updated_at")
     private Instant updatedAt;
 
     public BigDecimal getMargin() {
