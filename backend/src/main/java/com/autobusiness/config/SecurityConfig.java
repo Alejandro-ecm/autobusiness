@@ -61,6 +61,7 @@ public class SecurityConfig {
                                 "/settings/instagram/oauth-callback",       // redirect de Instagram OAuth
                                 "/webhooks/instagram",                      // webhook de DMs de Instagram
                                 "/store/*/process-payment",                 // Checkout Bricks card payment
+                                "/print-queue/**",                          // PC Print Bridge (auth por print_key)
                                 "/legal/terms",                             // documentos legales públicos
                                 "/legal/privacy",
                                 "/legal/acceptable-use",

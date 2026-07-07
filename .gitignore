@@ -43,3 +43,6 @@ logs/
 
 # Respaldos de base de datos — nunca subir a git
 backups/
+
+# Llave secreta de impresion de cada negocio — no subir a git
+print-bridge/config.json

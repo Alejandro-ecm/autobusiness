@@ -66,6 +66,11 @@ public class Business {
     @Column(columnDefinition = "TEXT")
     private String businessHours;
 
+    // Cola de impresión en la nube
+    @Column(unique = true)
+    private UUID printKey;
+    private Instant printBridgeSeenAt;
+
     // Mercado Pago por negocio
     @Column(length = 500)
     private String mpAccessToken;

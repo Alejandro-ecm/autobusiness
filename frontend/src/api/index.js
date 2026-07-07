@@ -94,6 +94,15 @@ export const alerts = {
   markRead: (id) => client.patch(`/alerts/${id}/read`),
 }
 
+// Cola de impresión en la nube — celulares sin impresora encolan tickets;
+// el Print Bridge de la PC o la Estación de Impresión los imprimen
+export const printJobs = {
+  create:    (ticket) => client.post('/print-jobs', ticket),
+  pending:   ()       => client.get('/print-jobs/pending'),
+  done:      (id)     => client.patch(`/print-jobs/${id}/done`),
+  bridgeKey: ()       => client.get('/print-jobs/bridge-key'),
+}
+
 export const store = {
   storefront:      (slug)       => client.get(`/store/${slug}`),
   placeOrder:      (slug, data) => client.post(`/store/${slug}/orders`, data),

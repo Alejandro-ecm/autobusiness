@@ -15,6 +15,20 @@ $CodePage   = 16      # ESC t n — 16 = Windows-1252 en la mayoria de POS-58
 $TextCodec  = 1252    # codificacion .NET usada para los acentos
 $LineWidth  = 32      # 384 dots / 12 = 32 columnas en fuente A
 
+# ── Cola de impresion en la nube (opcional) ──────────────────────
+# Si existe config.json con printKey, el bridge ademas polea la nube:
+# asi los celulares (iPhone incluido) imprimen a traves de esta PC.
+# Generar config.json con configurar.ps1
+$PollIntervalSec = 5
+$CloudConfig = $null
+$configPath = Join-Path $PSScriptRoot 'config.json'
+if (Test-Path $configPath) {
+    try {
+        $CloudConfig = Get-Content $configPath -Raw | ConvertFrom-Json
+        if (-not $CloudConfig.printKey) { $CloudConfig = $null }
+    } catch { $CloudConfig = $null }
+}
+
 # Autodeteccion: primero una impresora que parezca termica, si no la default
 function Find-Printer {
     $printers = Get-Printer -ErrorAction SilentlyContinue
@@ -256,16 +270,52 @@ function Send-Json($ctx, [int]$code, $obj) {
     $r.Close()
 }
 
+# Recoge e imprime los trabajos pendientes de la cola en la nube
+function Invoke-CloudPoll {
+    if (-not $script:CloudConfig) { return }
+    $base = if ($CloudConfig.server) { [string]$CloudConfig.server } else { 'https://autobusiness.skytechnologieslatam.com' }
+    $key  = [string]$CloudConfig.printKey
+    try {
+        $jobs = Invoke-RestMethod -Uri "$base/api/print-queue/$key" -TimeoutSec 8
+    } catch { return }  # sin internet o servidor caido — reintenta en el siguiente poll
+    foreach ($job in $jobs) {
+        $printer = Find-Printer
+        if (-not $printer) { return }
+        try {
+            $payload = $job.payload | ConvertFrom-Json
+            $ok = [RawPrinter]::SendBytes($printer, (Build-SaleTicket $payload))
+            if ($ok) {
+                Invoke-RestMethod -Method Post -Uri "$base/api/print-queue/$key/$($job.id)/done" -TimeoutSec 8 | Out-Null
+                Write-Host "[nube] Ticket $($job.id) impreso"
+            }
+        } catch { Write-Host "[nube] Error imprimiendo $($job.id): $($_.Exception.Message)" }
+    }
+}
+
 $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add("http://localhost:$Port/")
 $listener.Prefixes.Add("http://127.0.0.1:$Port/")
 $listener.Start()
 Write-Host "AutoBusiness Print Bridge escuchando en http://localhost:$Port"
 Write-Host "Impresora detectada: $(Find-Printer)"
+if ($CloudConfig) { Write-Host "Cola en la nube: ACTIVA (poll cada $PollIntervalSec s)" }
+else { Write-Host "Cola en la nube: no configurada (ejecuta configurar.ps1 para activarla)" }
+
+$asyncCtx = $listener.BeginGetContext($null, $null)
+$lastPoll = [DateTime]::MinValue
 
 while ($listener.IsListening) {
     try {
-        $ctx = $listener.GetContext()
+        # Poll de la nube cada N segundos sin dejar de atender localhost
+        if (([DateTime]::Now - $lastPoll).TotalSeconds -ge $PollIntervalSec) {
+            $lastPoll = [DateTime]::Now
+            Invoke-CloudPoll
+        }
+
+        # Esperar request local maximo 1s y volver a checar la nube
+        if (-not $asyncCtx.AsyncWaitHandle.WaitOne(1000)) { continue }
+        $ctx = $listener.EndGetContext($asyncCtx)
+        $asyncCtx = $listener.BeginGetContext($null, $null)
         $req = $ctx.Request
         $path = $req.Url.AbsolutePath.TrimEnd('/')
 

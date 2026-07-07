@@ -60,6 +60,13 @@ async function connect() {
   }
 }
 
+// Conecta con la impresora sin imprimir (para la Estación de Impresión).
+// Requiere gesto del usuario la primera vez.
+export async function bluetoothConnect() {
+  if (!bluetoothSupported()) throw new Error('Este navegador no soporta Bluetooth')
+  await connect()
+}
+
 // Imprime bytes ESC/POS. Lanza si el usuario cancela el selector (NotFoundError)
 // o si el dispositivo no es una impresora compatible.
 export async function bluetoothPrint(bytes) {

@@ -9,6 +9,7 @@ import java.util.UUID;
 public interface BusinessRepository extends JpaRepository<Business, UUID> {
     Optional<Business> findBySlug(String slug);
     Optional<Business> findByDeliveryCode(String deliveryCode);
+    Optional<Business> findByPrintKey(UUID printKey);
     boolean existsBySlug(String slug);
     boolean existsByDeliveryCode(String deliveryCode);
 }

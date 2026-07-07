@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { pos as posApi } from '../api'
+import { pos as posApi, printJobs as printJobsApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { buildEscposTicket } from '../utils/escposTicket'
@@ -194,6 +194,19 @@ async function printViaBridge(sale, user) {
     })
     clearTimeout(timer)
     return res.ok && (await res.json()).ok === true
+  } catch {
+    return false
+  }
+}
+
+// Cola en la nube: encola el ticket para que lo imprima el Print Bridge de la
+// PC o la Estación de Impresión (/impresora) del negocio. Devuelve true solo
+// si hay un dispositivo de impresión activo que lo va a imprimir.
+async function printViaCloud(sale, user) {
+  if (!navigator.onLine) return false
+  try {
+    const res = await printJobsApi.create(buildTicketData(sale, user))
+    return res?.willPrint === true
   } catch {
     return false
   }
@@ -604,23 +617,29 @@ export default function POS() {
       }
     }
 
-    // 3) Fallback: diálogo de impresión del navegador
+    // 3) Cola en la nube: la imprime el Print Bridge de la PC o la Estación
+    //    de Impresión del negocio (así imprimen los iPhone)
+    if (await printViaCloud(sale, user)) { show('🖨️ Ticket enviado a la impresora del negocio', 'success'); return }
+
+    // 4) Fallback: diálogo de impresión del navegador
     const w = window.open('', '_blank', 'width=380,height=600')
     if (!w) { show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'); return }
     w.document.write(buildTicketHtml(sale))
     w.document.close(); w.print()
   }
 
-  // Impresión automática al cobrar — solo por vías silenciosas: el bridge de
-  // la PC, o Bluetooth si la impresora ya quedó conectada en esta sesión
+  // Impresión automática al cobrar — solo por vías silenciosas: bridge de la
+  // PC, Bluetooth ya conectado, o la cola en la nube si hay quién la imprima
   const autoPrint = async (saleEntry) => {
     if (await printViaBridge(saleEntry, user)) { show('🖨️ Ticket impreso', 'success'); return }
     if (bluetoothConnected()) {
       try {
         await bluetoothPrint(buildEscposTicket(buildTicketData(saleEntry, user)))
         show('🖨️ Ticket impreso por Bluetooth', 'success')
+        return
       } catch { /* el cajero puede reintentar con el botón Imprimir */ }
     }
+    if (await printViaCloud(saleEntry, user)) show('🖨️ Ticket enviado a la impresora del negocio', 'success')
   }
 
   // ── Hooks de catálogo — SIEMPRE antes del return temprano del comprobante,

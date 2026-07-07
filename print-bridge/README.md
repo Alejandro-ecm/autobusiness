@@ -69,10 +69,34 @@ Si `storeUrl` viene, el ticket imprime un **código QR** de la tienda online.
 
 ## Cómo lo usa la Caja (POS)
 
-La Caja de AutoBusiness intenta primero imprimir por el bridge (silencioso,
-sin diálogos). Si el bridge no está corriendo en esa PC, cae al diálogo de
-impresión normal del navegador. Funciona también con ventas offline —
-el bridge es local y no necesita internet.
+Al cobrar, la Caja intenta imprimir en este orden:
+
+1. **Print Bridge local** (esta PC, USB) — silencioso, funciona sin internet.
+2. **Bluetooth** (Android/Chrome) — el celular le imprime directo a la térmica.
+3. **Cola en la nube** — el ticket viaja al servidor y lo imprime el bridge
+   de la PC o la Estación de Impresión del negocio (así imprimen los iPhone).
+4. Diálogo de impresión del navegador (último recurso).
+
+## Impresión desde celulares (cola en la nube)
+
+Para que los celulares del negocio (incluidos **iPhone**) impriman en la
+térmica conectada a esta PC:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\configurar.ps1
+```
+
+Pide el correo y contraseña del dueño/admin, guarda la llave secreta del
+negocio en `config.json` (no se sube a git) y reinicia el bridge. A partir
+de ahí el bridge revisa la cola cada 5 segundos e imprime lo que cobren
+los celulares.
+
+### Negocios sin PC
+
+No necesitan este bridge: cualquier teléfono/tablet **Android** con Chrome
+sirve como impresora del negocio abriendo la página `/impresora`
+(Estación de Impresión), conectándola por Bluetooth a la térmica y dejándola
+encendida junto a la impresora. Los iPhone cobran y la estación imprime.
 
 ## Detección de impresora
 

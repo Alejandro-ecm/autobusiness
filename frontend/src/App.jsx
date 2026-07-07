@@ -32,6 +32,7 @@ import AcceptableUse from './pages/AcceptableUse'
 import Checkout from './pages/Checkout'
 import Soporte from './pages/Soporte'
 import EmpleadosIA from './pages/EmpleadosIA'
+import PrintStation from './pages/PrintStation'
 
 function PrivateRoute({ children, ownerOnly = false, superAdminOnly = false }) {
   const { user } = useAuth()
@@ -142,6 +143,11 @@ function AppRoutes() {
 
       <Route path="/soporte" element={
         <PrivateRoute><AppLayout><Soporte /></AppLayout></PrivateRoute>
+      } />
+
+      {/* Estación de Impresión — pantalla completa (modo kiosco), sin layout */}
+      <Route path="/impresora" element={
+        <PrivateRoute><PrintStation /></PrivateRoute>
       } />
 
       <Route path="*" element={<Navigate to="/" replace />} />
