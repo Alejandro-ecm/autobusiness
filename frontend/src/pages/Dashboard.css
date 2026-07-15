@@ -306,6 +306,55 @@
   flex-shrink: 0;
 }
 
+/* ── Stock bajo / Más vendidos: fondo azul claro, texto grande, números con salto ── */
+.card-highlight.card {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+  border: 1px solid #60a5fa !important;
+}
+
+.card-highlight .list-item-name {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.card-highlight .badge,
+.card-highlight .text-success,
+.card-highlight .rank-badge {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.card-highlight .rank-badge {
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,.6);
+}
+
+@keyframes jump-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+.card-highlight .badge,
+.card-highlight .text-success,
+.card-highlight .rank-badge {
+  display: inline-block;
+  animation: jump-bounce 1.6s ease-in-out infinite;
+}
+
+.card-highlight .list-item:nth-child(2) .badge,
+.card-highlight .list-item:nth-child(2) .text-success,
+.card-highlight .list-item:nth-child(2) .rank-badge { animation-delay: .12s; }
+.card-highlight .list-item:nth-child(3) .badge,
+.card-highlight .list-item:nth-child(3) .text-success,
+.card-highlight .list-item:nth-child(3) .rank-badge { animation-delay: .24s; }
+.card-highlight .list-item:nth-child(4) .badge,
+.card-highlight .list-item:nth-child(4) .text-success,
+.card-highlight .list-item:nth-child(4) .rank-badge { animation-delay: .36s; }
+.card-highlight .list-item:nth-child(5) .badge,
+.card-highlight .list-item:nth-child(5) .text-success,
+.card-highlight .list-item:nth-child(5) .rank-badge { animation-delay: .48s; }
+
 /* ── Acciones rápidas ── */
 .quick-actions {
   display: flex;

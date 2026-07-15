@@ -386,7 +386,7 @@ export default function Dashboard() {
       {/* Panel secundario */}
       <div className="dashboard-secondary">
         {lowStockProducts.length > 0 && (
-          <div className="card">
+          <div className="card card-highlight">
             <h3 className="section-title" style={{ marginBottom: 12 }}>⚠️ Stock bajo</h3>
             {lowStockProducts.slice(0, 5).map(p => (
               <div key={p.id} className="list-item">
@@ -400,7 +400,7 @@ export default function Dashboard() {
         )}
 
         {topProducts.length > 0 && (
-          <div className="card card--gray">
+          <div className="card card-highlight">
             <h3 className="section-title" style={{ marginBottom: 12 }}>🏆 Más vendidos este mes</h3>
             {topProducts.slice(0, 5).map((p, i) => (
               <div key={p.name || `top-${i}`} className="list-item">

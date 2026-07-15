@@ -4,8 +4,6 @@ import { inventory as inventoryApi, orders as ordersApi, store as storeApi, busi
 import { useToast } from '../store/ToastContext'
 import './StoreAdmin.css'
 
-const BASE_API = (import.meta.env.VITE_API_URL || '/api')
-
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
 
 const STATUS_LABELS = {
@@ -511,7 +509,7 @@ export default function StoreAdmin() {
 
       {/* Delivery */}
       {tab === 'delivery' && (
-        <DeliveryCodePanel code={deliveryCode} baseApi={BASE_API} show={show} />
+        <DeliveryCodePanel code={deliveryCode} show={show} />
       )}
 
       {/* Diseño */}
@@ -717,15 +715,10 @@ export default function StoreAdmin() {
   )
 }
 
-function DeliveryCodePanel({ code, baseApi, show }) {
+function DeliveryCodePanel({ code, show }) {
   const copyCode = () => {
     navigator.clipboard.writeText(code)
     show('Código copiado', 'success')
-  }
-  const copyEndpoint = () => {
-    const url = `${baseApi}/delivery/orders?code=${code}`
-    navigator.clipboard.writeText(url)
-    show('Endpoint copiado', 'success')
   }
 
   return (
@@ -777,98 +770,6 @@ function DeliveryCodePanel({ code, baseApi, show }) {
           }}>
             🔄 Se sincroniza en tiempo real
           </span>
-        </div>
-      </div>
-
-      {/* Endpoint para desarrollador */}
-      <div className="card">
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>🔌 Endpoint para tu app</div>
-        <p style={{ fontSize: 13, color: '#1e293b', marginBottom: 14 }}>
-          Tu app de delivery hace una petición GET a esta URL para obtener los pedidos activos con ubicación GPS.
-        </p>
-        <div style={{
-          background: '#0f172a', borderRadius: 10, padding: '14px 16px',
-          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap'
-        }}>
-          <code style={{ color: '#a5f3fc', fontSize: 12, wordBreak: 'break-all', flex: 1 }}>
-            GET {baseApi}/delivery/orders?code=<span style={{ color: '#fb923c', fontWeight: 700 }}>{code}</span>
-          </code>
-          <button onClick={copyEndpoint}
-            style={{
-              background: '#6366f1', color: '#fff', border: 'none',
-              borderRadius: 8, padding: '6px 14px', cursor: 'pointer',
-              fontWeight: 600, fontSize: 12, flexShrink: 0
-            }}>
-            Copiar
-          </button>
-        </div>
-
-        <div style={{ marginTop: 16, background: '#f8fafc', borderRadius: 10, padding: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: '#374151', marginBottom: 8 }}>Respuesta JSON por pedido:</div>
-          <div style={{ display: 'grid', gap: 5 }}>
-            {[
-              ['customerName',     'Nombre del cliente'],
-              ['customerPhone',    'WhatsApp / teléfono'],
-              ['deliveryAddress',  'Calle y número escrita'],
-              ['deliveryLat/Lng',  'Coordenadas GPS exactas del pin'],
-              ['mapsUrl',          'Ver ubicación en Google Maps'],
-              ['navUrl',           'Abrir navegación guiada en Google Maps'],
-              ['wazeUrl',          'Abrir navegación guiada en Waze'],
-              ['total',            'Total del pedido'],
-              ['paymentMethod',    '"cash_on_delivery" o "online"'],
-              ['status',           'Estado actual del pedido'],
-              ['items[]',          'Lista de productos con cantidad y precio'],
-            ].map(([field, desc]) => (
-              <div key={field} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12 }}>
-                <span style={{ fontFamily: 'monospace', color: '#6366f1', fontWeight: 700, minWidth: 120, flexShrink: 0 }}>{field}</span>
-                <span style={{ color: '#1e293b' }}>— {desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Otros endpoints */}
-        <div style={{ marginTop: 14 }}>
-          <div style={{ fontWeight: 700, fontSize: 12, color: '#374151', marginBottom: 8 }}>Otros endpoints disponibles:</div>
-          <div style={{ display: 'grid', gap: 6 }}>
-            {[
-              ['PATCH', `/delivery/orders/{id}/status?code=${code}`, 'Cambiar estado: pending→confirmed→preparing→ready→delivered'],
-              ['POST',  `/delivery/orders/{id}/deliver?code=${code}`, 'Marcar como entregado (registra la venta si es efectivo)'],
-              ['GET',   `/delivery/earnings?code=${code}`, 'Historial de ventas y ganancias del día'],
-            ].map(([method, path, desc]) => (
-              <div key={path} style={{ background: '#0f172a', borderRadius: 8, padding: '8px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                  <span style={{ color: method === 'GET' ? '#34d399' : method === 'PATCH' ? '#fbbf24' : '#60a5fa', fontFamily: 'monospace', fontWeight: 700, fontSize: 11 }}>{method}</span>
-                  <code style={{ color: '#a5f3fc', fontSize: 11, wordBreak: 'break-all' }}>{path}</code>
-                </div>
-                <span style={{ color: '#1e293b', fontSize: 11 }}>{desc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Instrucciones */}
-      <div className="card" style={{ background: 'linear-gradient(135deg,#eff6ff,#f0fdf4)' }}>
-        <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 12 }}>📱 Qué configurar en Auto Delivery</div>
-        <div style={{ display: 'grid', gap: 10 }}>
-          {[
-            ['1', `URL base del API: ${baseApi}`],
-            ['2', `Código de delivery: ${code || '(ver arriba)'} — es la "API key" del negocio`],
-            ['3', 'Usa navUrl de cada pedido para abrir Google Maps en modo navegación guiada'],
-            ['4', 'O usa wazeUrl para abrir Waze con la ruta ya calculada'],
-            ['5', 'Llama PATCH /delivery/orders/{id}/status para actualizar el estado en tiempo real'],
-            ['6', 'Llama POST /delivery/orders/{id}/deliver cuando el cliente recibe el pedido'],
-          ].map(([n, text]) => (
-            <div key={n} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <span style={{
-                width: 26, height: 26, borderRadius: '50%', background: '#6366f1',
-                color: '#fff', fontWeight: 700, fontSize: 13,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
-              }}>{n}</span>
-              <span style={{ fontSize: 13, color: '#374151', paddingTop: 3, wordBreak: 'break-all' }}>{text}</span>
-            </div>
-          ))}
         </div>
       </div>
 
