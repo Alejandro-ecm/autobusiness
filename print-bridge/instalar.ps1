@@ -1,4 +1,4 @@
-# Instala el AutoBusiness Print Bridge para que arranque con Windows
+﻿# Instala el AutoBusiness Print Bridge para que arranque con Windows
 # (carpeta Inicio del usuario — no requiere permisos de administrador)
 
 $bridgeScript = Join-Path $PSScriptRoot 'AutoBusinessPrintBridge.ps1'

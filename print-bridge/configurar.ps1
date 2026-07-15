@@ -1,4 +1,4 @@
-# Configura la cola de impresión en la nube para este Print Bridge.
+﻿# Configura la cola de impresión en la nube para este Print Bridge.
 # Pide las credenciales del dueño/admin del negocio, obtiene la llave
 # secreta de impresión y la guarda en config.json.
 # Ejecutar manualmente: clic derecho → Ejecutar con PowerShell

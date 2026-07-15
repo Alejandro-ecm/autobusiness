@@ -14,26 +14,41 @@ Impresora térmica USB
 ## Requisitos
 
 1. Windows 10/11.
-2. La impresora conectada por USB e instalada como impresora de Windows.
-   Si Windows no la instala sola, basta el driver **"Generic / Text Only"**
-   apuntando al puerto `USB001` (no se necesita driver del fabricante):
+2. La impresora térmica conectada por USB y encendida.
 
-   ```powershell
-   Add-PrinterDriver -Name "Generic / Text Only"
-   Add-Printer -Name "POS-58" -DriverName "Generic / Text Only" -PortName "USB001"
-   ```
+## Instalación (recomendado — un solo paso)
 
-## Instalación
+En la PC del negocio: copia toda esta carpeta `print-bridge` y haz
+**doble clic en `INSTALAR.bat`**.
 
-Clic derecho en `instalar.ps1` → **Ejecutar con PowerShell**, o en una terminal:
+El instalador:
+1. Detecta la impresora USB y la instala en Windows (sin drivers del
+   fabricante — usa el genérico "Generic / Text Only").
+2. Pide el correo y contraseña del **dueño o admin** del negocio, para
+   conectar la cola de impresión en la nube (así imprimen los celulares,
+   iPhone incluido).
+3. Deja el programa arrancando solo con Windows e imprime un ticket de
+   prueba para confirmar que todo quedó bien.
+
+No requiere permisos de administrador ni conocimientos técnicos — solo
+seguir lo que va pidiendo en pantalla.
+
+### Instalación manual / avanzada
+
+Si prefieres hacerlo por partes (o el instalador automático no detecta la
+impresora), estos son los mismos pasos por separado:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\instalar.ps1
-```
+# 1. Instalar la impresora manualmente (ajustar el puerto si no es USB001)
+Add-PrinterDriver -Name "Generic / Text Only"
+Add-Printer -Name "POS-58" -DriverName "Generic / Text Only" -PortName "USB001"
 
-Esto arranca el bridge de inmediato y lo deja en la carpeta Inicio para que
-corra automáticamente (oculto) cada vez que se prende la PC. No requiere
-permisos de administrador.
+# 2. Dejar el bridge arrancando con Windows
+powershell -ExecutionPolicy Bypass -File .\instalar.ps1
+
+# 3. Conectar la cola en la nube (celulares imprimen por esta PC)
+powershell -ExecutionPolicy Bypass -File .\configurar.ps1
+```
 
 ## Endpoints
 
@@ -79,8 +94,8 @@ Al cobrar, la Caja intenta imprimir en este orden:
 
 ## Impresión desde celulares (cola en la nube)
 
-Para que los celulares del negocio (incluidos **iPhone**) impriman en la
-térmica conectada a esta PC:
+`INSTALAR.bat` ya deja esto conectado. Si necesitas repetirlo (cambiar de
+negocio, o si se saltó el paso), corre solo esa parte:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\configurar.ps1

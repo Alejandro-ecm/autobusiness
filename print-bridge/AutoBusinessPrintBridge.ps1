@@ -1,4 +1,4 @@
-# ═══════════════════════════════════════════════════════════════
+﻿# ═══════════════════════════════════════════════════════════════
 #  AutoBusiness Print Bridge v1.0
 #  Servicio local que recibe tickets de AutoBusiness AI (web) y los
 #  imprime en impresoras termicas ESC/POS (probado con 58-LL / POS-58,
