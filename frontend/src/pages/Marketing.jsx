@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../store/AuthContext'
 import client from '../api/client'
 import { useToast } from '../store/ToastContext'
+import StoreQRCode from '../components/StoreQRCode'
 import './Marketing.css'
 
 // ── Canvas image generator ──────────────────────────────────────────────────
@@ -190,6 +191,7 @@ function StoreInviteSection({ user, show }) {
   const storeUrl = `${window.location.origin}/tienda/${user?.businessSlug || ''}`
   const [activePlatform, setActivePlatform] = useState('whatsapp')
   const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const text = buildStoreText(activePlatform, user?.businessName, storeUrl)
 
   const copy = (content) => {
@@ -225,11 +227,20 @@ function StoreInviteSection({ user, show }) {
         <div className="mkt-store-link-box">
           <span className="mkt-store-link-url">{storeUrl}</span>
           <button className="btn btn-sm btn-outline" onClick={copyLink}>📋 Copiar link</button>
+          <button className="btn btn-sm btn-outline" onClick={() => setShowQR(v => !v)}>
+            📱 Código QR
+          </button>
           <a className="btn btn-sm btn-primary" href={storeUrl} target="_blank" rel="noreferrer">
             👁 Ver tienda
           </a>
         </div>
       </div>
+
+      {showQR && (
+        <div style={{ marginBottom: 20 }}>
+          <StoreQRCode storeUrl={storeUrl} businessName={user?.businessName} show={show} />
+        </div>
+      )}
 
       <div className="mkt-store-platforms">
         {STORE_PLATFORMS.map(p => (

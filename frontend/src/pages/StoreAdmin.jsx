@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../store/AuthContext'
 import { inventory as inventoryApi, orders as ordersApi, store as storeApi, business as businessApi, upload as uploadApi } from '../api'
 import { useToast } from '../store/ToastContext'
+import StoreQRCode from '../components/StoreQRCode'
 import './StoreAdmin.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
@@ -73,7 +74,6 @@ export default function StoreAdmin() {
   const [selected, setSelected]       = useState(() => new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
 
-  const [showQr, setShowQr] = useState(false)
   const storeUrl     = user?.businessSlug ? `/tienda/${user.businessSlug}` : null
   const fullStoreUrl = storeUrl ? `${window.location.origin}${storeUrl}` : null
 
@@ -266,31 +266,12 @@ export default function StoreAdmin() {
         {storeUrl && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button className="btn btn-outline" onClick={copyLink}>📋 Copiar enlace</button>
-            <button className="btn btn-outline" onClick={() => setShowQr(v => !v)}>
-              {showQr ? 'Ocultar QR' : '📱 Ver QR'}
-            </button>
             <a href={storeUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
               🔗 Ver tienda
             </a>
           </div>
         )}
       </div>
-
-      {/* QR panel */}
-      {showQr && fullStoreUrl && (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 24px', flexWrap: 'wrap' }}>
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(fullStoreUrl)}`}
-            alt="QR tienda"
-            style={{ width: 140, height: 140, borderRadius: 8, border: '1px solid #e2e8f0' }}
-          />
-          <div>
-            <div className="font-semibold" style={{ marginBottom: 6 }}>QR de tu tienda online</div>
-            <div className="text-soft text-sm" style={{ marginBottom: 10, wordBreak: 'break-all' }}>{fullStoreUrl}</div>
-            <button className="btn btn-outline btn-sm" onClick={copyLink}>📋 Copiar enlace</button>
-          </div>
-        </div>
-      )}
 
       {/* KPIs */}
       <div className="store-kpis">
@@ -322,6 +303,7 @@ export default function StoreAdmin() {
           { id: 'catalogo', label: '🏪 Catálogo' },
           { id: 'pedidos',  label: `📋 Pedidos${pendingOrders.length > 0 ? ` (${pendingOrders.length})` : ''}` },
           { id: 'delivery', label: '🛵 Delivery' },
+          { id: 'qr',       label: '📱 Código QR' },
           { id: 'diseno',   label: '🎨 Diseño' },
         ].map(t => (
           <button key={t.id} className={`tab-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
@@ -510,6 +492,11 @@ export default function StoreAdmin() {
       {/* Delivery */}
       {tab === 'delivery' && (
         <DeliveryCodePanel code={deliveryCode} show={show} />
+      )}
+
+      {/* Código QR */}
+      {tab === 'qr' && (
+        <StoreQRCode storeUrl={fullStoreUrl} businessName={user?.businessName} show={show} />
       )}
 
       {/* Diseño */}
