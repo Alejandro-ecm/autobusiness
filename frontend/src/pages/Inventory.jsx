@@ -329,15 +329,21 @@ export default function Inventory() {
     } finally { setEditSaving(false) }
   }
 
-  const deleteProduct = async (p) => {
-    if (!window.confirm(`¿Eliminar "${p.name}" del inventario? Esta acción no se puede deshacer y ya no aparecerá en el inventario, POS ni tienda online.`)) return
+  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  const doDeleteProduct = async () => {
+    const p = confirmDelete
+    if (!p) return
+    setDeleting(true)
     try {
       await inventoryApi.remove(p.id)
       show('Producto eliminado', 'success')
+      setConfirmDelete(null)
       load()
     } catch (err) {
       show(err?.error || 'Error al eliminar producto', 'error')
-    }
+    } finally { setDeleting(false) }
   }
 
   const handleCreateCategory = async (e) => {
@@ -870,9 +876,9 @@ export default function Inventory() {
                         </button>
                       )}
                       {isOwner && (
-                        <button className="btn btn-sm btn-outline"
-                          style={{ color: '#dc2626', borderColor: '#fca5a5' }}
-                          onClick={() => deleteProduct(p)}>
+                        <button className="btn btn-sm"
+                          style={{ background: '#dc2626', color: '#fff', border: 'none' }}
+                          onClick={() => setConfirmDelete(p)}>
                           Eliminar
                         </button>
                       )}
@@ -1356,6 +1362,46 @@ export default function Inventory() {
 
               <div style={{ marginTop: 16, textAlign: 'center' }}>
                 <button className="btn btn-outline" onClick={() => setAdjustProduct(null)}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal confirmar eliminación de producto ── */}
+      {confirmDelete && (
+        <div className="modal-overlay" onClick={() => !deleting && setConfirmDelete(null)}>
+          <div className="modal-box card" style={{ maxWidth: 380 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Eliminar producto</h3>
+              <button className="modal-close" onClick={() => setConfirmDelete(null)}>×</button>
+            </div>
+            <div style={{ padding: '0 0 16px' }}>
+              <p style={{ fontSize: 14, color: '#0f172a', lineHeight: 1.5 }}>
+                ¿Deseas eliminar <strong>"{confirmDelete.name}"</strong> del inventario?
+                Esta acción no se puede deshacer y ya no aparecerá en el inventario, POS ni tienda online.
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 20 }}>
+                <button
+                  disabled={deleting}
+                  onClick={doDeleteProduct}
+                  style={{
+                    background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10,
+                    padding: '12px 10px', fontWeight: 700, fontSize: 14,
+                    cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1,
+                  }}>
+                  {deleting ? <div className="spinner" /> : 'Sí, eliminar'}
+                </button>
+                <button
+                  disabled={deleting}
+                  onClick={() => setConfirmDelete(null)}
+                  style={{
+                    background: '#dc2626', color: '#fff', border: 'none', borderRadius: 10,
+                    padding: '12px 10px', fontWeight: 700, fontSize: 14,
+                    cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1,
+                  }}>
+                  No
+                </button>
               </div>
             </div>
           </div>
