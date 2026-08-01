@@ -285,6 +285,7 @@ export default function Inventory() {
       cost:     p.cost || 0,
       minStock: p.minStock || 5,
       sku:      p.sku || '',
+      barcode:  p.barcode || '',
       imageUrl: p.imageUrl || '',
       isOnline: !!p.isOnline,
       categoryId: p.categoryId || '',
@@ -316,6 +317,10 @@ export default function Inventory() {
         pricePerKg: editForm.pricePerKg ? parseFloat(editForm.pricePerKg) : undefined,
         variants:   editForm.variants?.trim() || undefined,
       })
+      const newBarcode = editForm.barcode?.trim() || null
+      if (newBarcode !== (editProduct.barcode || null)) {
+        await inventoryApi.setBarcode(editProduct.id, newBarcode)
+      }
       show('Producto actualizado', 'success')
       setEditProduct(null)
       load()
@@ -568,6 +573,12 @@ export default function Inventory() {
     <script>window.onload = () => { window.print(); }<\/script>
     </body></html>`)
     w.document.close()
+  }
+
+  // ── Imprimir 20 copias del código de un producto (para pegar en cada pieza) ──
+  const printProductLabels = async (p) => {
+    if (!p.barcode) { show('Este producto no tiene código de barras. Agrégalo desde "Editar".', 'error'); return }
+    await printLabels(Array.from({ length: 20 }, () => p))
   }
 
   const exportCsv = () => {
@@ -851,6 +862,13 @@ export default function Inventory() {
                           Ajustar inventario
                         </button>
                       )}
+                      {isOwner && p.barcode && (
+                        <button className="btn btn-sm btn-outline"
+                          onClick={() => printProductLabels(p)}
+                          title="Imprime 20 etiquetas con el código de este producto para pegar en cada pieza">
+                          🖨️ x20
+                        </button>
+                      )}
                       {isOwner && (
                         <button className="btn btn-sm btn-outline"
                           style={{ color: '#dc2626', borderColor: '#fca5a5' }}
@@ -879,7 +897,8 @@ export default function Inventory() {
               <h3>Editar producto</h3>
               <button className="modal-close" onClick={() => setEditProduct(null)}>×</button>
             </div>
-            <form onSubmit={handleEdit} className="modal-form">
+            <form onSubmit={handleEdit} className="modal-form"
+              onKeyDown={e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.preventDefault() }}>
               <div className="form-row">
                 <div className="input-group">
                   <label>Nombre *</label>
@@ -905,6 +924,24 @@ export default function Inventory() {
                   <label>Stock mínimo</label>
                   <input className="input" type="number" value={editForm.minStock} onChange={setEdit('minStock')} min="0" />
                 </div>
+              </div>
+              <div className="input-group">
+                <label>Código de barras</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="input" value={editForm.barcode || ''} onChange={setEdit('barcode')}
+                    placeholder="Escanea, escribe o genera automático"
+                    style={{ fontFamily: 'monospace', flex: 1 }} />
+                  <button type="button" className="btn btn-outline barcode-gen-btn"
+                    style={{ whiteSpace: 'nowrap', fontSize: 13 }}
+                    onClick={() => setEditForm(f => ({ ...f, barcode: generateEAN13() }))}>
+                    Generar código
+                  </button>
+                </div>
+                {editForm.barcode && (
+                  <div style={{ marginTop: 8 }}>
+                    <BarcodeImg code={editForm.barcode} />
+                  </div>
+                )}
               </div>
               {categories.length > 0 && (
                 <div className="input-group">
