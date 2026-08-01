@@ -58,6 +58,7 @@ public class InventoryController {
                     .stock(body.get("stock") != null ? new BigDecimal(body.get("stock").toString()) : BigDecimal.ZERO)
                     .minStock(body.get("minStock") != null ? new BigDecimal(body.get("minStock").toString()) : BigDecimal.valueOf(5))
                     .sku(body.get("sku") != null ? body.get("sku").toString() : null)
+                    .barcode(body.get("barcode") != null ? body.get("barcode").toString() : null)
                     .description(body.get("description") != null ? body.get("description").toString() : null)
                     .imageUrl(resolveImage(body.get("imageUrl")))
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
@@ -151,6 +152,19 @@ public class InventoryController {
                 } catch (Exception ignored) {}
             }
             return ResponseEntity.ok(inventoryService.updateProduct(principal.businessId(), productId, updates));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/products/{productId}")
+    @PreAuthorize("hasAnyRole('OWNER', 'ADMIN')")
+    public ResponseEntity<?> deleteProduct(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable UUID productId) {
+        try {
+            inventoryService.deleteProduct(principal.businessId(), productId);
+            return ResponseEntity.ok(Map.of("deleted", true));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

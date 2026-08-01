@@ -248,13 +248,14 @@ export default function Inventory() {
     if (isNaN(price) || price < 0) { show('El precio debe ser un número válido', 'error'); return }
     setSaving(true)
     try {
-      const created = await inventoryApi.create({
+      await inventoryApi.create({
         name:       form.name.trim(),
         price,
         cost:       parseFloat(form.cost) || 0,
         stock:      parseFloat(form.stock) || 0,
         minStock:   parseFloat(form.minStock) || 5,
         sku:        form.sku.trim() || undefined,
+        barcode:    form.barcode.trim() || undefined,
         imageUrl:   form.imageUrl.trim() || undefined,
         isOnline:   form.isOnline,
         categoryId: form.categoryId || undefined,
@@ -264,15 +265,6 @@ export default function Inventory() {
         pricePerKg: form.pricePerKg ? parseFloat(form.pricePerKg) : undefined,
         variants:   form.variants.trim() || undefined,
       })
-      // Save barcode if one was generated
-      if (form.barcode && created?.id) {
-        const token = localStorage.getItem('ab_token')
-        await fetch(`${API}/inventory/products/${created.id}/barcode`, {
-          method:  'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body:    JSON.stringify({ barcode: form.barcode }),
-        })
-      }
       show('Producto creado', 'success')
       setShowModal(false)
       setForm({ name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false })
@@ -327,6 +319,17 @@ export default function Inventory() {
     } catch (err) {
       show(err?.error || 'Error al actualizar', 'error')
     } finally { setEditSaving(false) }
+  }
+
+  const deleteProduct = async (p) => {
+    if (!window.confirm(`¿Eliminar "${p.name}" del inventario? Esta acción no se puede deshacer y ya no aparecerá en el inventario, POS ni tienda online.`)) return
+    try {
+      await inventoryApi.remove(p.id)
+      show('Producto eliminado', 'success')
+      load()
+    } catch (err) {
+      show(err?.error || 'Error al eliminar producto', 'error')
+    }
   }
 
   const handleCreateCategory = async (e) => {
@@ -845,6 +848,13 @@ export default function Inventory() {
                           Ajustar inventario
                         </button>
                       )}
+                      {isOwner && (
+                        <button className="btn btn-sm btn-outline"
+                          style={{ color: '#dc2626', borderColor: '#fca5a5' }}
+                          onClick={() => deleteProduct(p)}>
+                          Eliminar
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -993,7 +1003,8 @@ export default function Inventory() {
               <h3>Nuevo producto</h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
             </div>
-            <form onSubmit={handleCreate} className="modal-form">
+            <form onSubmit={handleCreate} className="modal-form"
+              onKeyDown={e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.preventDefault() }}>
               <div className="form-row">
                 <div className="input-group">
                   <label>Nombre *</label>

@@ -87,6 +87,16 @@ public class InventoryService {
     }
 
     @Transactional
+    public void deleteProduct(UUID businessId, UUID productId) {
+        Product product = productRepo.findById(productId)
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        if (!product.getBusiness().getId().equals(businessId))
+            throw new SecurityException("Acceso denegado");
+        product.setActive(false);
+        productRepo.save(product);
+    }
+
+    @Transactional
     public Product setBarcode(UUID businessId, UUID productId, String barcode) {
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
