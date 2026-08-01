@@ -109,6 +109,8 @@ function parseRows(sheet, XLSX) {
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
+const emptyForm = { name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' }
+
 export default function Inventory() {
   const { show } = useToast()
   const { isOwner } = useAuth()
@@ -123,7 +125,7 @@ export default function Inventory() {
   const [showCatModal, setShowCatModal] = useState(false)
   const [catForm, setCatForm] = useState({ name: '', color: '#6366f1' })
   const [catSaving, setCatSaving] = useState(false)
-  const [form, setForm] = useState({ name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' })
+  const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
 
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -175,6 +177,7 @@ export default function Inventory() {
   useEffect(() => {
     const params = new URLSearchParams(location.search)
     if (params.get('new') !== '1') return
+    setForm(emptyForm)
     setShowModal(true)
     params.delete('new')
     const nextSearch = params.toString()
@@ -267,7 +270,7 @@ export default function Inventory() {
       })
       show('Producto creado', 'success')
       setShowModal(false)
-      setForm({ name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false })
+      setForm(emptyForm)
       load()
     } catch (err) {
       show(err?.error || 'Error al crear producto', 'error')
@@ -664,7 +667,7 @@ export default function Inventory() {
                   🏷️ Imprimir selección ({printSelected.size})
                 </button>
               )}
-              <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ Agregar producto</button>
+              <button className="btn btn-primary" onClick={() => { setForm(emptyForm); setShowModal(true) }}>+ Agregar producto</button>
             </>
           )}
         </div>
