@@ -172,9 +172,6 @@ function buildTicketData(sale, user) {
     total: sale.total,
     received: sale.received || 0,
     change: sale.change || 0,
-    storeUrl: user.businessSlug
-      ? `${window.location.origin.replace(/^https?:\/\//, '')}/tienda/${user.businessSlug}`
-      : '',
   }
 }
 
@@ -534,7 +531,6 @@ export default function POS() {
     })
     const subtotal = sale.items.reduce((s, i) => s + i.subtotal, 0)
     const piezas = sale.items.reduce((s, i) => s + Number(i.quantity), 0)
-    const storeUrl = user.businessSlug ? `${window.location.origin.replace(/^https?:\/\//, '')}/tienda/${user.businessSlug}` : ''
 
     const rows = sale.items.map(i => `
       <tr>
@@ -569,7 +565,6 @@ export default function POS() {
     </style></head><body>
       <div class="center">
         <div class="biz">${esc(user.businessName) || 'AutoBusiness'}</div>
-        ${storeUrl ? `<div class="tagline">🛒 Pedidos en línea: ${esc(storeUrl)}</div>` : ''}
       </div>
       <div class="sep"></div>
       <div class="meta">
@@ -592,7 +587,6 @@ export default function POS() {
       <div class="foot center">
         <div class="thanks">★ ¡Gracias por su compra! ★</div>
         <div>Te esperamos pronto</div>
-        ${storeUrl ? `<div>También puedes pedir en línea:<br>${esc(storeUrl)}</div>` : ''}
         <div style="margin-top:6px;color:#666">— Ticket generado por AutoBusiness AI —</div>
       </div>
     </body></html>`

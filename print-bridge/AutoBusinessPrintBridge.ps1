@@ -161,10 +161,6 @@ function Build-SaleTicket($j) {
     T-Big $t
     foreach ($line in (Split-Wrap ([string]$j.business).ToUpper() ([int]($LineWidth / 2)))) { T-Line $t $line }
     T-Normal $t
-    if ($j.storeUrl) {
-        T-Line $t 'Pedidos en linea:'
-        foreach ($line in (Split-Wrap ([string]$j.storeUrl) $LineWidth)) { T-Line $t $line }
-    }
     T-Left $t
     T-Sep $t
 
@@ -225,11 +221,6 @@ function Build-SaleTicket($j) {
     T-Line $t '* !Gracias por su compra! *'
     T-Bold $t $false
     T-Line $t 'Te esperamos pronto'
-    if ($j.storeUrl) {
-        T-Line $t 'Tambien puedes pedir en linea:'
-        T-Feed $t 1
-        T-QR $t ('https://' + ([string]$j.storeUrl -replace '^https?://',''))
-    }
     T-Feed $t 1
     T-Line $t '- Ticket de AutoBusiness AI -'
     T-Feed $t 4

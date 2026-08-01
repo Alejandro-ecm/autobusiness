@@ -58,16 +58,6 @@ export function buildEscposTicket(j) {
   const bold = (on) => raw(27, 69, on ? 1 : 0)
   const feed = (n) => raw(27, 100, n)
 
-  const qr = (data) => {
-    const d = encodeText(data)
-    const len = d.length + 3
-    raw(29, 40, 107, 4, 0, 49, 65, 50, 0)              // modelo 2
-    raw(29, 40, 107, 3, 0, 49, 67, 5)                  // tamaño de módulo 5
-    raw(29, 40, 107, 3, 0, 49, 69, 48)                 // corrección L
-    raw(29, 40, 107, len & 0xff, (len >> 8) & 0xff, 49, 80, 48, ...d)
-    raw(29, 40, 107, 3, 0, 49, 81, 48)                 // imprimir
-  }
-
   raw(27, 64)                 // ESC @ init
   raw(27, 116, CODE_PAGE)     // ESC t code page
 
@@ -76,10 +66,6 @@ export function buildEscposTicket(j) {
   big()
   for (const l of wrap(String(j.business || 'AutoBusiness').toUpperCase(), Math.floor(LINE_WIDTH / 2))) line(l)
   normal()
-  if (j.storeUrl) {
-    line('Pedidos en linea:')
-    for (const l of wrap(String(j.storeUrl), LINE_WIDTH)) line(l)
-  }
   left()
   sep()
 
@@ -128,11 +114,6 @@ export function buildEscposTicket(j) {
   line('* !Gracias por su compra! *')
   bold(false)
   line('Te esperamos pronto')
-  if (j.storeUrl) {
-    line('Tambien puedes pedir en linea:')
-    feed(1)
-    qr('https://' + String(j.storeUrl).replace(/^https?:\/\//, ''))
-  }
   feed(1)
   line('- Ticket de AutoBusiness AI -')
   feed(4)
