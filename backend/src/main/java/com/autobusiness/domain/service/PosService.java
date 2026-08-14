@@ -175,7 +175,7 @@ public class PosService {
                         // Sin priceOverride: multiplier * precio base (por kg o unitario)
                         Object mult = v.get("multiplier");
                         if (mult != null) {
-                            BigDecimal base = ("WEIGHT".equals(saleMode) && product.getPricePerKg() != null)
+                            BigDecimal base = (isMeasuredMode(saleMode) && product.getPricePerKg() != null)
                                     ? product.getPricePerKg() : product.getPrice();
                             return base.multiply(new BigDecimal(mult.toString()))
                                     .setScale(2, RoundingMode.HALF_UP);
@@ -187,10 +187,16 @@ public class PosService {
             }
         }
 
-        if ("WEIGHT".equals(saleMode) && product.getPricePerKg() != null) {
+        if (isMeasuredMode(saleMode) && product.getPricePerKg() != null) {
             return product.getPricePerKg();
         }
         return product.getPrice();
+    }
+
+    // "WEIGHT" y "MIXED" cobran por pricePerKg (kg, m, L…) cuando el ítem se vende
+    // en su unidad de medida; MIXED también permite cobrar por pieza (price) según el caso de uso.
+    private boolean isMeasuredMode(String saleMode) {
+        return "WEIGHT".equals(saleMode) || "MIXED".equals(saleMode);
     }
 
     private String fmtQty(BigDecimal qty, String unit) {
