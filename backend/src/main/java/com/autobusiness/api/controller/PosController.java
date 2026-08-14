@@ -54,19 +54,29 @@ public class PosController {
                 .map(item -> {
                     Object pid = item.get("productId");
                     Object qty = item.get("quantity");
-                    if (pid == null || qty == null) {
-                        throw new IllegalArgumentException("Cada ítem requiere productId y quantity");
+                    Object customName = item.get("customName");
+                    Object customPrice = item.get("customPrice");
+                    if (qty == null) {
+                        throw new IllegalArgumentException("Cada ítem requiere quantity");
+                    }
+                    if (pid == null && (customName == null || customPrice == null)) {
+                        throw new IllegalArgumentException("Cada ítem requiere productId, o nombre y precio si es un producto libre");
                     }
                     return new PosService.CartItemRequest(
-                            UUID.fromString(pid.toString()),
+                            pid != null ? UUID.fromString(pid.toString()) : null,
                             new BigDecimal(qty.toString()),
                             item.get("variantName") != null ? item.get("variantName").toString() : null,
-                            item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT"
+                            item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT",
+                            customName != null ? customName.toString() : null,
+                            customPrice != null ? new BigDecimal(customPrice.toString()) : null
                     );
                 }).toList();
 
         BigDecimal cashReceived = body.get("cashReceived") != null
                 ? new BigDecimal(body.get("cashReceived").toString()) : null;
+
+        BigDecimal discountAmount = body.get("discountAmount") != null
+                ? new BigDecimal(body.get("discountAmount").toString()) : null;
 
         Object branchIdObj = body.get("branchId");
         if (branchIdObj == null) {
@@ -79,7 +89,8 @@ public class PosController {
                 principal.userId(),
                 items,
                 body.getOrDefault("paymentMethod", "cash").toString(),
-                cashReceived
+                cashReceived,
+                discountAmount
         ));
 
         return ResponseEntity.ok(Map.of(
@@ -150,15 +161,25 @@ public class PosController {
                 List<PosService.CartItemRequest> items = rawItems.stream().map(item -> {
                     Object pid = item.get("productId");
                     Object qty = item.get("quantity");
-                    if (pid == null || qty == null) throw new IllegalArgumentException("Ítem inválido");
+                    Object customName = item.get("customName");
+                    Object customPrice = item.get("customPrice");
+                    if (qty == null) throw new IllegalArgumentException("Ítem inválido");
+                    if (pid == null && (customName == null || customPrice == null))
+                        throw new IllegalArgumentException("Ítem inválido");
                     return new PosService.CartItemRequest(
-                            UUID.fromString(pid.toString()),
+                            pid != null ? UUID.fromString(pid.toString()) : null,
                             new BigDecimal(qty.toString()),
-                            null, "UNIT");
+                            item.get("variantName") != null ? item.get("variantName").toString() : null,
+                            item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT",
+                            customName != null ? customName.toString() : null,
+                            customPrice != null ? new BigDecimal(customPrice.toString()) : null);
                 }).toList();
 
                 Object branchIdObj = body.get("branchId");
                 if (branchIdObj == null) throw new IllegalArgumentException("Se requiere branchId");
+
+                BigDecimal discountAmount = body.get("discountAmount") != null
+                        ? new BigDecimal(body.get("discountAmount").toString()) : null;
 
                 Sale sale = posService.checkout(new PosService.CheckoutRequest(
                         principal.businessId(),
@@ -166,7 +187,8 @@ public class PosController {
                         principal.userId(),
                         items,
                         "card",
-                        null));
+                        null,
+                        discountAmount));
 
                 String transactionId = mpResult.get("id").toString();
                 mpService.linkSaleToPayment(transactionId, sale.getId());

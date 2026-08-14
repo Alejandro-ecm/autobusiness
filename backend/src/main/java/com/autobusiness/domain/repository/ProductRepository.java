@@ -20,7 +20,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @Query("SELECT p FROM Product p WHERE p.business.id = :businessId AND p.isActive = true " +
            "AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :q, '%')) " +
            "OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :q, '%')) " +
-           "OR p.barcode LIKE CONCAT('%', :q, '%'))")
+           "OR p.barcode LIKE CONCAT('%', :q, '%') " +
+           "OR p.barcode2 LIKE CONCAT('%', :q, '%'))")
     List<Product> search(@Param("businessId") UUID businessId, @Param("q") String query);
 
     @Query("SELECT p FROM Product p WHERE p.business.id = :businessId AND p.isActive = true " +

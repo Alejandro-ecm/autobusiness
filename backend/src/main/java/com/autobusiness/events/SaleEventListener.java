@@ -31,6 +31,7 @@ public class SaleEventListener {
                 sale.getId(), sale.getBusiness().getId(), sale.getItems().size());
 
         for (SaleItem item : sale.getItems()) {
+            if (item.getProduct() == null) continue; // ítem libre, sin producto de inventario
             try {
                 if (item.getProduct().isLowStock()) {
                     boolean critical = item.getProduct().getStock().compareTo(java.math.BigDecimal.ZERO) == 0;

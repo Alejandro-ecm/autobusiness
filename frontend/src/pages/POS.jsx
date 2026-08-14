@@ -53,7 +53,7 @@ async function initMPPos(publicKey) {
   mpPosInitialized = true
 }
 
-function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, onSuccess, onError, onClose }) {
+function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, discountAmount, onSuccess, onError, onClose }) {
   const [BrickComponent, setBrickComponent] = useState(null)
 
   useEffect(() => {
@@ -87,8 +87,11 @@ function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, onSuccess,
                 try {
                   const result = await posApi.processCardPayment({
                     formData,
-                    items: cartItems.map(i => ({ productId: i.productId, quantity: i.quantity })),
+                    items: cartItems.map(i => i.isCustom
+                      ? { customName: i.name, customPrice: i.price, quantity: i.quantity }
+                      : { productId: i.productId, quantity: i.quantity, saleMode: i.saleMode }),
                     branchId,
+                    discountAmount: discountAmount > 0 ? discountAmount : undefined,
                   })
                   if (result.status === 'approved') { onSuccess(result); return { status: 'approved' } }
                   if (result.status === 'pending' || result.status === 'in_process') {
@@ -232,6 +235,11 @@ export default function POS() {
   const [cardConfirm, setCardConfirm] = useState(false)
   const [scanFlash, setScanFlash] = useState(null) // nombre del producto escaneado
   const [addedFlash, setAddedFlash] = useState(null) // overlay grande "producto agregado"
+  const [weightPicker, setWeightPicker] = useState(null) // producto WEIGHT/MIXED esperando cantidad decimal
+  const [weightInput, setWeightInput] = useState('')
+  const [customItemModal, setCustomItemModal] = useState(false) // producto libre (nombre + precio)
+  const [customName, setCustomName] = useState('')
+  const [customPrice, setCustomPrice] = useState('')
   const addedFlashTimer = useRef(null)
   const searchRef = useRef()
   const productsRef = useRef([]) // ref para acceso sin stale closure en el listener global
@@ -314,32 +322,41 @@ export default function POS() {
     e.preventDefault()
 
     const all = productsRef.current
-    // 1. Coincidencia exacta por código de barras o SKU
+    // 1. Coincidencia exacta por código de barras (principal o secundario) o SKU
     const exact = all.find(p =>
       p.barcode?.toString() === q ||
+      p.barcode2?.toString() === q ||
       p.sku?.toLowerCase() === q.toLowerCase()
     )
     if (exact) {
-      addToCart(exact)
       beep(1900, 70)
       if (navigator.vibrate) navigator.vibrate(30)
       setScanFlash(exact.name)
       setTimeout(() => setScanFlash(null), 1200)
       setQuery('')
-      setMobileTab('cart')
-      setTimeout(() => searchRef.current?.focus(), 80)
+      if (exact.saleMode === 'WEIGHT' || exact.saleMode === 'MIXED') {
+        openWeightPicker(exact)
+      } else {
+        addToCart(exact)
+        setMobileTab('cart')
+        setTimeout(() => searchRef.current?.focus(), 80)
+      }
       return
     }
     // 2. Un solo resultado tras búsqueda — agregarlo directo
     const visible = products.filter(p => Number(p.stock) > 0)
     if (visible.length === 1) {
-      addToCart(visible[0])
       beep(1600, 70)
       setScanFlash(visible[0].name)
       setTimeout(() => setScanFlash(null), 1200)
       setQuery('')
-      setMobileTab('cart')
-      setTimeout(() => searchRef.current?.focus(), 80)
+      if (visible[0].saleMode === 'WEIGHT' || visible[0].saleMode === 'MIXED') {
+        openWeightPicker(visible[0])
+      } else {
+        addToCart(visible[0])
+        setMobileTab('cart')
+        setTimeout(() => searchRef.current?.focus(), 80)
+      }
     }
     // 3. Varios resultados → dejar el filtro activo para que el cajero elija
   }
@@ -378,38 +395,82 @@ export default function POS() {
 
   useEffect(() => () => clearTimeout(addedFlashTimer.current), [])
 
-  const addToCart = useCallback((product) => {
+  // qty puede ser decimal (para productos WEIGHT/MIXED, ej: 2.5 metros de papel)
+  const addToCart = useCallback((product, qty = 1) => {
     const stock = Number(product.stock)
     if (stock <= 0) { show(`${product.name} está agotado`, 'error'); return }
+    const quantity = Number(qty)
+    if (isNaN(quantity) || quantity <= 0) return
+    const saleMode = product.saleMode || 'UNIT'
+    const unitPrice = (saleMode !== 'UNIT' && product.pricePerKg) ? Number(product.pricePerKg) : Number(product.price)
     const ex = cart.find(i => i.productId === product.id)
-    if (ex && ex.quantity >= stock) { show(`Solo quedan ${stock} de ${product.name}`, 'error'); return }
+    if (ex && ex.quantity + quantity > stock + 1e-9) { show(`Solo quedan ${stock} de ${product.name}`, 'error'); return }
+    if (!ex && quantity > stock + 1e-9) { show(`Solo quedan ${stock} de ${product.name}`, 'error'); return }
     setCart(prev => {
       const cur = prev.find(i => i.productId === product.id)
       if (cur) {
-        if (cur.quantity >= stock) return prev
-        const q = cur.quantity + 1
-        return prev.map(i => i.productId === product.id ? { ...i, quantity: q, subtotal: q * i.price } : i)
+        const q = Number((cur.quantity + quantity).toFixed(4))
+        return prev.map(i => i.productId === product.id ? { ...i, quantity: q, subtotal: Number((q * i.price).toFixed(2)) } : i)
       }
       return [...prev, {
+        cartKey: product.id,
         productId: product.id,
         name: product.name,
-        price: Number(product.price),
-        quantity: 1,
-        subtotal: Number(product.price),
+        price: unitPrice,
+        quantity,
+        subtotal: Number((quantity * unitPrice).toFixed(2)),
         maxStock: stock,
+        saleMode,
+        baseUnit: product.baseUnit || 'unit',
       }]
     })
     triggerAddedFlash(product)
   }, [cart, show, triggerAddedFlash])
 
-  const removeFromCart = (id) => setCart(prev => prev.filter(i => i.productId !== id))
+  // Producto libre: nombre y precio manual, sin producto de inventario (ej: copias a precio variable)
+  const addCustomItem = (name, price) => {
+    const n = (name || '').trim()
+    const p = parseFloat(price)
+    if (!n) { show('Escribe el nombre del producto', 'error'); return }
+    if (isNaN(p) || p <= 0) { show('Escribe un precio válido', 'error'); return }
+    setCart(prev => [...prev, {
+      cartKey: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      productId: null,
+      name: n,
+      price: p,
+      quantity: 1,
+      subtotal: p,
+      maxStock: Infinity,
+      saleMode: 'UNIT',
+      isCustom: true,
+    }])
+    setCustomItemModal(false)
+    setCustomName(''); setCustomPrice('')
+    show(`✓ ${n} agregado`, 'success')
+    setMobileTab('cart')
+  }
 
-  const updateQty = (id, qty) => {
-    if (qty <= 0) { removeFromCart(id); return }
+  // Abre el selector de cantidad decimal para productos por peso/metro (WEIGHT o MIXED)
+  const openWeightPicker = (product) => { setWeightInput(''); setWeightPicker(product) }
+
+  const confirmWeight = () => {
+    const qty = parseFloat(String(weightInput).replace(',', '.'))
+    if (!qty || qty <= 0) { show('Ingresa una cantidad válida', 'error'); return }
+    addToCart(weightPicker, qty)
+    setWeightPicker(null)
+    setWeightInput('')
+    setMobileTab('cart')
+    setTimeout(() => searchRef.current?.focus(), 80)
+  }
+
+  const removeFromCart = (cartKey) => setCart(prev => prev.filter(i => i.cartKey !== cartKey))
+
+  const updateQty = (cartKey, qty) => {
+    if (qty <= 0) { removeFromCart(cartKey); return }
     setCart(prev => prev.map(i => {
-      if (i.productId !== id) return i
+      if (i.cartKey !== cartKey) return i
       if (qty > i.maxStock) { show(`Solo quedan ${i.maxStock} de ${i.name}`, 'error'); return i }
-      return { ...i, quantity: qty, subtotal: qty * i.price }
+      return { ...i, quantity: qty, subtotal: Number((qty * i.price).toFixed(2)) }
     }))
   }
 
@@ -424,9 +485,12 @@ export default function POS() {
   const doCheckout = async (offlineFallback = false) => {
     const payload = {
       branchId: user.branchId,
-      items: cart.map(i => ({ productId: i.productId, quantity: i.quantity })),
+      items: cart.map(i => i.isCustom
+        ? { customName: i.name, customPrice: i.price, quantity: i.quantity }
+        : { productId: i.productId, quantity: i.quantity, saleMode: i.saleMode }),
       paymentMethod: payMethod,
       cashReceived: payMethod === 'cash' && cashReceived ? parseFloat(cashReceived) : undefined,
+      discountAmount: discountAmount > 0 ? discountAmount : undefined,
     }
 
     if (offlineFallback) {
@@ -700,7 +764,11 @@ export default function POS() {
       <button
         key={key}
         className={`product-card${agotado ? ' out-of-stock' : ''}`}
-        onClick={() => { if (!agotado) { addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80) } }}
+        onClick={() => {
+          if (agotado) return
+          if (p.saleMode === 'WEIGHT' || p.saleMode === 'MIXED') { openWeightPicker(p); return }
+          addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80)
+        }}
         disabled={agotado}
         title={agotado ? 'Sin stock' : `${stock} disponibles`}
       >
@@ -712,7 +780,11 @@ export default function POS() {
         </div>
         <div className="product-info">
           <div className="product-name">{p.name}</div>
-          <div className="product-price">{fmt(p.price)}</div>
+          <div className="product-price">
+            {(p.saleMode === 'WEIGHT' || p.saleMode === 'MIXED') && p.pricePerKg
+              ? `⚖️ ${fmt(p.pricePerKg)} / ${p.baseUnit || 'kg'}`
+              : fmt(p.price)}
+          </div>
           <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
             {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
           </div>
@@ -782,9 +854,14 @@ export default function POS() {
     <div className="pos-cart">
       <div className="pos-cart-header">
         <h2>Carrito {cart.length > 0 && <span className="cart-count">{cart.length}</span>}</h2>
-        {cart.length > 0 && (
-          <button className="btn btn-sm btn-outline" onClick={() => setCart([])}>Vaciar</button>
-        )}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn-sm btn-outline" onClick={() => setCustomItemModal(true)} title="Producto libre: nombre y precio manual">
+            ✏️ Producto libre
+          </button>
+          {cart.length > 0 && (
+            <button className="btn btn-sm btn-outline" onClick={() => setCart([])}>Vaciar</button>
+          )}
+        </div>
       </div>
 
       {cart.length === 0 ? (
@@ -795,25 +872,45 @@ export default function POS() {
       ) : (
         <>
           <div className="cart-items">
-            {cart.map(item => (
-              <div key={item.productId} className="cart-item">
-                <div className="cart-item-name">{item.name}</div>
-                <div className="cart-item-controls">
-                  <button className="qty-btn" onClick={() => updateQty(item.productId, item.quantity - 1)}>−</button>
-                  <span className="qty-value">{item.quantity}</span>
-                  <button
-                    className="qty-btn"
-                    onClick={() => updateQty(item.productId, item.quantity + 1)}
-                    disabled={item.quantity >= item.maxStock}
-                  >+</button>
-                  <span className="cart-item-price">{fmt(item.subtotal)}</span>
-                  <button className="cart-remove" onClick={() => removeFromCart(item.productId)}>×</button>
+            {cart.map(item => {
+              const isWeight = item.saleMode === 'WEIGHT' || item.saleMode === 'MIXED'
+              return (
+                <div key={item.cartKey} className="cart-item">
+                  <div className="cart-item-name">
+                    {item.name}
+                    {item.isCustom && <span style={{ fontSize: 11, color: '#6366f1', marginLeft: 6, fontWeight: 600 }}>· libre</span>}
+                  </div>
+                  <div className="cart-item-controls">
+                    {isWeight ? (
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        value={item.quantity}
+                        onChange={e => updateQty(item.cartKey, parseFloat(e.target.value) || 0)}
+                        style={{ width: 76, textAlign: 'center', padding: '4px 6px' }}
+                      />
+                    ) : (
+                      <>
+                        <button className="qty-btn" onClick={() => updateQty(item.cartKey, item.quantity - 1)}>−</button>
+                        <span className="qty-value">{item.quantity}</span>
+                        <button
+                          className="qty-btn"
+                          onClick={() => updateQty(item.cartKey, item.quantity + 1)}
+                          disabled={item.quantity >= item.maxStock}
+                        >+</button>
+                      </>
+                    )}
+                    <span className="cart-item-price">{fmt(item.subtotal)}</span>
+                    <button className="cart-remove" onClick={() => removeFromCart(item.cartKey)}>×</button>
+                  </div>
+                  {!item.isCustom && item.quantity >= item.maxStock && (
+                    <div className="cart-stock-warn">Máximo: {item.maxStock}{item.baseUnit && item.baseUnit !== 'unit' ? ` ${item.baseUnit}` : ''}</div>
+                  )}
                 </div>
-                {item.quantity >= item.maxStock && (
-                  <div className="cart-stock-warn">Máximo: {item.maxStock}</div>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <div className="cart-total-section">
@@ -984,10 +1081,88 @@ export default function POS() {
           preferenceId={payBrick.preferenceId}
           cartItems={cart}
           branchId={user.branchId}
+          discountAmount={discountAmount}
           onSuccess={handleCardPaymentSuccess}
           onError={(msg) => { show(msg, 'error') }}
           onClose={() => setPayBrick({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })}
         />
+      )}
+
+      {weightPicker && (
+        <div className="modal-overlay" onClick={() => setWeightPicker(null)}>
+          <div className="modal-box card" style={{ maxWidth: 380, width: '95%' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>⚖️ {weightPicker.name}</h3>
+              <button className="modal-close" onClick={() => setWeightPicker(null)}>×</button>
+            </div>
+            <div style={{ padding: '4px 4px 4px', textAlign: 'center' }}>
+              <p style={{ color: '#1e293b', fontSize: 14, marginBottom: 12 }}>
+                {weightPicker.pricePerKg ? `${fmt(weightPicker.pricePerKg)} / ${weightPicker.baseUnit || 'kg'}` : fmt(weightPicker.price)}
+              </p>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+                {['0.5', '1', '1.5', '2', '2.5', '5'].map(w => (
+                  <button key={w} type="button" className="btn btn-sm btn-outline"
+                    onClick={() => setWeightInput(String((parseFloat(weightInput || '0') + parseFloat(w)).toFixed(3)))}>
+                    +{w}
+                  </button>
+                ))}
+              </div>
+              <input
+                className="input"
+                type="number"
+                inputMode="decimal"
+                step="0.001"
+                min="0"
+                placeholder={`0.000 ${weightPicker.baseUnit || 'kg'}`}
+                value={weightInput}
+                onChange={e => setWeightInput(e.target.value)}
+                autoFocus
+                onKeyDown={e => e.key === 'Enter' && confirmWeight()}
+                style={{ fontSize: 20, textAlign: 'center', marginBottom: 10 }}
+              />
+              {weightInput && parseFloat(weightInput) > 0 && (
+                <p style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+                  Total: {fmt(parseFloat(weightInput) * Number(weightPicker.pricePerKg || weightPicker.price))}
+                </p>
+              )}
+              <button className="btn btn-primary" style={{ width: '100%' }}
+                onClick={confirmWeight} disabled={!weightInput || parseFloat(weightInput) <= 0}>
+                ✓ Agregar al carrito
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {customItemModal && (
+        <div className="modal-overlay" onClick={() => setCustomItemModal(false)}>
+          <div className="modal-box card" style={{ maxWidth: 380, width: '95%' }} onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✏️ Producto libre</h3>
+              <button className="modal-close" onClick={() => setCustomItemModal(false)}>×</button>
+            </div>
+            <div style={{ padding: '4px 4px 4px' }}>
+              <p style={{ color: '#1e293b', fontSize: 13, marginBottom: 12 }}>
+                Para cosas que no están en tu inventario, como copias a precio variable. Escribe el nombre y el precio — aparecerá en el ticket.
+              </p>
+              <div className="input-group" style={{ marginBottom: 10 }}>
+                <label>Nombre / descripción</label>
+                <input className="input" value={customName} onChange={e => setCustomName(e.target.value)}
+                  placeholder="ej: Copias B/N, Copias color..." autoFocus />
+              </div>
+              <div className="input-group" style={{ marginBottom: 14 }}>
+                <label>Precio</label>
+                <input className="input" type="number" step="0.01" min="0" placeholder="0.00"
+                  value={customPrice} onChange={e => setCustomPrice(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addCustomItem(customName, customPrice)} />
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%' }}
+                onClick={() => addCustomItem(customName, customPrice)}>
+                + Agregar al carrito
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {cardConfirm && (

@@ -38,6 +38,9 @@ public class Product {
     private String sku;
     private String barcode;
 
+    // Segundo código de barras opcional: mismo producto, dos empaques/etiquetas
+    private String barcode2;
+
     @Column(nullable = false)
     private String name;
 

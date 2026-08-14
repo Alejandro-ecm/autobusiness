@@ -109,7 +109,7 @@ function parseRows(sheet, XLSX) {
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const emptyForm = { name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' }
+const emptyForm = { name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', barcode2: '', imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' }
 
 export default function Inventory() {
   const { show } = useToast()
@@ -259,6 +259,7 @@ export default function Inventory() {
         minStock:   parseFloat(form.minStock) || 5,
         sku:        form.sku.trim() || undefined,
         barcode:    form.barcode.trim() || undefined,
+        barcode2:   form.barcode2.trim() || undefined,
         imageUrl:   form.imageUrl.trim() || undefined,
         isOnline:   form.isOnline,
         categoryId: form.categoryId || undefined,
@@ -286,6 +287,7 @@ export default function Inventory() {
       minStock: p.minStock || 5,
       sku:      p.sku || '',
       barcode:  p.barcode || '',
+      barcode2: p.barcode2 || '',
       imageUrl: p.imageUrl || '',
       isOnline: !!p.isOnline,
       categoryId: p.categoryId || '',
@@ -318,8 +320,9 @@ export default function Inventory() {
         variants:   editForm.variants?.trim() || undefined,
       })
       const newBarcode = editForm.barcode?.trim() || null
-      if (newBarcode !== (editProduct.barcode || null)) {
-        await inventoryApi.setBarcode(editProduct.id, newBarcode)
+      const newBarcode2 = editForm.barcode2?.trim() || null
+      if (newBarcode !== (editProduct.barcode || null) || newBarcode2 !== (editProduct.barcode2 || null)) {
+        await inventoryApi.setBarcode(editProduct.id, newBarcode, newBarcode2)
       }
       show('Producto actualizado', 'success')
       setEditProduct(null)
@@ -703,11 +706,11 @@ export default function Inventory() {
 
       <div className="inventory-bar">
         <input
-          className="input"
-          placeholder="Buscar por nombre o SKU..."
+          className="input search-input"
+          placeholder="🔍 Buscar por nombre o SKU..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 280 }}
+          style={{ maxWidth: 340 }}
         />
         <select className="input" value={filterStock} onChange={e => setFilterStock(e.target.value)} style={{ maxWidth: 180 }}>
           <option value="all">Todos los productos</option>
@@ -917,12 +920,12 @@ export default function Inventory() {
               </div>
               <div className="form-row">
                 <div className="input-group">
-                  <label>Precio de venta *</label>
-                  <input className="input" type="number" step="0.01" value={editForm.price} onChange={setEdit('price')} required min="0" />
+                  <label>Precio de venta * <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>(acepta centavos, ej: 19.50)</span></label>
+                  <input className="input" type="number" step="0.01" placeholder="0.00" value={editForm.price} onChange={setEdit('price')} required min="0" />
                 </div>
                 <div className="input-group">
-                  <label>Costo</label>
-                  <input className="input" type="number" step="0.01" value={editForm.cost} onChange={setEdit('cost')} min="0" />
+                  <label>Costo <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>(acepta centavos)</span></label>
+                  <input className="input" type="number" step="0.01" placeholder="0.00" value={editForm.cost} onChange={setEdit('cost')} min="0" />
                 </div>
               </div>
               <div className="form-row">
@@ -948,6 +951,15 @@ export default function Inventory() {
                     <BarcodeImg code={editForm.barcode} />
                   </div>
                 )}
+              </div>
+              <div className="input-group">
+                <label style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  Segundo código de barras
+                  <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>opcional — escanear cualquiera de los 2 encuentra el producto</span>
+                </label>
+                <input className="input" value={editForm.barcode2 || ''} onChange={setEdit('barcode2')}
+                  placeholder="Escanea o escribe el segundo código"
+                  style={{ fontFamily: 'monospace' }} />
               </div>
               {categories.length > 0 && (
                 <div className="input-group">
@@ -1010,10 +1022,12 @@ export default function Inventory() {
                       <option value="L">L (litros)</option>
                       <option value="mL">mL</option>
                       <option value="ton">tonelada</option>
+                      <option value="m">m (metros)</option>
+                      <option value="cm">cm (centímetros)</option>
                     </select>
                   </div>
                   <div className="input-group">
-                    <label>Precio por kg</label>
+                    <label>Precio por {editForm.baseUnit || 'kg'}</label>
                     <input className="input" type="number" step="0.01" min="0"
                       value={editForm.pricePerKg || ''} onChange={setEdit('pricePerKg')}
                       placeholder="ej: 25.00" />
@@ -1063,12 +1077,12 @@ export default function Inventory() {
               </div>
               <div className="form-row">
                 <div className="input-group">
-                  <label>Precio de venta *</label>
-                  <input className="input" type="number" step="0.01" value={form.price} onChange={set('price')} required min="0" />
+                  <label>Precio de venta * <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>(acepta centavos, ej: 19.50)</span></label>
+                  <input className="input" type="number" step="0.01" placeholder="0.00" value={form.price} onChange={set('price')} required min="0" />
                 </div>
                 <div className="input-group">
-                  <label>Costo</label>
-                  <input className="input" type="number" step="0.01" value={form.cost} onChange={set('cost')} min="0" />
+                  <label>Costo <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>(acepta centavos)</span></label>
+                  <input className="input" type="number" step="0.01" placeholder="0.00" value={form.cost} onChange={set('cost')} min="0" />
                 </div>
               </div>
               <div className="form-row">
@@ -1098,6 +1112,15 @@ export default function Inventory() {
                     <BarcodeImg code={form.barcode} />
                   </div>
                 )}
+              </div>
+              <div className="input-group">
+                <label style={{ display:'flex', alignItems:'center', gap:6 }}>
+                  Segundo código de barras
+                  <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>opcional — escanear cualquiera de los 2 encuentra el producto</span>
+                </label>
+                <input className="input" value={form.barcode2} onChange={set('barcode2')}
+                  placeholder="Escanea o escribe el segundo código"
+                  style={{ fontFamily: 'monospace' }} />
               </div>
               {categories.length > 0 && (
                 <div className="input-group">
@@ -1160,10 +1183,12 @@ export default function Inventory() {
                       <option value="L">L (litros)</option>
                       <option value="mL">mL</option>
                       <option value="ton">tonelada</option>
+                      <option value="m">m (metros)</option>
+                      <option value="cm">cm (centímetros)</option>
                     </select>
                   </div>
                   <div className="input-group">
-                    <label>Precio por kg</label>
+                    <label>Precio por {form.baseUnit || 'kg'}</label>
                     <input className="input" type="number" step="0.01" min="0"
                       value={form.pricePerKg} onChange={set('pricePerKg')}
                       placeholder="ej: 25.00" />

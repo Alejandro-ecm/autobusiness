@@ -97,12 +97,13 @@ public class InventoryService {
     }
 
     @Transactional
-    public Product setBarcode(UUID businessId, UUID productId, String barcode) {
+    public Product setBarcode(UUID businessId, UUID productId, String barcode, String barcode2) {
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
         if (!product.getBusiness().getId().equals(businessId))
             throw new SecurityException("Acceso denegado");
         product.setBarcode(barcode);
+        product.setBarcode2(barcode2);
         return productRepo.save(product);
     }
 

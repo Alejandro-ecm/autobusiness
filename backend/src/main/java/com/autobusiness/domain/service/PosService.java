@@ -41,7 +41,11 @@ public class PosService {
             UUID productId,
             BigDecimal quantity,
             String variantName,
-            String saleMode
+            String saleMode,
+            // Sólo para ítems libres (productId == null): nombre y precio que
+            // el cajero escribe a mano, ej. "Copias color" a $3.00
+            String customName,
+            BigDecimal customPrice
     ) {}
 
     public record CheckoutRequest(
@@ -50,7 +54,8 @@ public class PosService {
             UUID cashierId,
             List<CartItemRequest> items,
             String paymentMethod,
-            BigDecimal cashReceived
+            BigDecimal cashReceived,
+            BigDecimal discountAmount
     ) {}
 
     @Transactional
@@ -73,10 +78,36 @@ public class PosService {
         BigDecimal subtotal = BigDecimal.ZERO;
 
         for (CartItemRequest item : req.items()) {
+            BigDecimal qty = item.quantity() != null ? item.quantity() : BigDecimal.ONE;
+
+            // Ítem libre (sin producto de inventario): nombre y precio a mano
+            if (item.productId() == null) {
+                if (qty.compareTo(BigDecimal.ZERO) <= 0)
+                    throw new IllegalArgumentException("Cantidad inválida");
+                String name = (item.customName() != null && !item.customName().isBlank())
+                        ? item.customName().trim() : "Producto libre";
+                BigDecimal unitPrice = item.customPrice() != null ? item.customPrice() : BigDecimal.ZERO;
+                if (unitPrice.compareTo(BigDecimal.ZERO) < 0)
+                    throw new IllegalArgumentException("Precio inválido para " + name);
+                BigDecimal itemSubtotal = unitPrice.multiply(qty).setScale(2, RoundingMode.HALF_UP);
+
+                sale.getItems().add(SaleItem.builder()
+                        .sale(sale)
+                        .product(null)
+                        .customName(name)
+                        .quantity(qty)
+                        .unitPrice(unitPrice)
+                        .unitCost(BigDecimal.ZERO)
+                        .subtotal(itemSubtotal)
+                        .build());
+
+                subtotal = subtotal.add(itemSubtotal);
+                continue;
+            }
+
             Product product = productRepo.findById(item.productId())
                     .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado: " + item.productId()));
 
-            BigDecimal qty = item.quantity() != null ? item.quantity() : BigDecimal.ONE;
             if (qty.compareTo(BigDecimal.ZERO) <= 0)
                 throw new IllegalArgumentException("Cantidad inválida para " + product.getName());
 
@@ -109,12 +140,18 @@ public class PosService {
             subtotal = subtotal.add(itemSubtotal);
         }
 
+        BigDecimal discount = req.discountAmount() != null ? req.discountAmount() : BigDecimal.ZERO;
+        if (discount.compareTo(BigDecimal.ZERO) < 0) discount = BigDecimal.ZERO;
+        if (discount.compareTo(subtotal) > 0) discount = subtotal;
+        BigDecimal total = subtotal.subtract(discount);
+
         sale.setSubtotal(subtotal);
-        sale.setTotal(subtotal);
+        sale.setDiscount(discount);
+        sale.setTotal(total);
 
         if ("cash".equals(req.paymentMethod()) && req.cashReceived() != null) {
             sale.setCashReceived(req.cashReceived());
-            sale.setChangeGiven(req.cashReceived().subtract(subtotal));
+            sale.setChangeGiven(req.cashReceived().subtract(total));
         }
 
         Sale saved = saleRepo.save(sale);

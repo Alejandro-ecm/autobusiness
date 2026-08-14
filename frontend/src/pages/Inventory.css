@@ -87,15 +87,27 @@
 }
 .inv-stat-label { font-size: 15px; font-weight: 700; color: #2563eb; }
 
-/* Buscador y filtros en cristal gris translúcido */
+/* Buscador y filtros — fondo sólido para alto contraste */
 .inventory-bar .input {
-  background: rgba(203, 213, 225, .28);
-  border: 1px solid rgba(148, 163, 184, .55);
+  background: #ffffff;
+  border: 1.5px solid #94a3b8;
   color: #0f172a;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  font-weight: 500;
 }
-.inventory-bar .input::placeholder { color: #475569; }
+.inventory-bar .input::placeholder { color: #64748b; }
+.inventory-bar .input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .18);
+  outline: none;
+}
+/* El buscador principal resalta más que los selects de filtro */
+.inventory-bar .search-input {
+  border: 2px solid #6366f1;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, .15);
+}
+.inventory-bar .search-input::placeholder { color: #475569; font-weight: 400; }
 
 /* Tarjeta de la tabla en cristal gris (no afecta los modales) */
 .inventory-page > .card {

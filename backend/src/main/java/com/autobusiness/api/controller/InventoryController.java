@@ -59,6 +59,7 @@ public class InventoryController {
                     .minStock(body.get("minStock") != null ? new BigDecimal(body.get("minStock").toString()) : BigDecimal.valueOf(5))
                     .sku(body.get("sku") != null ? body.get("sku").toString() : null)
                     .barcode(body.get("barcode") != null ? body.get("barcode").toString() : null)
+                    .barcode2(body.get("barcode2") != null ? body.get("barcode2").toString() : null)
                     .description(body.get("description") != null ? body.get("description").toString() : null)
                     .imageUrl(resolveImage(body.get("imageUrl")))
                     .isOnline(body.get("isOnline") != null && Boolean.parseBoolean(body.get("isOnline").toString()))
@@ -104,7 +105,8 @@ public class InventoryController {
             @RequestBody Map<String, Object> body) {
         try {
             String barcode = body.get("barcode") != null ? body.get("barcode").toString() : null;
-            return ResponseEntity.ok(inventoryService.setBarcode(principal.businessId(), productId, barcode));
+            String barcode2 = body.get("barcode2") != null ? body.get("barcode2").toString() : null;
+            return ResponseEntity.ok(inventoryService.setBarcode(principal.businessId(), productId, barcode, barcode2));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

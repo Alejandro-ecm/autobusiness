@@ -40,7 +40,7 @@ public class ReportController {
             m.put("cashier",       s.getCashier() != null ? s.getCashier().getName() : "—");
             m.put("items", s.getItems().stream().map(i -> {
                 var im = new java.util.HashMap<String, Object>();
-                im.put("name",     i.getProduct().getName());
+                im.put("name",     i.getDisplayName());
                 im.put("qty",      i.getQuantity());
                 im.put("price",    i.getUnitPrice());
                 im.put("cost",     i.getUnitCost());
