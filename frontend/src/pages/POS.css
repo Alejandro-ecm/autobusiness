@@ -270,6 +270,18 @@
 }
 .pos-cart-header h2 { font-size: 16px; font-weight: 600; }
 
+.btn-producto-libre {
+  background: #6366f1;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, .35);
+  white-space: nowrap;
+}
+.btn-producto-libre:hover { background: #4f46e5; }
+
 .cart-empty {
   flex: 1;
   display: flex;

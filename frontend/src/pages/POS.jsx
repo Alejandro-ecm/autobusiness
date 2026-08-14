@@ -855,7 +855,7 @@ export default function POS() {
       <div className="pos-cart-header">
         <h2>Carrito {cart.length > 0 && <span className="cart-count">{cart.length}</span>}</h2>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button className="btn btn-sm btn-outline" onClick={() => setCustomItemModal(true)} title="Producto libre: nombre y precio manual">
+          <button className="btn btn-producto-libre" onClick={() => setCustomItemModal(true)} title="Producto libre: nombre y precio manual">
             ✏️ Producto libre
           </button>
           {cart.length > 0 && (
