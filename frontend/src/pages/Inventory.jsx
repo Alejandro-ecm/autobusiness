@@ -832,6 +832,9 @@ export default function Inventory() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <span className="barcode-chip">{p.barcode}</span>
                         <BarcodeImg code={p.barcode} small />
+                        {p.barcode2 && (
+                          <span className="barcode-chip" title="Segundo código de barras">{p.barcode2}</span>
+                        )}
                       </div>
                     ) : isOwner && (
                       <button className="btn btn-sm barcode-gen-btn"
@@ -957,9 +960,21 @@ export default function Inventory() {
                   Segundo código de barras
                   <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>opcional — escanear cualquiera de los 2 encuentra el producto</span>
                 </label>
-                <input className="input" value={editForm.barcode2 || ''} onChange={setEdit('barcode2')}
-                  placeholder="Escanea o escribe el segundo código"
-                  style={{ fontFamily: 'monospace' }} />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="input" value={editForm.barcode2 || ''} onChange={setEdit('barcode2')}
+                    placeholder="Escanea, escribe o genera automático"
+                    style={{ fontFamily: 'monospace', flex: 1 }} />
+                  <button type="button" className="btn btn-outline barcode-gen-btn"
+                    style={{ whiteSpace: 'nowrap', fontSize: 13 }}
+                    onClick={() => setEditForm(f => ({ ...f, barcode2: generateEAN13() }))}>
+                    Generar código
+                  </button>
+                </div>
+                {editForm.barcode2 && (
+                  <div style={{ marginTop: 8 }}>
+                    <BarcodeImg code={editForm.barcode2} />
+                  </div>
+                )}
               </div>
               {categories.length > 0 && (
                 <div className="input-group">
@@ -1115,9 +1130,21 @@ export default function Inventory() {
                   Segundo código de barras
                   <span style={{ fontSize:11, color:'#1e293b', fontWeight:400 }}>opcional — escanear cualquiera de los 2 encuentra el producto</span>
                 </label>
-                <input className="input" value={form.barcode2} onChange={set('barcode2')}
-                  placeholder="Escanea o escribe el segundo código"
-                  style={{ fontFamily: 'monospace' }} />
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input className="input" value={form.barcode2} onChange={set('barcode2')}
+                    placeholder="Escanea, escribe o genera automático"
+                    style={{ fontFamily: 'monospace', flex: 1 }} />
+                  <button type="button" className="btn btn-outline barcode-gen-btn"
+                    style={{ whiteSpace: 'nowrap', fontSize: 13 }}
+                    onClick={() => setForm(f => ({ ...f, barcode2: generateEAN13() }))}>
+                    Generar código
+                  </button>
+                </div>
+                {form.barcode2 && (
+                  <div style={{ marginTop: 8 }}>
+                    <BarcodeImg code={form.barcode2} />
+                  </div>
+                )}
               </div>
               {categories.length > 0 && (
                 <div className="input-group">
