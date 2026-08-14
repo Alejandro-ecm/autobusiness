@@ -833,7 +833,10 @@ export default function Inventory() {
                         <span className="barcode-chip">{p.barcode}</span>
                         <BarcodeImg code={p.barcode} small />
                         {p.barcode2 && (
-                          <span className="barcode-chip" title="Segundo código de barras">{p.barcode2}</span>
+                          <>
+                            <span className="barcode-chip" title="Segundo código de barras">{p.barcode2}</span>
+                            <BarcodeImg code={p.barcode2} small />
+                          </>
                         )}
                       </div>
                     ) : isOwner && (
