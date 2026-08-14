@@ -3,6 +3,41 @@
   max-width: none;
 }
 
+/* Modales de Caja (producto libre, peso, confirmar tarjeta, etc.) —
+   definidos aquí para no depender de que Inventory.css ya esté cargado. */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(3px);
+}
+.modal-box {
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.modal-header h3 { font-size: 18px; font-weight: 700; }
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--color-text-soft);
+  line-height: 1;
+}
+.modal-close:hover { color: var(--color-text); }
+
 .pos-page {
   display: flex;
   flex-direction: column;
