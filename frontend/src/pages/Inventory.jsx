@@ -1008,8 +1008,8 @@ export default function Inventory() {
                 <label>Modo de venta</label>
                 <select className="input" value={editForm.saleMode || 'UNIT'} onChange={setEdit('saleMode')}>
                   <option value="UNIT">Por pieza / unidad</option>
-                  <option value="WEIGHT">Por peso (kg, g…)</option>
-                  <option value="MIXED">Mixto (pieza y peso)</option>
+                  <option value="WEIGHT">Por peso o medida (kg, m, L…)</option>
+                  <option value="MIXED">Mixto (pieza y medida)</option>
                 </select>
               </div>
               {(editForm.saleMode === 'WEIGHT' || editForm.saleMode === 'MIXED') && (
@@ -1169,8 +1169,8 @@ export default function Inventory() {
                 <label>Modo de venta</label>
                 <select className="input" value={form.saleMode} onChange={set('saleMode')}>
                   <option value="UNIT">Por pieza / unidad</option>
-                  <option value="WEIGHT">Por peso (kg, g…)</option>
-                  <option value="MIXED">Mixto (pieza y peso)</option>
+                  <option value="WEIGHT">Por peso o medida (kg, m, L…)</option>
+                  <option value="MIXED">Mixto (pieza y medida)</option>
                 </select>
               </div>
               {(form.saleMode === 'WEIGHT' || form.saleMode === 'MIXED') && (
