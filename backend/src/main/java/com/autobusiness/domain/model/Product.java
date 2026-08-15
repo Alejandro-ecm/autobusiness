@@ -41,6 +41,11 @@ public class Product {
     // Segundo código de barras opcional: mismo producto, dos empaques/etiquetas
     private String barcode2;
 
+    // Hasta 8 códigos de barras adicionales (junto a barcode/barcode2 = 10 en
+    // total). JSON array de strings, ej: ["7501234567890","7501234567891"]
+    @Column(columnDefinition = "TEXT")
+    private String extraBarcodes;
+
     @Column(nullable = false)
     private String name;
 

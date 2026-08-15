@@ -109,7 +109,60 @@ function parseRows(sheet, XLSX) {
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const emptyForm = { name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', barcode2: '', imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' }
+const MAX_EXTRA_BARCODES = 8 // + barcode + barcode2 = 10 códigos en total
+
+function parseExtraBarcodes(raw) {
+  if (!raw) return []
+  try {
+    const arr = JSON.parse(raw)
+    return Array.isArray(arr) ? arr.filter(c => c && String(c).trim()) : []
+  } catch { return [] }
+}
+
+function emptyExtraBarcodes() {
+  return Array(MAX_EXTRA_BARCODES).fill('')
+}
+
+const emptyForm = { name: '', price: '', cost: '', stock: '', minStock: '5', sku: '', barcode: '', barcode2: '', extraBarcodes: emptyExtraBarcodes(), showExtraBarcodes: false, imageUrl: '', isOnline: false, categoryId: '', saleMode: 'UNIT', baseUnit: 'unit', pricePerKg: '', variants: '' }
+
+// ── Bloque de hasta 8 códigos de barras adicionales (checkbox "+10 códigos") ──
+function ExtraBarcodesEditor({ show, onToggle, values, onChangeAt, onGenerateAt }) {
+  return (
+    <div className="input-group">
+      <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+        <input type="checkbox" checked={show} onChange={onToggle} />
+        +10 códigos de barras
+        <span style={{ fontSize: 11, color: '#1e293b', fontWeight: 400 }}>
+          opcional — para productos con varios empaques/etiquetas (hasta 10 códigos en total)
+        </span>
+      </label>
+      {show && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 10 }}>
+          {values.map((val, i) => (
+            <div key={i}>
+              <label style={{ fontSize: 12, color: '#1e293b' }}>Código de barras #{i + 3}</label>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input className="input" value={val} onChange={e => onChangeAt(i, e.target.value)}
+                  placeholder="Escanea, escribe o genera automático"
+                  style={{ fontFamily: 'monospace', flex: 1 }} />
+                <button type="button" className="btn btn-outline barcode-gen-btn"
+                  style={{ whiteSpace: 'nowrap', fontSize: 13 }}
+                  onClick={() => onGenerateAt(i)}>
+                  Generar código
+                </button>
+              </div>
+              {val && (
+                <div style={{ marginTop: 8 }}>
+                  <BarcodeImg code={val} />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Inventory() {
   const { show } = useToast()
@@ -260,6 +313,10 @@ export default function Inventory() {
         sku:        form.sku.trim() || undefined,
         barcode:    form.barcode.trim() || undefined,
         barcode2:   form.barcode2.trim() || undefined,
+        extraBarcodes: (() => {
+          const codes = form.extraBarcodes.map(c => c.trim()).filter(Boolean)
+          return codes.length ? JSON.stringify(codes) : undefined
+        })(),
         imageUrl:   form.imageUrl.trim() || undefined,
         isOnline:   form.isOnline,
         categoryId: form.categoryId || undefined,
@@ -280,6 +337,8 @@ export default function Inventory() {
 
   const openEdit = (p) => {
     setEditProduct(p)
+    const existingExtra = parseExtraBarcodes(p.extraBarcodes)
+    const extraBarcodes = emptyExtraBarcodes().map((_, i) => existingExtra[i] || '')
     setEditForm({
       name:     p.name,
       price:    p.price,
@@ -288,6 +347,8 @@ export default function Inventory() {
       sku:      p.sku || '',
       barcode:  p.barcode || '',
       barcode2: p.barcode2 || '',
+      extraBarcodes,
+      showExtraBarcodes: existingExtra.length > 0,
       imageUrl: p.imageUrl || '',
       isOnline: !!p.isOnline,
       categoryId: p.categoryId || '',
@@ -321,8 +382,12 @@ export default function Inventory() {
       })
       const newBarcode = editForm.barcode?.trim() || null
       const newBarcode2 = editForm.barcode2?.trim() || null
-      if (newBarcode !== (editProduct.barcode || null) || newBarcode2 !== (editProduct.barcode2 || null)) {
-        await inventoryApi.setBarcode(editProduct.id, newBarcode, newBarcode2)
+      const newExtraCodes = (editForm.extraBarcodes || []).map(c => c.trim()).filter(Boolean)
+      const newExtraBarcodes = newExtraCodes.length ? JSON.stringify(newExtraCodes) : null
+      if (newBarcode !== (editProduct.barcode || null)
+          || newBarcode2 !== (editProduct.barcode2 || null)
+          || newExtraBarcodes !== (editProduct.extraBarcodes || null)) {
+        await inventoryApi.setBarcode(editProduct.id, newBarcode, newBarcode2, newExtraBarcodes)
       }
       show('Producto actualizado', 'success')
       setEditProduct(null)
@@ -838,6 +903,12 @@ export default function Inventory() {
                             <BarcodeImg code={p.barcode2} small />
                           </>
                         )}
+                        {parseExtraBarcodes(p.extraBarcodes).map((code, i) => (
+                          <React.Fragment key={i}>
+                            <span className="barcode-chip" title={`Código de barras #${i + 3}`}>{code}</span>
+                            <BarcodeImg code={code} small />
+                          </React.Fragment>
+                        ))}
                       </div>
                     ) : isOwner && (
                       <button className="btn btn-sm barcode-gen-btn"
@@ -979,6 +1050,21 @@ export default function Inventory() {
                   </div>
                 )}
               </div>
+              <ExtraBarcodesEditor
+                show={!!editForm.showExtraBarcodes}
+                onToggle={e => setEditForm(f => ({ ...f, showExtraBarcodes: e.target.checked }))}
+                values={editForm.extraBarcodes || emptyExtraBarcodes()}
+                onChangeAt={(i, val) => setEditForm(f => {
+                  const next = [...(f.extraBarcodes || emptyExtraBarcodes())]
+                  next[i] = val
+                  return { ...f, extraBarcodes: next }
+                })}
+                onGenerateAt={(i) => setEditForm(f => {
+                  const next = [...(f.extraBarcodes || emptyExtraBarcodes())]
+                  next[i] = generateEAN13()
+                  return { ...f, extraBarcodes: next }
+                })}
+              />
               {categories.length > 0 && (
                 <div className="input-group">
                   <label>Categoría</label>
@@ -1149,6 +1235,21 @@ export default function Inventory() {
                   </div>
                 )}
               </div>
+              <ExtraBarcodesEditor
+                show={!!form.showExtraBarcodes}
+                onToggle={e => setForm(f => ({ ...f, showExtraBarcodes: e.target.checked }))}
+                values={form.extraBarcodes}
+                onChangeAt={(i, val) => setForm(f => {
+                  const next = [...f.extraBarcodes]
+                  next[i] = val
+                  return { ...f, extraBarcodes: next }
+                })}
+                onGenerateAt={(i) => setForm(f => {
+                  const next = [...f.extraBarcodes]
+                  next[i] = generateEAN13()
+                  return { ...f, extraBarcodes: next }
+                })}
+              />
               {categories.length > 0 && (
                 <div className="input-group">
                   <label>Categoría</label>

@@ -46,7 +46,7 @@ export const inventory = {
   create:      (data)          => client.post('/inventory/products', data),
   update:      (id, data)      => client.put(`/inventory/products/${id}`, data),
   remove:      (id)            => client.delete(`/inventory/products/${id}`),
-  setBarcode:  (id, barcode, barcode2) => client.patch(`/inventory/products/${id}/barcode`, { barcode, barcode2 }),
+  setBarcode:  (id, barcode, barcode2, extraBarcodes) => client.patch(`/inventory/products/${id}/barcode`, { barcode, barcode2, extraBarcodes }),
   adjustStock: (id, delta, reason) =>
     client.patch(`/inventory/products/${id}/stock`, { delta, reason }),
   import:      (rows)          => client.post('/inventory/products/import', rows),
