@@ -190,6 +190,7 @@ export default function Inventory() {
   const [showStats,   setShowStats]   = useState(true)
   const [catEarnings, setCatEarnings] = useState([])
   const [showEarnings, setShowEarnings] = useState(false)
+  const [earnSummary, setEarnSummary] = useState(null)
   const [showImport,    setShowImport]    = useState(false)
   const [importRows,    setImportRows]    = useState([])
   const [importing,     setImporting]     = useState(false)
@@ -212,7 +213,10 @@ export default function Inventory() {
 
   const loadCategories = () => categoriesApi.list().then(setCategories).catch(() => {})
 
-  const loadEarnings = () => categoriesApi.earnings().then(setCatEarnings).catch(() => {})
+  const loadEarnings = () => {
+    categoriesApi.earnings().then(setCatEarnings).catch(() => {})
+    categoriesApi.earningsSummary().then(setEarnSummary).catch(() => {})
+  }
 
   const toggleEarnings = () => {
     const next = !showEarnings
@@ -832,6 +836,26 @@ export default function Inventory() {
 
       {showEarnings && (
         <div className="cat-earnings">
+          {earnSummary && (
+            <div className="cat-earn-summary">
+              <div className="cat-earn-summary-tile">
+                <span className="cat-earn-summary-label">Hoy</span>
+                <span className="cat-earn-summary-value">{fmt(earnSummary.today)}</span>
+              </div>
+              <div className="cat-earn-summary-tile">
+                <span className="cat-earn-summary-label">Ayer</span>
+                <span className="cat-earn-summary-value">{fmt(earnSummary.yesterday)}</span>
+              </div>
+              <div className="cat-earn-summary-tile">
+                <span className="cat-earn-summary-label">Este mes</span>
+                <span className="cat-earn-summary-value">{fmt(earnSummary.month)}</span>
+              </div>
+              <div className="cat-earn-summary-tile">
+                <span className="cat-earn-summary-label">Últimos 3 meses</span>
+                <span className="cat-earn-summary-value">{fmt(earnSummary.last3Months)}</span>
+              </div>
+            </div>
+          )}
           {catEarnings.length === 0 && (
             <p className="cat-earnings-empty">Aún no hay ventas registradas por categoría.</p>
           )}

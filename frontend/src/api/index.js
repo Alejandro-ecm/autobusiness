@@ -58,6 +58,7 @@ export const inventory = {
 export const categories = {
   list:     ()          => client.get('/categories'),
   earnings: ()          => client.get('/categories/earnings'),
+  earningsSummary: ()   => client.get('/categories/earnings/summary'),
   create:   (data)      => client.post('/categories', data),
   update:   (id, data)  => client.put(`/categories/${id}`, data),
   delete:   (id)        => client.delete(`/categories/${id}`),

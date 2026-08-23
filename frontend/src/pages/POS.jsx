@@ -53,7 +53,7 @@ async function initMPPos(publicKey) {
   mpPosInitialized = true
 }
 
-function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, discountAmount, onSuccess, onError, onClose }) {
+function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, discountAmount, onSuccess, onError, onClose, onDirectTicket, directLoading }) {
   const [BrickComponent, setBrickComponent] = useState(null)
 
   useEffect(() => {
@@ -71,6 +71,15 @@ function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, discountAm
           <button className="modal-close" onClick={onClose}>×</button>
         </div>
         <div style={{ padding: '0 8px 8px' }}>
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ width: '100%', marginBottom: 12 }}
+            disabled={directLoading}
+            onClick={onDirectTicket}
+          >
+            {directLoading ? <div className="spinner" /> : '✓ Ya cobré con mi terminal — Directo al ticket'}
+          </button>
           {!BrickComponent ? (
             <div style={{ textAlign: 'center', padding: 40 }}>
               <div className="spinner" style={{ margin: '0 auto 12px' }} />
@@ -541,6 +550,23 @@ export default function POS() {
     posApi.topProducts().then(setTopProducts).catch(() => {})
     show(status === 'approved' ? '💳 Pago con tarjeta aprobado' : '⏳ Pago pendiente de confirmación', status === 'approved' ? 'success' : 'warning')
     autoPrint(saleEntry)
+  }
+
+  // El cliente ya pagó con tarjeta en otra terminal física (no la Brick de MP):
+  // registra la venta como tarjeta y va directo a imprimir el ticket, sin pedir datos de la tarjeta.
+  const directToTicket = async () => {
+    setPayBrick({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })
+    setLoading(true)
+    try {
+      if (!isOnline) { await doCheckout(true); return }
+      await doCheckout(false)
+    } catch (err) {
+      if (!navigator.onLine) {
+        await doCheckout(true)
+      } else {
+        show(err?.response?.data?.error || err?.message || 'Error al registrar venta', 'error')
+      }
+    } finally { setLoading(false) }
   }
 
   const checkout = async () => {
@@ -1085,6 +1111,8 @@ export default function POS() {
           onSuccess={handleCardPaymentSuccess}
           onError={(msg) => { show(msg, 'error') }}
           onClose={() => setPayBrick({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })}
+          onDirectTicket={directToTicket}
+          directLoading={loading}
         />
       )}
 

@@ -135,4 +135,13 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
            "WHERE s.business.id = :businessId AND s.status = 'completed' " +
            "GROUP BY c.id")
     List<Object[]> earningsByCategory(@Param("businessId") UUID businessId);
+
+    // ----- Ganancia total del negocio en un rango de fechas (para tarjetas hoy/ayer/mes/3 meses) -----
+    @Query("SELECT COALESCE(SUM((si.unitPrice - si.unitCost) * si.quantity), 0) " +
+           "FROM SaleItem si JOIN si.sale s " +
+           "WHERE s.business.id = :businessId AND s.status = 'completed' " +
+           "AND s.createdAt BETWEEN :from AND :to")
+    java.math.BigDecimal profitBetween(@Param("businessId") UUID businessId,
+                                       @Param("from") Instant from,
+                                       @Param("to") Instant to);
 }

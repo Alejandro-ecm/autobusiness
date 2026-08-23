@@ -10,6 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +80,26 @@ public class CategoryService {
             m.put("units", uncategorized[2]);
             result.add(m);
         }
+        return result;
+    }
+
+    /**
+     * Resumen de ganancia del negocio para las tarjetas hoy/ayer/mes/últimos 3 meses
+     * que se muestran arriba del detalle por categoría.
+     */
+    public Map<String, Object> getProfitSummary(UUID businessId) {
+        Instant now = Instant.now();
+        Instant todayStart = now.truncatedTo(ChronoUnit.DAYS);
+        Instant yesterdayStart = todayStart.minus(1, ChronoUnit.DAYS);
+        Instant monthStart = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1)
+                .atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant last3MonthsStart = now.minus(90, ChronoUnit.DAYS);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("today",       saleRepo.profitBetween(businessId, todayStart, now));
+        result.put("yesterday",   saleRepo.profitBetween(businessId, yesterdayStart, todayStart));
+        result.put("month",       saleRepo.profitBetween(businessId, monthStart, now));
+        result.put("last3Months", saleRepo.profitBetween(businessId, last3MonthsStart, now));
         return result;
     }
 

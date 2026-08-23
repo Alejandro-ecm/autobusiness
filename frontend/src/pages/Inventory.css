@@ -138,6 +138,30 @@
   box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
 }
 .cat-earnings-empty { margin: 0; font-size: 13px; color: #475569; text-align: center; }
+.cat-earn-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(148, 163, 184, .35);
+}
+.cat-earn-summary-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .5);
+  border: 1px solid rgba(148, 163, 184, .35);
+}
+.cat-earn-summary-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
+.cat-earn-summary-value { font-size: 16px; font-weight: 800; color: #15803d; }
+
+@media (max-width: 560px) {
+  .cat-earn-summary { grid-template-columns: repeat(2, 1fr); }
+}
 .cat-earn-row {
   display: flex;
   align-items: center;
