@@ -138,38 +138,17 @@
   box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
 }
 .cat-earnings-empty { margin: 0; font-size: 13px; color: #475569; text-align: center; }
-.cat-earn-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(148, 163, 184, .35);
+.cat-earn-block {
+  padding: 8px 6px 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, .22);
 }
-.cat-earn-summary-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 10px 6px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, .5);
-  border: 1px solid rgba(148, 163, 184, .35);
-}
-.cat-earn-summary-label { font-size: 11px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
-.cat-earn-summary-value { font-size: 16px; font-weight: 800; color: #15803d; }
-
-@media (max-width: 560px) {
-  .cat-earn-summary { grid-template-columns: repeat(2, 1fr); }
-}
+.cat-earn-block:last-child { border-bottom: none; padding-bottom: 8px; }
 .cat-earn-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 6px;
-  border-bottom: 1px solid rgba(148, 163, 184, .22);
+  margin-bottom: 8px;
 }
-.cat-earn-row:last-child { border-bottom: none; }
 .cat-earn-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
 .cat-earn-name { flex: 1; font-weight: 700; color: #0f172a; font-size: 14px; }
 .cat-earn-units { font-size: 12px; color: #475569; min-width: 70px; text-align: right; }
@@ -177,10 +156,29 @@
 .cat-earn-profit { font-size: 14px; font-weight: 800; color: #15803d; min-width: 120px; text-align: right; }
 .cat-earn-rev small, .cat-earn-profit small { display: block; font-size: 10px; font-weight: 500; color: #1e293b; }
 
+.cat-earn-periods {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.cat-earn-period-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .5);
+  border: 1px solid rgba(148, 163, 184, .3);
+}
+.cat-earn-period-label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
+.cat-earn-period-value { font-size: 13px; font-weight: 800; color: #15803d; }
+
 @media (max-width: 560px) {
   .cat-earn-row { flex-wrap: wrap; }
   .cat-earn-name { flex-basis: 100%; }
   .cat-earn-units, .cat-earn-rev, .cat-earn-profit { min-width: 0; flex: 1; text-align: left; }
+  .cat-earn-periods { grid-template-columns: repeat(2, 1fr); }
 }
 
 .inv-table {

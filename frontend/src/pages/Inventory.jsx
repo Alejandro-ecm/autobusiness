@@ -190,7 +190,6 @@ export default function Inventory() {
   const [showStats,   setShowStats]   = useState(true)
   const [catEarnings, setCatEarnings] = useState([])
   const [showEarnings, setShowEarnings] = useState(false)
-  const [earnSummary, setEarnSummary] = useState(null)
   const [showImport,    setShowImport]    = useState(false)
   const [importRows,    setImportRows]    = useState([])
   const [importing,     setImporting]     = useState(false)
@@ -213,10 +212,7 @@ export default function Inventory() {
 
   const loadCategories = () => categoriesApi.list().then(setCategories).catch(() => {})
 
-  const loadEarnings = () => {
-    categoriesApi.earnings().then(setCatEarnings).catch(() => {})
-    categoriesApi.earningsSummary().then(setEarnSummary).catch(() => {})
-  }
+  const loadEarnings = () => categoriesApi.earnings().then(setCatEarnings).catch(() => {})
 
   const toggleEarnings = () => {
     const next = !showEarnings
@@ -836,36 +832,36 @@ export default function Inventory() {
 
       {showEarnings && (
         <div className="cat-earnings">
-          {earnSummary && (
-            <div className="cat-earn-summary">
-              <div className="cat-earn-summary-tile">
-                <span className="cat-earn-summary-label">Hoy</span>
-                <span className="cat-earn-summary-value">{fmt(earnSummary.today)}</span>
-              </div>
-              <div className="cat-earn-summary-tile">
-                <span className="cat-earn-summary-label">Ayer</span>
-                <span className="cat-earn-summary-value">{fmt(earnSummary.yesterday)}</span>
-              </div>
-              <div className="cat-earn-summary-tile">
-                <span className="cat-earn-summary-label">Este mes</span>
-                <span className="cat-earn-summary-value">{fmt(earnSummary.month)}</span>
-              </div>
-              <div className="cat-earn-summary-tile">
-                <span className="cat-earn-summary-label">Últimos 3 meses</span>
-                <span className="cat-earn-summary-value">{fmt(earnSummary.last3Months)}</span>
-              </div>
-            </div>
-          )}
           {catEarnings.length === 0 && (
             <p className="cat-earnings-empty">Aún no hay ventas registradas por categoría.</p>
           )}
           {catEarnings.map(c => (
-            <div className="cat-earn-row" key={c.categoryId || 'sin-cat'}>
-              <span className="cat-earn-dot" style={{ background: c.color }} />
-              <span className="cat-earn-name">{c.name}</span>
-              <span className="cat-earn-units">{Number(c.units || 0).toLocaleString('es-MX')} uds</span>
-              <span className="cat-earn-rev">{fmt(c.revenue)} <small>ingresos</small></span>
-              <span className="cat-earn-profit">{fmt(c.profit)} <small>ganancia</small></span>
+            <div className="cat-earn-block" key={c.categoryId || 'sin-cat'}>
+              <div className="cat-earn-row">
+                <span className="cat-earn-dot" style={{ background: c.color }} />
+                <span className="cat-earn-name">{c.name}</span>
+                <span className="cat-earn-units">{Number(c.units || 0).toLocaleString('es-MX')} uds</span>
+                <span className="cat-earn-rev">{fmt(c.revenue)} <small>ingresos</small></span>
+                <span className="cat-earn-profit">{fmt(c.profit)} <small>ganancia total</small></span>
+              </div>
+              <div className="cat-earn-periods">
+                <div className="cat-earn-period-tile">
+                  <span className="cat-earn-period-label">Hoy</span>
+                  <span className="cat-earn-period-value">{fmt(c.periods?.today)}</span>
+                </div>
+                <div className="cat-earn-period-tile">
+                  <span className="cat-earn-period-label">Ayer</span>
+                  <span className="cat-earn-period-value">{fmt(c.periods?.yesterday)}</span>
+                </div>
+                <div className="cat-earn-period-tile">
+                  <span className="cat-earn-period-label">Este mes</span>
+                  <span className="cat-earn-period-value">{fmt(c.periods?.month)}</span>
+                </div>
+                <div className="cat-earn-period-tile">
+                  <span className="cat-earn-period-label">Últ. 3 meses</span>
+                  <span className="cat-earn-period-value">{fmt(c.periods?.last3Months)}</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>

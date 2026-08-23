@@ -80,14 +80,8 @@ public class CategoryService {
             m.put("units", uncategorized[2]);
             result.add(m);
         }
-        return result;
-    }
 
-    /**
-     * Resumen de ganancia del negocio para las tarjetas hoy/ayer/mes/últimos 3 meses
-     * que se muestran arriba del detalle por categoría.
-     */
-    public Map<String, Object> getProfitSummary(UUID businessId) {
+        // Ganancia de cada categoría en hoy/ayer/mes/últimos 3 meses
         Instant now = Instant.now();
         Instant todayStart = now.truncatedTo(ChronoUnit.DAYS);
         Instant yesterdayStart = todayStart.minus(1, ChronoUnit.DAYS);
@@ -95,12 +89,29 @@ public class CategoryService {
                 .atStartOfDay(ZoneOffset.UTC).toInstant();
         Instant last3MonthsStart = now.minus(90, ChronoUnit.DAYS);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("today",       saleRepo.profitBetween(businessId, todayStart, now));
-        result.put("yesterday",   saleRepo.profitBetween(businessId, yesterdayStart, todayStart));
-        result.put("month",       saleRepo.profitBetween(businessId, monthStart, now));
-        result.put("last3Months", saleRepo.profitBetween(businessId, last3MonthsStart, now));
+        Map<UUID, BigDecimal> todayByCat       = profitByCategory(businessId, todayStart, now);
+        Map<UUID, BigDecimal> yesterdayByCat   = profitByCategory(businessId, yesterdayStart, todayStart);
+        Map<UUID, BigDecimal> monthByCat       = profitByCategory(businessId, monthStart, now);
+        Map<UUID, BigDecimal> last3MonthsByCat = profitByCategory(businessId, last3MonthsStart, now);
+
+        for (Map<String, Object> m : result) {
+            UUID catId = (UUID) m.get("categoryId");
+            m.put("periods", Map.of(
+                    "today",       todayByCat.getOrDefault(catId, BigDecimal.ZERO),
+                    "yesterday",   yesterdayByCat.getOrDefault(catId, BigDecimal.ZERO),
+                    "month",       monthByCat.getOrDefault(catId, BigDecimal.ZERO),
+                    "last3Months", last3MonthsByCat.getOrDefault(catId, BigDecimal.ZERO)
+            ));
+        }
         return result;
+    }
+
+    private Map<UUID, BigDecimal> profitByCategory(UUID businessId, Instant from, Instant to) {
+        Map<UUID, BigDecimal> map = new HashMap<>();
+        for (Object[] row : saleRepo.profitByCategoryBetween(businessId, from, to)) {
+            map.put((UUID) row[0], (BigDecimal) row[1]);
+        }
+        return map;
     }
 
     @Transactional
