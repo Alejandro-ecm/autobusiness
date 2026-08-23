@@ -818,8 +818,15 @@ export default function Inventory() {
           {isOwner && (
             <button className="btn btn-sm btn-outline" onClick={() => setShowCatModal(true)}>+ Categoría</button>
           )}
-          <button className="btn btn-sm btn-outline" onClick={toggleEarnings}>
-            {showEarnings ? 'Ocultar ganancias' : '💰 Ganancias por categoría'}
+          <button className="cat-earn-gold-btn" onClick={toggleEarnings}>
+            <span className="cat-earn-gold-stars" aria-hidden="true">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <span key={i} className="cat-earn-star" />
+              ))}
+            </span>
+            <span className="cat-earn-gold-label">
+              {showEarnings ? 'Ocultar ganancias' : '💰 Ganancias por categoría'}
+            </span>
           </button>
         </div>
       )}

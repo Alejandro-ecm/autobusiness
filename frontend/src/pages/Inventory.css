@@ -124,6 +124,66 @@
   margin-bottom: 16px;
 }
 
+/* ── Botón dorado "Ganancias por categoría" con estrellas cayendo ── */
+.cat-earn-gold-btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #4a2e00;
+  border: 1px solid #d4a017;
+  border-radius: 999px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #fff6d8 0%, #ffd452 35%, #f5b800 65%, #e6a100 100%);
+  box-shadow: 0 4px 14px rgba(230, 161, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .6);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.cat-earn-gold-btn:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(230, 161, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .7);
+}
+.cat-earn-gold-btn:active { transform: translateY(0) scale(.99); }
+.cat-earn-gold-label { position: relative; z-index: 1; white-space: nowrap; }
+
+.cat-earn-gold-stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.cat-earn-star {
+  position: absolute;
+  top: -12px;
+  width: 4px;
+  height: 4px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 4px 1px rgba(255, 255, 255, .9), 0 0 8px 2px rgba(255, 215, 0, .7);
+  animation: catStarFall 2.4s linear infinite;
+}
+.cat-earn-star:nth-child(1) { left: 6%;  animation-delay: 0s;    animation-duration: 2.1s; }
+.cat-earn-star:nth-child(2) { left: 20%; animation-delay: .5s;   animation-duration: 2.6s; }
+.cat-earn-star:nth-child(3) { left: 35%; animation-delay: 1.1s;  animation-duration: 2s;   }
+.cat-earn-star:nth-child(4) { left: 50%; animation-delay: .2s;   animation-duration: 2.4s; }
+.cat-earn-star:nth-child(5) { left: 65%; animation-delay: 1.4s;  animation-duration: 2.2s; }
+.cat-earn-star:nth-child(6) { left: 80%; animation-delay: .8s;   animation-duration: 2.7s; }
+.cat-earn-star:nth-child(7) { left: 93%; animation-delay: 1.7s;  animation-duration: 2.3s; }
+
+@keyframes catStarFall {
+  0%   { transform: translateY(-4px) scale(.6); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateY(48px) scale(1); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cat-earn-star { animation: none; opacity: 0; }
+}
+
 /* ── Ganancias por categoría ──────────────────────────────────── */
 .cat-earnings {
   display: flex;
