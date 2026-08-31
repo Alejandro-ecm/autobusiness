@@ -13,7 +13,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -81,35 +80,44 @@ public class CategoryService {
             result.add(m);
         }
 
-        // Ganancia de cada categoría en hoy/ayer/mes/últimos 3 meses
+        // Ingresos y ganancia de cada categoría: hoy / ayer / antier / esta semana / este mes
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         Instant now = Instant.now();
-        Instant todayStart = now.truncatedTo(ChronoUnit.DAYS);
-        Instant yesterdayStart = todayStart.minus(1, ChronoUnit.DAYS);
-        Instant monthStart = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1)
+        Instant todayStart = today.atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant yesterdayStart = today.minusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant dayBeforeStart = today.minusDays(2).atStartOfDay(ZoneOffset.UTC).toInstant();
+        Instant weekStart = today.minusDays(today.getDayOfWeek().getValue() - 1)
                 .atStartOfDay(ZoneOffset.UTC).toInstant();
-        Instant last3MonthsStart = now.minus(90, ChronoUnit.DAYS);
+        Instant monthStart = today.withDayOfMonth(1).atStartOfDay(ZoneOffset.UTC).toInstant();
 
-        Map<UUID, BigDecimal> todayByCat       = profitByCategory(businessId, todayStart, now);
-        Map<UUID, BigDecimal> yesterdayByCat   = profitByCategory(businessId, yesterdayStart, todayStart);
-        Map<UUID, BigDecimal> monthByCat       = profitByCategory(businessId, monthStart, now);
-        Map<UUID, BigDecimal> last3MonthsByCat = profitByCategory(businessId, last3MonthsStart, now);
+        Map<UUID, BigDecimal[]> todayByCat      = earningsByCategory(businessId, todayStart, now);
+        Map<UUID, BigDecimal[]> yesterdayByCat  = earningsByCategory(businessId, yesterdayStart, todayStart);
+        Map<UUID, BigDecimal[]> dayBeforeByCat  = earningsByCategory(businessId, dayBeforeStart, yesterdayStart);
+        Map<UUID, BigDecimal[]> weekByCat       = earningsByCategory(businessId, weekStart, now);
+        Map<UUID, BigDecimal[]> monthByCat      = earningsByCategory(businessId, monthStart, now);
 
         for (Map<String, Object> m : result) {
             UUID catId = (UUID) m.get("categoryId");
             m.put("periods", Map.of(
-                    "today",       todayByCat.getOrDefault(catId, BigDecimal.ZERO),
-                    "yesterday",   yesterdayByCat.getOrDefault(catId, BigDecimal.ZERO),
-                    "month",       monthByCat.getOrDefault(catId, BigDecimal.ZERO),
-                    "last3Months", last3MonthsByCat.getOrDefault(catId, BigDecimal.ZERO)
+                    "today",              periodEntry(todayByCat, catId),
+                    "yesterday",          periodEntry(yesterdayByCat, catId),
+                    "dayBeforeYesterday", periodEntry(dayBeforeByCat, catId),
+                    "week",               periodEntry(weekByCat, catId),
+                    "month",              periodEntry(monthByCat, catId)
             ));
         }
         return result;
     }
 
-    private Map<UUID, BigDecimal> profitByCategory(UUID businessId, Instant from, Instant to) {
-        Map<UUID, BigDecimal> map = new HashMap<>();
-        for (Object[] row : saleRepo.profitByCategoryBetween(businessId, from, to)) {
-            map.put((UUID) row[0], (BigDecimal) row[1]);
+    private Map<String, BigDecimal> periodEntry(Map<UUID, BigDecimal[]> byCat, UUID catId) {
+        BigDecimal[] vals = byCat.getOrDefault(catId, new BigDecimal[]{ BigDecimal.ZERO, BigDecimal.ZERO });
+        return Map.of("revenue", vals[0], "profit", vals[1]);
+    }
+
+    private Map<UUID, BigDecimal[]> earningsByCategory(UUID businessId, Instant from, Instant to) {
+        Map<UUID, BigDecimal[]> map = new HashMap<>();
+        for (Object[] row : saleRepo.earningsByCategoryBetween(businessId, from, to)) {
+            map.put((UUID) row[0], new BigDecimal[]{ (BigDecimal) row[1], (BigDecimal) row[2] });
         }
         return map;
     }

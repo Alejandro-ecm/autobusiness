@@ -56,6 +56,7 @@ public class PosController {
                     Object qty = item.get("quantity");
                     Object customName = item.get("customName");
                     Object customPrice = item.get("customPrice");
+                    Object customCategoryId = item.get("customCategoryId");
                     if (qty == null) {
                         throw new IllegalArgumentException("Cada ítem requiere quantity");
                     }
@@ -68,7 +69,8 @@ public class PosController {
                             item.get("variantName") != null ? item.get("variantName").toString() : null,
                             item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT",
                             customName != null ? customName.toString() : null,
-                            customPrice != null ? new BigDecimal(customPrice.toString()) : null
+                            customPrice != null ? new BigDecimal(customPrice.toString()) : null,
+                            customCategoryId != null ? UUID.fromString(customCategoryId.toString()) : null
                     );
                 }).toList();
 
@@ -163,6 +165,7 @@ public class PosController {
                     Object qty = item.get("quantity");
                     Object customName = item.get("customName");
                     Object customPrice = item.get("customPrice");
+                    Object customCategoryId = item.get("customCategoryId");
                     if (qty == null) throw new IllegalArgumentException("Ítem inválido");
                     if (pid == null && (customName == null || customPrice == null))
                         throw new IllegalArgumentException("Ítem inválido");
@@ -172,7 +175,8 @@ public class PosController {
                             item.get("variantName") != null ? item.get("variantName").toString() : null,
                             item.get("saleMode") != null ? item.get("saleMode").toString() : "UNIT",
                             customName != null ? customName.toString() : null,
-                            customPrice != null ? new BigDecimal(customPrice.toString()) : null);
+                            customPrice != null ? new BigDecimal(customPrice.toString()) : null,
+                            customCategoryId != null ? UUID.fromString(customCategoryId.toString()) : null);
                 }).toList();
 
                 Object branchIdObj = body.get("branchId");

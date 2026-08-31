@@ -839,38 +839,46 @@ export default function Inventory() {
 
       {showEarnings && (
         <div className="cat-earnings">
-          {catEarnings.length === 0 && (
+          {catEarnings.length === 0 ? (
             <p className="cat-earnings-empty">Aún no hay ventas registradas por categoría.</p>
-          )}
-          {catEarnings.map(c => (
-            <div className="cat-earn-block" key={c.categoryId || 'sin-cat'}>
-              <div className="cat-earn-row">
-                <span className="cat-earn-dot" style={{ background: c.color }} />
-                <span className="cat-earn-name">{c.name}</span>
-                <span className="cat-earn-units">{Number(c.units || 0).toLocaleString('es-MX')} uds</span>
-                <span className="cat-earn-rev">{fmt(c.revenue)} <small>ingresos</small></span>
-                <span className="cat-earn-profit">{fmt(c.profit)} <small>ganancia total</small></span>
-              </div>
-              <div className="cat-earn-periods">
-                <div className="cat-earn-period-tile">
-                  <span className="cat-earn-period-label">Hoy</span>
-                  <span className="cat-earn-period-value">{fmt(c.periods?.today)}</span>
-                </div>
-                <div className="cat-earn-period-tile">
-                  <span className="cat-earn-period-label">Ayer</span>
-                  <span className="cat-earn-period-value">{fmt(c.periods?.yesterday)}</span>
-                </div>
-                <div className="cat-earn-period-tile">
-                  <span className="cat-earn-period-label">Este mes</span>
-                  <span className="cat-earn-period-value">{fmt(c.periods?.month)}</span>
-                </div>
-                <div className="cat-earn-period-tile">
-                  <span className="cat-earn-period-label">Últ. 3 meses</span>
-                  <span className="cat-earn-period-value">{fmt(c.periods?.last3Months)}</span>
-                </div>
-              </div>
+          ) : (
+            <div className="cat-earn-table-wrap">
+              <table className="cat-earn-table">
+                <thead>
+                  <tr>
+                    <th>Categoría</th>
+                    <th>Hoy</th>
+                    <th>Ayer</th>
+                    <th>Antier</th>
+                    <th>Esta semana</th>
+                    <th>Este mes</th>
+                    <th>Total acumulado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {catEarnings.map(c => (
+                    <tr key={c.categoryId || 'sin-cat'}>
+                      <td className="cat-earn-td-name">
+                        <span className="cat-earn-dot" style={{ background: c.color }} />
+                        {c.name}
+                      </td>
+                      {['today', 'yesterday', 'dayBeforeYesterday', 'week', 'month'].map(p => (
+                        <td key={p} className="cat-earn-td-period">
+                          <div className="cat-earn-cell-total"><small>Total</small> {fmt(c.periods?.[p]?.revenue)}</div>
+                          <div className="cat-earn-cell-profit"><small>Ganancia</small> {fmt(c.periods?.[p]?.profit)}</div>
+                        </td>
+                      ))}
+                      <td className="cat-earn-td-period">
+                        <div className="cat-earn-cell-total"><small>Total</small> {fmt(c.revenue)}</div>
+                        <div className="cat-earn-cell-profit"><small>Ganancia</small> {fmt(c.profit)}</div>
+                        <div className="cat-earn-cell-units">{Number(c.units || 0).toLocaleString('es-MX')} uds vendidas</div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
+          )}
         </div>
       )}
 

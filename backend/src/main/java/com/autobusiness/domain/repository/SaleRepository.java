@@ -126,24 +126,28 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
 
     // ----- Ganancias totales por categoría -----
     // Devuelve: [categoryId (puede ser null), ingresos, ganancia, unidades vendidas]
-    // LEFT JOIN para incluir también los productos sin categoría asignada.
-    @Query("SELECT c.id, " +
+    // LEFT JOIN por dos caminos: la categoría del producto de inventario (pc),
+    // o la categoría elegida a mano en un ítem libre sin producto (sc).
+    @Query("SELECT COALESCE(sc.id, pc.id), " +
            "COALESCE(SUM(si.subtotal), 0), " +
            "COALESCE(SUM((si.unitPrice - si.unitCost) * si.quantity), 0), " +
            "COALESCE(SUM(si.quantity), 0) " +
-           "FROM SaleItem si JOIN si.sale s JOIN si.product p LEFT JOIN p.category c " +
+           "FROM SaleItem si JOIN si.sale s LEFT JOIN si.product p LEFT JOIN p.category pc LEFT JOIN si.category sc " +
            "WHERE s.business.id = :businessId AND s.status = 'completed' " +
-           "GROUP BY c.id")
+           "GROUP BY COALESCE(sc.id, pc.id)")
     List<Object[]> earningsByCategory(@Param("businessId") UUID businessId);
 
-    // ----- Ganancia por categoría en un rango de fechas (tarjetas hoy/ayer/mes/3 meses por categoría) -----
-    // Devuelve: [categoryId (puede ser null = sin categoría), ganancia]
-    @Query("SELECT c.id, COALESCE(SUM((si.unitPrice - si.unitCost) * si.quantity), 0) " +
-           "FROM SaleItem si JOIN si.sale s JOIN si.product p LEFT JOIN p.category c " +
+    // ----- Ingresos y ganancia por categoría en un rango de fechas -----
+    // (tarjetas hoy/ayer/antier/semana/mes por categoría)
+    // Devuelve: [categoryId (puede ser null = sin categoría), ingresos, ganancia]
+    @Query("SELECT COALESCE(sc.id, pc.id), " +
+           "COALESCE(SUM(si.subtotal), 0), " +
+           "COALESCE(SUM((si.unitPrice - si.unitCost) * si.quantity), 0) " +
+           "FROM SaleItem si JOIN si.sale s LEFT JOIN si.product p LEFT JOIN p.category pc LEFT JOIN si.category sc " +
            "WHERE s.business.id = :businessId AND s.status = 'completed' " +
            "AND s.createdAt BETWEEN :from AND :to " +
-           "GROUP BY c.id")
-    List<Object[]> profitByCategoryBetween(@Param("businessId") UUID businessId,
-                                           @Param("from") Instant from,
-                                           @Param("to") Instant to);
+           "GROUP BY COALESCE(sc.id, pc.id)")
+    List<Object[]> earningsByCategoryBetween(@Param("businessId") UUID businessId,
+                                             @Param("from") Instant from,
+                                             @Param("to") Instant to);
 }

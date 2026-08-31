@@ -33,6 +33,13 @@ public class SaleItem {
     @Column(name = "custom_name")
     private String customName;
 
+    // Categoría elegida a mano para un ítem libre (los productos de inventario
+    // ya traen su categoría vía product.category — este campo sólo aplica sin producto)
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = true)
+    private Category category;
+
     // Decimal para soportar kg (ej: 1.750 kg)
     @Column(nullable = false, precision = 12, scale = 4)
     private BigDecimal quantity;

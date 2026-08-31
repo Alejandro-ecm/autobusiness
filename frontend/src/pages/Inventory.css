@@ -198,47 +198,59 @@
   box-shadow: 0 8px 28px rgba(15, 23, 42, .14);
 }
 .cat-earnings-empty { margin: 0; font-size: 13px; color: #475569; text-align: center; }
-.cat-earn-block {
-  padding: 8px 6px 12px;
-  border-bottom: 1px solid rgba(148, 163, 184, .22);
-}
-.cat-earn-block:last-child { border-bottom: none; padding-bottom: 8px; }
-.cat-earn-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-}
-.cat-earn-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-.cat-earn-name { flex: 1; font-weight: 700; color: #0f172a; font-size: 14px; }
-.cat-earn-units { font-size: 12px; color: #475569; min-width: 70px; text-align: right; }
-.cat-earn-rev { font-size: 13px; font-weight: 700; color: #1d4ed8; min-width: 120px; text-align: right; }
-.cat-earn-profit { font-size: 14px; font-weight: 800; color: #15803d; min-width: 120px; text-align: right; }
-.cat-earn-rev small, .cat-earn-profit small { display: block; font-size: 10px; font-weight: 500; color: #1e293b; }
 
-.cat-earn-periods {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
+.cat-earn-table-wrap { overflow-x: auto; }
+.cat-earn-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 12px;
 }
-.cat-earn-period-tile {
+.cat-earn-table thead th {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: #475569;
+  padding: 6px 8px;
+  border-bottom: 2px solid rgba(148, 163, 184, .4);
+  white-space: nowrap;
+}
+.cat-earn-table thead th:first-child { text-align: left; }
+.cat-earn-table tbody tr { border-bottom: 1px solid rgba(148, 163, 184, .22); }
+.cat-earn-table tbody tr:last-child { border-bottom: none; }
+.cat-earn-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cat-earn-td-name {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 8px 4px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, .5);
-  border: 1px solid rgba(148, 163, 184, .3);
+  gap: 8px;
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13px;
+  padding: 10px 8px;
+  white-space: nowrap;
 }
-.cat-earn-period-label { font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
-.cat-earn-period-value { font-size: 13px; font-weight: 800; color: #15803d; }
+.cat-earn-td-period {
+  text-align: center;
+  padding: 8px;
+  vertical-align: middle;
+  min-width: 100px;
+}
+.cat-earn-cell-total { font-size: 12px; font-weight: 600; color: #1d4ed8; }
+.cat-earn-cell-profit { font-size: 13px; font-weight: 800; color: #15803d; }
+.cat-earn-cell-total small, .cat-earn-cell-profit small {
+  display: inline-block; font-weight: 500; color: #64748b; font-size: 10px; margin-right: 3px;
+}
+.cat-earn-cell-units { font-size: 10.5px; color: #64748b; margin-top: 2px; }
 
 @media (max-width: 560px) {
-  .cat-earn-row { flex-wrap: wrap; }
-  .cat-earn-name { flex-basis: 100%; }
-  .cat-earn-units, .cat-earn-rev, .cat-earn-profit { min-width: 0; flex: 1; text-align: left; }
-  .cat-earn-periods { grid-template-columns: repeat(2, 1fr); }
+  .cat-earn-table { min-width: 640px; }
 }
 
 .inv-table {

@@ -222,6 +222,10 @@ function Build-SaleTicket($j) {
     T-Bold $t $false
     T-Line $t 'Te esperamos pronto'
     T-Feed $t 1
+    T-Bold $t $true
+    T-Line $t 'NO SE ACEPTAN DEVOLUCIONES'
+    T-Bold $t $false
+    T-Feed $t 1
     T-Line $t '- Ticket de AutoBusiness AI -'
     T-Feed $t 4
     T-Cut $t

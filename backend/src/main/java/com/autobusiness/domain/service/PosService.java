@@ -28,6 +28,7 @@ public class PosService {
     private final UserRepository userRepo;
     private final BusinessRepository businessRepo;
     private final CashRegisterSessionRepository sessionRepo;
+    private final CategoryRepository categoryRepo;
     private final EventPublisher eventPublisher;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -45,7 +46,9 @@ public class PosService {
             // Sólo para ítems libres (productId == null): nombre y precio que
             // el cajero escribe a mano, ej. "Copias color" a $3.00
             String customName,
-            BigDecimal customPrice
+            BigDecimal customPrice,
+            // Categoría elegida a mano para el ítem libre (opcional)
+            UUID customCategoryId
     ) {}
 
     public record CheckoutRequest(
@@ -91,10 +94,15 @@ public class PosService {
                     throw new IllegalArgumentException("Precio inválido para " + name);
                 BigDecimal itemSubtotal = unitPrice.multiply(qty).setScale(2, RoundingMode.HALF_UP);
 
+                Category customCategory = item.customCategoryId() != null
+                        ? categoryRepo.findById(item.customCategoryId()).orElse(null)
+                        : null;
+
                 sale.getItems().add(SaleItem.builder()
                         .sale(sale)
                         .product(null)
                         .customName(name)
+                        .category(customCategory)
                         .quantity(qty)
                         .unitPrice(unitPrice)
                         .unitCost(BigDecimal.ZERO)

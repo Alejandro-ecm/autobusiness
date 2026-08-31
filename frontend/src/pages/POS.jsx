@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { pos as posApi, printJobs as printJobsApi } from '../api'
+import { pos as posApi, printJobs as printJobsApi, categories as categoriesApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { buildEscposTicket } from '../utils/escposTicket'
@@ -97,7 +97,7 @@ function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, discountAm
                   const result = await posApi.processCardPayment({
                     formData,
                     items: cartItems.map(i => i.isCustom
-                      ? { customName: i.name, customPrice: i.price, quantity: i.quantity }
+                      ? { customName: i.name, customPrice: i.price, quantity: i.quantity, customCategoryId: i.categoryId }
                       : { productId: i.productId, quantity: i.quantity, saleMode: i.saleMode }),
                     branchId,
                     discountAmount: discountAmount > 0 ? discountAmount : undefined,
@@ -249,6 +249,8 @@ export default function POS() {
   const [customItemModal, setCustomItemModal] = useState(false) // producto libre (nombre + precio)
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
+  const [customCategoryId, setCustomCategoryId] = useState('')
+  const [categories, setCategories] = useState([])
   const addedFlashTimer = useRef(null)
   const searchRef = useRef()
   const productsRef = useRef([]) // ref para acceso sin stale closure en el listener global
@@ -282,6 +284,7 @@ export default function POS() {
   useEffect(() => {
     posApi.products().then(data => { setProducts(data); productsRef.current = data })
     posApi.topProducts().then(setTopProducts).catch(() => {})
+    categoriesApi.list().then(setCategories).catch(() => {})
     searchRef.current?.focus()
   }, [])
 
@@ -370,12 +373,15 @@ export default function POS() {
     // 3. Varios resultados → dejar el filtro activo para que el cajero elija
   }
 
-  // Refresh stock en carrito cada 20s
+  // Refresh stock en carrito cada 20s — debe respetar la búsqueda activa,
+  // si no, pisa los resultados filtrados con el catálogo completo unos
+  // segundos después de buscar (bug: aparecen productos que no coinciden)
   useEffect(() => {
     if (cart.length === 0) return
     const t = setInterval(() => {
-      posApi.products().then(fresh => {
+      posApi.products(query || undefined).then(fresh => {
         setProducts(fresh)
+        productsRef.current = fresh
         setCart(prev => prev.map(ci => {
           const p = fresh.find(f => f.id === ci.productId)
           if (!p) return ci
@@ -386,7 +392,7 @@ export default function POS() {
       })
     }, 20_000)
     return () => clearInterval(t)
-  }, [cart.length])
+  }, [cart.length, query])
 
   const triggerAddedFlash = useCallback((product) => {
     clearTimeout(addedFlashTimer.current)
@@ -437,7 +443,7 @@ export default function POS() {
   }, [cart, show, triggerAddedFlash])
 
   // Producto libre: nombre y precio manual, sin producto de inventario (ej: copias a precio variable)
-  const addCustomItem = (name, price) => {
+  const addCustomItem = (name, price, categoryId) => {
     const n = (name || '').trim()
     const p = parseFloat(price)
     if (!n) { show('Escribe el nombre del producto', 'error'); return }
@@ -452,9 +458,10 @@ export default function POS() {
       maxStock: Infinity,
       saleMode: 'UNIT',
       isCustom: true,
+      categoryId: categoryId || null,
     }])
     setCustomItemModal(false)
-    setCustomName(''); setCustomPrice('')
+    setCustomName(''); setCustomPrice(''); setCustomCategoryId('')
     show(`✓ ${n} agregado`, 'success')
     setMobileTab('cart')
   }
@@ -495,7 +502,7 @@ export default function POS() {
     const payload = {
       branchId: user.branchId,
       items: cart.map(i => i.isCustom
-        ? { customName: i.name, customPrice: i.price, quantity: i.quantity }
+        ? { customName: i.name, customPrice: i.price, quantity: i.quantity, customCategoryId: i.categoryId }
         : { productId: i.productId, quantity: i.quantity, saleMode: i.saleMode }),
       paymentMethod: payMethod,
       cashReceived: payMethod === 'cash' && cashReceived ? parseFloat(cashReceived) : undefined,
@@ -677,6 +684,7 @@ export default function POS() {
       <div class="foot center">
         <div class="thanks">★ ¡Gracias por su compra! ★</div>
         <div>Te esperamos pronto</div>
+        <div style="margin-top:6px;font-weight:700">NO SE ACEPTAN DEVOLUCIONES</div>
         <div style="margin-top:6px;color:#666">— Ticket generado por AutoBusiness AI —</div>
       </div>
     </body></html>`
@@ -1178,14 +1186,23 @@ export default function POS() {
                 <input className="input" value={customName} onChange={e => setCustomName(e.target.value)}
                   placeholder="ej: Copias B/N, Copias color..." autoFocus />
               </div>
-              <div className="input-group" style={{ marginBottom: 14 }}>
+              <div className="input-group" style={{ marginBottom: 10 }}>
                 <label>Precio</label>
                 <input className="input" type="number" step="0.01" min="0" placeholder="0.00"
                   value={customPrice} onChange={e => setCustomPrice(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && addCustomItem(customName, customPrice)} />
+                  onKeyDown={e => e.key === 'Enter' && addCustomItem(customName, customPrice, customCategoryId)} />
               </div>
+              {categories.length > 0 && (
+                <div className="input-group" style={{ marginBottom: 14 }}>
+                  <label>Categoría (opcional)</label>
+                  <select className="input" value={customCategoryId} onChange={e => setCustomCategoryId(e.target.value)}>
+                    <option value="">Sin categoría</option>
+                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               <button className="btn btn-primary" style={{ width: '100%' }}
-                onClick={() => addCustomItem(customName, customPrice)}>
+                onClick={() => addCustomItem(customName, customPrice, customCategoryId)}>
                 + Agregar al carrito
               </button>
             </div>
