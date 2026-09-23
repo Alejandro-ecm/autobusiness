@@ -286,7 +286,15 @@ export default function Inventory() {
       th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-size: 12px; }
       td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
       .footer { margin-top: 20px; font-size: 11px; color: #1e293b; }
+      .back-btn {
+        display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px;
+        padding: 8px 16px; border: none; border-radius: 20px; background: #6366f1;
+        color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+      }
+      .back-btn:hover { background: #4f46e5; }
+      @media print { .back-btn { display: none !important; } }
     </style></head><body>
+      <button class="back-btn" onclick="if(window.opener){window.close()}else{location.href='/inventory'}">← Volver a AutoBusiness</button>
       <h2>Inventario — ${new Date().toLocaleDateString('es-MX')}</h2>
       <p style="color:#1e293b">${filtered.length} productos · Valor a costo: $${totalValue.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
       <table><thead><tr><th>Producto</th><th>SKU</th><th>Precio</th><th>Costo</th><th>Margen</th><th>Stock</th></tr></thead>
