@@ -46,6 +46,23 @@ public class AuthController {
         }
     }
 
+    /** POST /auth/forgot-password — siempre responde 200 genérico, exista o no el email */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        authService.forgotPassword(body.get("email"));
+        return ResponseEntity.ok(Map.of("message", "Si el correo existe, te enviamos un enlace para recuperar tu contraseña"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        try {
+            authService.resetPassword(body.get("token"), body.get("password"));
+            return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @PatchMapping("/onboarding")
     public ResponseEntity<?> completeOnboarding(@AuthenticationPrincipal AuthPrincipal p,
                                                  @RequestBody Map<String, String> body) {

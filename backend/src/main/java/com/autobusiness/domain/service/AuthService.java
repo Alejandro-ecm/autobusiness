@@ -3,21 +3,28 @@ package com.autobusiness.domain.service;
 import com.autobusiness.config.JwtUtil;
 import com.autobusiness.domain.model.Business;
 import com.autobusiness.domain.model.Branch;
+import com.autobusiness.domain.model.PasswordResetToken;
 import com.autobusiness.domain.model.PendingRegistration;
 import com.autobusiness.domain.model.User;
 import com.autobusiness.domain.repository.BusinessRepository;
 import com.autobusiness.domain.repository.BranchRepository;
+import com.autobusiness.domain.repository.PasswordResetTokenRepository;
 import com.autobusiness.domain.repository.PendingRegistrationRepository;
 import com.autobusiness.domain.repository.UserRepository;
 import com.autobusiness.infrastructure.analytics.AlejandriaClient;
+import com.autobusiness.infrastructure.email.ResendClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -45,10 +52,15 @@ public class AuthService {
     private final BranchRepository branchRepo;
     private final SubscriptionService subscriptionService;
     private final PendingRegistrationRepository pendingRepo;
+    private final PasswordResetTokenRepository resetTokenRepo;
     private final PasswordEncoder encoder;
     private final JwtUtil jwtUtil;
     private final AlejandriaClient alejandria;
     private final LegalService legalService;
+    private final ResendClient resendClient;
+
+    @Value("${app.base-url}")
+    private String appBaseUrl;
 
     public Map<String, Object> login(String email, String password) {
         User user = userRepo.findByEmail(email)
@@ -207,6 +219,73 @@ public class AuthService {
         businessRepo.save(business);
         log.info("onboarding.completed business={} profileType={}", businessId, profileType);
         return Map.of("onboardingCompleted", true, "profileType", profileType);
+    }
+
+    // ── Recuperación de contraseña (self-service, incluye al OWNER) ──────────
+    private static final int RESET_TOKEN_EXPIRY_MINUTES = 30;
+
+    @Transactional
+    public void forgotPassword(String email) {
+        // Siempre se comporta igual exista o no el email, para no revelar
+        // qué correos están registrados.
+        if (email == null || email.isBlank()) return;
+        userRepo.findByEmail(email.trim().toLowerCase()).ifPresent(user -> {
+            String rawToken = generateResetToken();
+            PasswordResetToken token = PasswordResetToken.builder()
+                    .user(user)
+                    .tokenHash(hashToken(rawToken))
+                    .expiresAt(Instant.now().plus(RESET_TOKEN_EXPIRY_MINUTES, ChronoUnit.MINUTES))
+                    .build();
+            resetTokenRepo.save(token);
+
+            String link = appBaseUrl + "/reset-password?token=" + rawToken;
+            String html = "<p>Hola " + user.getName() + ",</p>"
+                    + "<p>Recibimos una solicitud para restablecer tu contraseña de AutoBusiness AI.</p>"
+                    + "<p><a href=\"" + link + "\">Haz clic aquí para crear una nueva contraseña</a></p>"
+                    + "<p>Este enlace expira en " + RESET_TOKEN_EXPIRY_MINUTES + " minutos. "
+                    + "Si tú no lo solicitaste, puedes ignorar este correo.</p>";
+            resendClient.sendHtml(user.getEmail(), "Recupera tu contraseña — AutoBusiness AI", html);
+            log.info("forgot-password: email enviado a userId={}", user.getId());
+        });
+    }
+
+    @Transactional
+    public void resetPassword(String rawToken, String newPassword) {
+        if (rawToken == null || rawToken.isBlank())
+            throw new IllegalArgumentException("Token inválido");
+        if (newPassword == null || newPassword.length() < 6)
+            throw new IllegalArgumentException("La contraseña debe tener al menos 6 caracteres");
+
+        PasswordResetToken token = resetTokenRepo.findByTokenHash(hashToken(rawToken))
+                .orElseThrow(() -> new IllegalArgumentException("El enlace no es válido o ya fue usado"));
+        if (token.getUsedAt() != null)
+            throw new IllegalArgumentException("El enlace no es válido o ya fue usado");
+        if (token.getExpiresAt().isBefore(Instant.now()))
+            throw new IllegalArgumentException("El enlace expiró, solicita uno nuevo");
+
+        User user = token.getUser();
+        user.setPasswordHash(encoder.encode(newPassword));
+        userRepo.save(user);
+
+        token.setUsedAt(Instant.now());
+        resetTokenRepo.save(token);
+        log.info("reset-password: contraseña actualizada userId={}", user.getId());
+    }
+
+    private String generateResetToken() {
+        byte[] bytes = new byte[32];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            throw new IllegalStateException("No se pudo procesar el token", e);
+        }
     }
 
     private String generateDeliveryCode() {

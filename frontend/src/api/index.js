@@ -20,8 +20,10 @@ async function authRequest(path, data) {
 }
 
 export const auth = {
-  login:    (email, password) => authRequest('/auth/login', { email, password }),
-  register: (data)            => authRequest('/auth/register', data),
+  login:          (email, password) => authRequest('/auth/login', { email, password }),
+  register:       (data)            => authRequest('/auth/register', data),
+  forgotPassword: (email)           => authRequest('/auth/forgot-password', { email }),
+  resetPassword:  (token, password) => authRequest('/auth/reset-password', { token, password }),
 }
 
 export const dashboard = {

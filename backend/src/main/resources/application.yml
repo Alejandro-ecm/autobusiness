@@ -75,6 +75,10 @@ cloudinary:
   api-key: ${CLOUDINARY_API_KEY:}
   api-secret: ${CLOUDINARY_API_SECRET:}
 
+resend:
+  api-key: ${RESEND_API_KEY:}
+  from-email: ${RESEND_FROM_EMAIL:AutoBusiness AI <onboarding@resend.dev>}
+
 app:
   base-url: ${APP_BASE_URL:https://autobusiness.skytechnologieslatam.com}
   base-domain: ${APP_BASE_DOMAIN:autobusiness.skytechnologieslatam.com}

@@ -27,6 +27,8 @@ services:
       AI_ENGINE_URL: http://ai-engine:8001
       WHATSAPP_SERVICE_URL: http://whatsapp-service:8002
       WA_INTERNAL_TOKEN: ${WA_INTERNAL_TOKEN:-autobusiness_wa_internal_dev}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-AutoBusiness AI <onboarding@resend.dev>}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-TEST-placeholder-change-me}
       MP_NOTIFICATION_URL: ${MP_NOTIFICATION_URL:-http://localhost:8080/api/payments/mercadopago/webhook}
       MP_SUCCESS_URL: ${MP_SUCCESS_URL:-http://localhost:3000/payment/success}

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
-import { legal as legalApi } from '../api'
+import { legal as legalApi, auth as authApi } from '../api'
 import './Login.css'
 
 function LegalAcceptanceScreen({ onDone }) {
@@ -160,6 +160,115 @@ function LegalDocModal({ type, title, onClose }) {
   )
 }
 
+function ForgotPasswordScreen({ onBack }) {
+  const [email, setEmail] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sent, setSent] = useState(false)
+  const { show } = useToast()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      await authApi.forgotPassword(email)
+      setSent(true)
+    } catch {
+      show('No se pudo enviar el correo. Intenta de nuevo.', 'error')
+    } finally { setLoading(false) }
+  }
+
+  if (sent) {
+    return (
+      <div style={{ padding: '8px 0' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 10 }}>Revisa tu correo</h3>
+        <p style={{ fontSize: 13, color: 'rgba(226,232,240,.85)', lineHeight: 1.6, marginBottom: 16 }}>
+          Si <strong>{email}</strong> está registrado, te enviamos un enlace para crear una nueva contraseña.
+          El enlace expira en 30 minutos.
+        </p>
+        <button type="button" onClick={onBack} className="btn btn-outline" style={{ width: '100%' }}>
+          ← Volver a iniciar sesión
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="login-form">
+      <p style={{ fontSize: 13, color: 'rgba(226,232,240,.8)', marginBottom: 12 }}>
+        Ingresa el correo de tu cuenta y te enviaremos un enlace para recuperar tu contraseña.
+      </p>
+      <div className="input-group">
+        <label>Email</label>
+        <input className="input" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required />
+      </div>
+      <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+        {loading ? <div className="spinner" /> : 'Enviar enlace de recuperación'}
+      </button>
+      <button type="button" onClick={onBack} className="btn btn-outline" style={{ width: '100%', marginTop: 8 }}>
+        ← Volver a iniciar sesión
+      </button>
+    </form>
+  )
+}
+
+function ResetPasswordScreen({ token }) {
+  const [password, setPassword]   = useState('')
+  const [confirm, setConfirm]     = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [done, setDone]           = useState(false)
+  const { show } = useToast()
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    if (password !== confirm) { show('Las contraseñas no coinciden', 'error'); return }
+    if (password.length < 6) { show('La contraseña debe tener al menos 6 caracteres', 'error'); return }
+    setLoading(true)
+    try {
+      await authApi.resetPassword(token, password)
+      setDone(true)
+      show('Contraseña actualizada. Ya puedes iniciar sesión.', 'success')
+    } catch (err) {
+      show(err?.error || 'El enlace no es válido o expiró', 'error')
+    } finally { setLoading(false) }
+  }
+
+  if (done) {
+    return (
+      <div style={{ padding: '8px 0' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 10 }}>¡Listo!</h3>
+        <p style={{ fontSize: 13, color: 'rgba(226,232,240,.85)', lineHeight: 1.6, marginBottom: 16 }}>
+          Tu contraseña se actualizó correctamente.
+        </p>
+        <button type="button" onClick={() => navigate('/login', { replace: true })} className="btn btn-primary" style={{ width: '100%' }}>
+          Iniciar sesión
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="login-form">
+      <p style={{ fontSize: 13, color: 'rgba(226,232,240,.8)', marginBottom: 12 }}>
+        Crea tu nueva contraseña.
+      </p>
+      <div className="input-group">
+        <label>Nueva contraseña</label>
+        <input className="input" type="password" value={password} onChange={e => setPassword(e.target.value)}
+          placeholder="Mínimo 6 caracteres" required minLength={6} />
+      </div>
+      <div className="input-group">
+        <label>Confirmar contraseña</label>
+        <input className="input" type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
+          placeholder="Repite tu contraseña" required minLength={6} />
+      </div>
+      <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+        {loading ? <div className="spinner" /> : 'Guardar nueva contraseña'}
+      </button>
+    </form>
+  )
+}
+
 export default function Login() {
   const [tab, setTab] = useState('login')
   const [loading, setLoading] = useState(false)
@@ -173,6 +282,8 @@ export default function Login() {
   // If redirected from PrivateRoute because requiresLegalAcceptance is true,
   // show legal screen immediately for the already-authenticated user
   const showLegal = searchParams.get('legal') === '1' && user?.requiresLegalAcceptance
+  // Link de recuperación de contraseña: /reset-password?token=...
+  const resetToken = searchParams.get('token')
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }))
 
@@ -245,16 +356,20 @@ export default function Login() {
 
         {showLegal ? (
           <LegalAcceptanceScreen onDone={handleLegalDone} />
+        ) : resetToken ? (
+          <ResetPasswordScreen token={resetToken} />
         ) : (
           <>
-            <div className="login-tabs">
-              <button className={`login-tab ${tab === 'login' ? 'active' : ''}`} onClick={() => setTab('login')}>
-                Iniciar sesión
-              </button>
-              <button className={`login-tab ${tab === 'register' ? 'active' : ''}`} onClick={() => setTab('register')}>
-                Crear cuenta
-              </button>
-            </div>
+            {tab !== 'forgot' && (
+              <div className="login-tabs">
+                <button className={`login-tab ${tab === 'login' ? 'active' : ''}`} onClick={() => setTab('login')}>
+                  Iniciar sesión
+                </button>
+                <button className={`login-tab ${tab === 'register' ? 'active' : ''}`} onClick={() => setTab('register')}>
+                  Crear cuenta
+                </button>
+              </div>
+            )}
 
             {tab === 'login' ? (
               <form onSubmit={handleLogin} className="login-form">
@@ -265,11 +380,17 @@ export default function Login() {
                 <div className="input-group">
                   <label>Contraseña</label>
                   <input className="input" type="password" value={form.password} onChange={set('password')} placeholder="••••••••" required />
+                  <button type="button" onClick={() => setTab('forgot')}
+                    style={{ background: 'none', border: 'none', padding: 0, marginTop: 6, color: '#818cf8', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 </div>
                 <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
                   {loading ? <div className="spinner" /> : 'Entrar'}
                 </button>
               </form>
+            ) : tab === 'forgot' ? (
+              <ForgotPasswordScreen onBack={() => setTab('login')} />
             ) : (
               <form onSubmit={handleRegister} className="login-form">
                 <div className="input-group">
