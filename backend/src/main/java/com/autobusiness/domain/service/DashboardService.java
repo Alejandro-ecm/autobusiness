@@ -49,27 +49,36 @@ public class DashboardService {
 
         String businessStatus = determineStatus(insights);
 
-        return Map.of(
-                "status", businessStatus,
-                "kpis", Map.of(
-                        "todayRevenue", todayRevenue,
-                        "todaySales", todaySales,
-                        "monthRevenue", monthRevenue,
-                        "monthSales", monthSales,
-                        "revenueGrowth", revenueGrowth,
-                        "lowStockCount", lowStock.size()
-                ),
-                "insights", insights,
-                "alerts", alerts,
-                "unreadAlerts", unreadAlerts,
-                "lowStockProducts", lowStock.stream().limit(5).toList(),
-                "topProducts", topProducts.stream().limit(5).map(r -> Map.of(
-                        "id", r[0],
-                        "name", r[1],
-                        "quantity", r[2],
-                        "revenue", r[3]
-                )).toList()
-        );
+        // El motor de IA (ai-engine) solo corre despues de una venta (SaleEventListener) y
+        // puede fallar en silencio si el servicio esta caido. lastAnalyzedAt/stale le dan
+        // al dashboard una senal visible de "cuando fue el ultimo diagnostico exitoso" en
+        // vez de asumir GREEN por default cuando simplemente no hay datos recientes.
+        Instant lastAnalyzedAt = insights.isEmpty() ? null : insights.get(0).getCreatedAt();
+        boolean staleInsights = lastAnalyzedAt == null || lastAnalyzedAt.isBefore(now.minus(24, ChronoUnit.HOURS));
+
+        var result = new java.util.HashMap<String, Object>();
+        result.put("status", businessStatus);
+        result.put("kpis", Map.of(
+                "todayRevenue", todayRevenue,
+                "todaySales", todaySales,
+                "monthRevenue", monthRevenue,
+                "monthSales", monthSales,
+                "revenueGrowth", revenueGrowth,
+                "lowStockCount", lowStock.size()
+        ));
+        result.put("insights", insights);
+        result.put("alerts", alerts);
+        result.put("unreadAlerts", unreadAlerts);
+        result.put("lowStockProducts", lowStock.stream().limit(5).toList());
+        result.put("topProducts", topProducts.stream().limit(5).map(r -> Map.of(
+                "id", r[0],
+                "name", r[1],
+                "quantity", r[2],
+                "revenue", r[3]
+        )).toList());
+        result.put("lastAnalyzedAt", lastAnalyzedAt);
+        result.put("staleInsights", staleInsights);
+        return result;
     }
 
     public Map<String, Object> getFinanceData(UUID businessId) {

@@ -9,6 +9,19 @@ import './Dashboard.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 0 })}`
 
+function timeAgo(iso) {
+  if (!iso) return null
+  const ms = Date.now() - new Date(iso).getTime()
+  if (ms < 0) return 'hace un momento'
+  const mins = Math.floor(ms / 60000)
+  if (mins < 1) return 'hace un momento'
+  if (mins < 60) return `hace ${mins} min`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `hace ${hours} h`
+  const days = Math.floor(hours / 24)
+  return `hace ${days} día${days !== 1 ? 's' : ''}`
+}
+
 const STATUS_CONFIG = {
   GREEN:  { label: 'Negocio saludable', cls: 'green', emoji: '🟢' },
   YELLOW: { label: 'Atención requerida', cls: 'yellow', emoji: '🟡' },
@@ -234,7 +247,7 @@ export default function Dashboard() {
     </div>
   )
 
-  const { kpis = {}, insights = [], lowStockProducts = [], topProducts = [], status = 'GREEN' } = data || {}
+  const { kpis = {}, insights = [], lowStockProducts = [], topProducts = [], status = 'GREEN', lastAnalyzedAt = null, staleInsights = false } = data || {}
   const st = STATUS_CONFIG[status] || STATUS_CONFIG.GREEN
 
   const topInsight = insights[0] || null
@@ -263,6 +276,19 @@ export default function Dashboard() {
         <div className="page-header-actions">
           <div className={`status-pill status-pill--${st.cls}`}>
             {st.emoji} {st.label}
+          </div>
+          <div
+            className="status-pill"
+            title={staleInsights ? 'El motor de IA no ha corrido un diagnóstico reciente — la información puede no reflejar tu situación actual' : 'El diagnóstico de tu negocio está al día'}
+            style={{
+              background: staleInsights ? '#fef3c7' : '#f1f5f9',
+              color: staleInsights ? '#92400e' : '#475569',
+              fontWeight: 600,
+            }}
+          >
+            {staleInsights
+              ? `⚠️ Diagnóstico ${lastAnalyzedAt ? `desactualizado (${timeAgo(lastAnalyzedAt)})` : 'sin generar aún'}`
+              : `🧠 Diagnóstico actualizado ${timeAgo(lastAnalyzedAt)}`}
           </div>
           {user?.businessSlug && (
             <a href={`/tienda/${user.businessSlug}`} target="_blank" rel="noopener noreferrer"
