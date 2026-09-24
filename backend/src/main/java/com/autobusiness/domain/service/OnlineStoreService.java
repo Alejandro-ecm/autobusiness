@@ -48,13 +48,14 @@ public class OnlineStoreService {
                              String customerPhone, String deliveryAddress, String mapsUrl,
                              Double deliveryLat, Double deliveryLng,
                              List<Map<String, Object>> items,
-                             String paymentMethod) {
+                             String paymentMethod, String deliveryType) {
         Business business = businessRepo.findBySlug(businessSlug)
                 .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
 
         String orderNumber = generateOrderNumber(business.getId());
         String resolvedPaymentMethod = (paymentMethod != null && !paymentMethod.isBlank())
                 ? paymentMethod : "cash_on_delivery";
+        String resolvedDeliveryType = "pickup".equals(deliveryType) ? "pickup" : "delivery";
 
         Order order = Order.builder()
                 .business(business)
@@ -67,6 +68,7 @@ public class OnlineStoreService {
                 .deliveryLat(deliveryLat)
                 .deliveryLng(deliveryLng)
                 .paymentMethod(resolvedPaymentMethod)
+                .deliveryType(resolvedDeliveryType)
                 .build();
 
         BigDecimal total = BigDecimal.ZERO;

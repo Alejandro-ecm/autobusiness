@@ -410,6 +410,7 @@ export default function Storefront() {
   const isAdmin = (() => { try { return !!JSON.parse(localStorage.getItem('ab_user')) } catch { return false } })()
   const [paymentStatus, setPaymentStatus] = useState(null)
   const [paymentMethod, setPaymentMethod] = useState('online')
+  const [deliveryType, setDeliveryType] = useState('delivery')
   const [customer, setCustomer] = useState({ name: '', phone: '', email: '', address: '', mapsUrl: '', lat: null, lng: null })
   const [locating, setLocating] = useState(false)
   const [locationAccuracy, setLocationAccuracy] = useState(null)
@@ -496,8 +497,9 @@ export default function Storefront() {
 
   const placeOrder = async (e) => {
     e.preventDefault()
-    // Ubicación exacta OBLIGATORIA: sin pin confirmado no se envía el pedido
-    if (!customer.lat || !customer.lng) {
+    // Ubicación exacta OBLIGATORIA solo si el pedido es a domicilio — si el cliente
+    // eligió recoger en tienda, no hay entrega que coordinar por GPS.
+    if (deliveryType === 'delivery' && (!customer.lat || !customer.lng)) {
       setLocationMissing(true)
       show('Debes confirmar tu ubicación exacta de entrega para continuar', 'error')
       locationSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -514,6 +516,7 @@ export default function Storefront() {
         mapsUrl:         customer.mapsUrl,
         deliveryLat:     customer.lat,
         deliveryLng:     customer.lng,
+        deliveryType,
         items: cart.map(i => ({ productId: i.productId, quantity: i.qty }))
       })
       setOrderResult(res)
@@ -693,13 +696,52 @@ export default function Storefront() {
                 placeholder="tucorreo@gmail.com" />
             </div>
 
+            <div className="input-group" style={{ marginTop: 4 }}>
+              <label>¿Cómo quieres tu pedido?</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 4 }}>
+                <button type="button"
+                  onClick={() => setDeliveryType('delivery')}
+                  style={{
+                    padding: '14px 10px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+                    border: deliveryType === 'delivery' ? '2px solid #6366f1' : '2px solid #e2e8f0',
+                    background: deliveryType === 'delivery' ? 'rgba(99,102,241,.08)' : '#fff',
+                    transition: 'all .15s'
+                  }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>🛵</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: deliveryType === 'delivery' ? '#6366f1' : '#374151' }}>
+                    Entrega a domicilio
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Necesitamos tu dirección y ubicación</div>
+                </button>
+                <button type="button"
+                  onClick={() => { setDeliveryType('pickup'); setLocationMissing(false) }}
+                  style={{
+                    padding: '14px 10px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+                    border: deliveryType === 'pickup' ? '2px solid #16a34a' : '2px solid #e2e8f0',
+                    background: deliveryType === 'pickup' ? 'rgba(22,163,74,.08)' : '#fff',
+                    transition: 'all .15s'
+                  }}>
+                  <div style={{ fontSize: 24, marginBottom: 4 }}>🏬</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: deliveryType === 'pickup' ? '#16a34a' : '#374151' }}>
+                    Recoger en tienda
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>No necesitas dar ubicación</div>
+                </button>
+              </div>
+            </div>
+
             <div className="input-group">
-              <label>Calle y número *</label>
-              <input className="input" value={customer.address} required
+              <label>Calle y número {deliveryType === 'delivery' ? '*' : <span style={{ color: '#94a3b8', fontWeight: 400 }}>(opcional)</span>}</label>
+              <input className="input" value={customer.address} required={deliveryType === 'delivery'}
                 onChange={e => setCustomer(c => ({ ...c, address: e.target.value }))}
                 placeholder="Ej: Av. Reforma 123, Col. Centro" />
             </div>
 
+            {deliveryType === 'pickup' ? (
+              <div style={{ background: '#f0fdf4', borderRadius: 10, padding: '12px 14px', border: '1px solid #bbf7d0', fontSize: 13, color: '#166534' }}>
+                🏬 Recogerás tu pedido directamente en la tienda — no necesitas compartir tu ubicación.
+              </div>
+            ) : (
             <div className="input-group" ref={locationSectionRef}>
               <label>
                 Ubicación exacta de entrega *
@@ -764,6 +806,7 @@ export default function Storefront() {
                 </div>
               )}
             </div>
+            )}
 
             <div className="input-group" style={{ marginTop: 4 }}>
               <label>Método de pago</label>
@@ -800,11 +843,11 @@ export default function Storefront() {
             </div>
 
             <button type="submit" className="sf-btn-primary"
-              style={{ width: '100%', marginTop: 12, ...((!customer.lat || !customer.lng) ? { opacity: .55, filter: 'grayscale(.4)' } : {}) }}
+              style={{ width: '100%', marginTop: 12, ...((deliveryType === 'delivery' && (!customer.lat || !customer.lng)) ? { opacity: .55, filter: 'grayscale(.4)' } : {}) }}
               disabled={ordering}>
               {ordering
                 ? <div className="spinner" />
-                : (!customer.lat || !customer.lng)
+                : (deliveryType === 'delivery' && (!customer.lat || !customer.lng))
                   ? '📍 Confirma tu ubicación para continuar'
                   : `Confirmar pedido — ${fmt(total)}`}
             </button>

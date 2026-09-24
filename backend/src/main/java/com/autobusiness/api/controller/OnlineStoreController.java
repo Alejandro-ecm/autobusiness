@@ -47,6 +47,8 @@ public class OnlineStoreController {
             Double lng = body.get("deliveryLng") != null ? Double.parseDouble(body.get("deliveryLng").toString()) : null;
             String paymentMethod = body.get("paymentMethod") != null
                     ? body.get("paymentMethod").toString() : "cash_on_delivery";
+            String deliveryType = body.get("deliveryType") != null
+                    ? body.get("deliveryType").toString() : "delivery";
             return ResponseEntity.ok(storeService.placeOrder(
                     slug,
                     body.get("customerName")    != null ? body.get("customerName").toString()    : "Cliente",
@@ -56,7 +58,8 @@ public class OnlineStoreController {
                     body.get("mapsUrl")         != null ? body.get("mapsUrl").toString()         : null,
                     lat, lng,
                     items,
-                    paymentMethod
+                    paymentMethod,
+                    deliveryType
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

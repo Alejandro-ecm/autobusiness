@@ -17,6 +17,21 @@ const STATUS_TRANSITIONS = ['pending', 'confirmed', 'preparing', 'ready', 'deliv
 const fmt    = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
 const fmtDate = (d) => new Date(d).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
+function DeliveryTypeBadge({ deliveryType }) {
+  const isPickup = deliveryType === 'pickup'
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: isPickup ? '#f0fdf4' : '#eff6ff',
+      color: isPickup ? '#166534' : '#1d4ed8',
+      border: `1px solid ${isPickup ? '#bbf7d0' : '#bfdbfe'}`,
+      borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 700,
+    }}>
+      {isPickup ? '🏬 Recoger en tienda' : '🛵 Entrega a domicilio'}
+    </span>
+  )
+}
+
 export default function Orders() {
   const { show } = useToast()
   const [orderList, setOrderList] = useState([])
@@ -72,6 +87,7 @@ export default function Orders() {
               <div>
                 <div style={{ fontWeight: 700, fontSize: 17 }}>{selected.orderNumber}</div>
                 <div style={{ fontSize: 12, color: '#1e293b' }}>{fmtDate(selected.createdAt)}</div>
+                <div style={{ marginTop: 6 }}><DeliveryTypeBadge deliveryType={selected.deliveryType} /></div>
               </div>
               <button onClick={() => setSelected(null)}
                 style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#1e293b' }}>×</button>
@@ -88,7 +104,17 @@ export default function Orders() {
                 <InfoRow icon="✉️" label="Correo"   value={selected.customerEmail}
                   link={selected.customerEmail ? `mailto:${selected.customerEmail}` : null}
                   linkLabel="Enviar" />
-                <InfoRow icon="📍" label="Dirección" value={selected.deliveryAddress} />
+                {selected.deliveryType === 'pickup' ? (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 16, marginTop: 1 }}>🏬</span>
+                    <div>
+                      <div style={{ fontSize: 11, color: '#1e293b', fontWeight: 600 }}>ENTREGA</div>
+                      <div style={{ fontSize: 14, color: '#1e293b', marginTop: 1 }}>El cliente recoge en tienda</div>
+                    </div>
+                  </div>
+                ) : (
+                  <InfoRow icon="📍" label="Dirección" value={selected.deliveryAddress} />
+                )}
                 {selected.mapsUrl && (
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                     <span style={{ fontSize: 16, marginTop: 1 }}>🗺️</span>
@@ -213,19 +239,21 @@ export default function Orders() {
                           : '—'}
                       </td>
                       <td className="text-soft text-sm" style={{ maxWidth: 180 }}>
-                        {o.deliveryAddress
-                          ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>
-                                {o.deliveryAddress}
+                        {o.deliveryType === 'pickup'
+                          ? <DeliveryTypeBadge deliveryType="pickup" />
+                          : o.deliveryAddress
+                            ? <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 150 }}>
+                                  {o.deliveryAddress}
+                                </span>
+                                {o.mapsUrl && (
+                                  <a href={o.mapsUrl} target="_blank" rel="noreferrer"
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ color: '#4285f4', fontSize: 16, flexShrink: 0 }}
+                                    title="Ver en Maps">📍</a>
+                                )}
                               </span>
-                              {o.mapsUrl && (
-                                <a href={o.mapsUrl} target="_blank" rel="noreferrer"
-                                  onClick={e => e.stopPropagation()}
-                                  style={{ color: '#4285f4', fontSize: 16, flexShrink: 0 }}
-                                  title="Ver en Maps">📍</a>
-                              )}
-                            </span>
-                          : '—'}
+                            : '—'}
                       </td>
                       <td className="font-semibold">{fmt(o.total)}</td>
                       <td><span className={`badge ${st.cls}`}>{st.label}</span></td>
@@ -287,6 +315,7 @@ function OrderCard({ order, onStatus, onDetail }) {
         <span className="font-semibold">{order.orderNumber}</span>
         <span className="badge badge-yellow">Pendiente</span>
       </div>
+      <div style={{ marginBottom: 8 }}><DeliveryTypeBadge deliveryType={order.deliveryType} /></div>
 
       {/* Datos del cliente */}
       <div className="order-customer" style={{ borderBottom: '1px solid #f1f5f9', paddingBottom: 10, marginBottom: 10 }}>
@@ -305,7 +334,11 @@ function OrderCard({ order, onStatus, onDetail }) {
         {order.customerEmail && (
           <div className="text-soft text-sm">✉️ {order.customerEmail}</div>
         )}
-        {order.deliveryAddress && (
+        {order.deliveryType === 'pickup' ? (
+          <div className="text-soft text-sm" style={{ marginTop: 4 }}>
+            🏬 Recoge en tienda
+          </div>
+        ) : order.deliveryAddress && (
           <div className="text-soft text-sm" style={{ marginTop: 4 }}>
             📍 {order.deliveryAddress}
           </div>

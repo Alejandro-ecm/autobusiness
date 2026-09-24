@@ -37,6 +37,10 @@ public class Order {
     private Double deliveryLat;
     private Double deliveryLng;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private String deliveryType = "delivery";
+
     @Column(precision = 12, scale = 2)
     private BigDecimal subtotal;
 
