@@ -14,7 +14,6 @@ import Finance from './pages/Finance'
 import Marketing from './pages/Marketing'
 import Storefront from './pages/Storefront'
 import StoreAdmin from './pages/StoreAdmin'
-import Contabilidad from './pages/Contabilidad'
 import CajaIA from './pages/CajaIA'
 import Customers from './pages/Customers'
 import Users from './pages/Users'
@@ -106,9 +105,8 @@ function AppRoutes() {
         <PrivateRoute ownerOnly><AppLayout><Marketing /></AppLayout></PrivateRoute>
       } />
 
-      <Route path="/contabilidad" element={
-        <PrivateRoute ownerOnly><AppLayout><Contabilidad /></AppLayout></PrivateRoute>
-      } />
+      {/* Contabilidad se fusionó dentro de Finance (pestañas "Estado de Resultados" y "Balance e Indicadores") */}
+      <Route path="/contabilidad" element={<Navigate to="/finance" replace />} />
 
       <Route path="/caja-ia" element={
         <PrivateRoute><AppLayout><CajaIA /></AppLayout></PrivateRoute>
