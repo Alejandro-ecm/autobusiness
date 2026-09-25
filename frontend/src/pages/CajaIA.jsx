@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { pos as posApi } from '../api'
+import { getProductEmoji } from '../utils/productEmoji'
 import './CajaIA.css'
 
 const API = import.meta.env.VITE_API_URL || '/api'
@@ -1108,7 +1109,7 @@ export default function CajaIA() {
 
                 const imgEl = p.imageUrl
                   ? <img src={p.imageUrl} alt={p.name} className="caia-prod-img" />
-                  : <div className="caia-prod-img-placeholder">📦</div>
+                  : <div className="caia-prod-img-placeholder">{getProductEmoji(p.name, p.category?.name) || '📦'}</div>
 
                 // ── Producto con variantes ────────────────────────────────
                 if (variants.length > 0) return (

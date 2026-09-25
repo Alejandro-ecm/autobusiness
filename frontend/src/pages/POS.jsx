@@ -9,6 +9,7 @@ import {
   getDiagnosticLines, validateWeightKg, getScaleSettings, saveScaleSettings,
 } from '../utils/scaleReader'
 import CategoryChips from '../components/pos/CategoryChips'
+import { getProductEmoji } from '../utils/productEmoji'
 import './POS.css'
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
@@ -883,7 +884,7 @@ export default function POS() {
           {rank && <span className="product-rank">{rank}</span>}
           {p.imageUrl
             ? <img src={p.imageUrl} alt={p.name} />
-            : <span className="product-thumb-placeholder">📦</span>}
+            : <span className="product-thumb-placeholder">{getProductEmoji(p.name, p.category?.name) || '📦'}</span>}
         </div>
         <div className="product-info">
           <div className="product-name">{p.name}</div>
@@ -1124,7 +1125,7 @@ export default function POS() {
             <div className="added-flash-img">
               {addedFlash.product.imageUrl
                 ? <img src={addedFlash.product.imageUrl} alt={addedFlash.product.name} />
-                : <span className="added-flash-placeholder">📦</span>}
+                : <span className="added-flash-placeholder">{getProductEmoji(addedFlash.product.name, addedFlash.product.category?.name) || '📦'}</span>}
             </div>
             <div className="added-flash-check">✓</div>
             <div className="added-flash-name">{addedFlash.product.name}</div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { store as storeApi } from '../api'
 import { useToast } from '../store/ToastContext'
+import { getProductEmoji } from '../utils/productEmoji'
 import './Storefront.css'
 import 'leaflet/dist/leaflet.css'
 
@@ -958,7 +959,7 @@ export default function Storefront() {
                             e.currentTarget.parentNode.classList.add('sf-product-img--broken')
                           }} />
                       : <div className="sf-product-placeholder">
-                          <span>📦</span>
+                          <span>{getProductEmoji(p.name, p.category?.name) || '📦'}</span>
                           <span className="sf-placeholder-name">{p.name[0]}</span>
                         </div>}
                     {soldOut && <div className="sf-badge-pill sf-badge-red">Agotado</div>}

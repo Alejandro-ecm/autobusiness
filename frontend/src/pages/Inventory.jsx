@@ -3,6 +3,7 @@ import { inventory as inventoryApi, categories as categoriesApi, upload as uploa
 import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { getProductEmoji } from '../utils/productEmoji'
 import './Inventory.css'
 
 const API = import.meta.env.VITE_API_URL || '/api'
@@ -931,7 +932,7 @@ export default function Inventory() {
                   <td style={{ padding: '8px 8px 8px 8px' }}>
                     {p.imageUrl
                       ? <img src={p.imageUrl} alt={p.name} style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
-                      : <div style={{ width: 36, height: 36, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📦</div>
+                      : <div style={{ width: 36, height: 36, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{getProductEmoji(p.name, p.category?.name) || '📦'}</div>
                     }
                   </td>
                   <td className="inv-name">{p.name}</td>
@@ -1125,7 +1126,9 @@ export default function Inventory() {
                   {editForm.imageUrl
                     ? <img src={editForm.imageUrl} alt="preview"
                         style={{ width:110, height:110, objectFit:'cover', borderRadius:10, border:'1px solid #e2e8f0' }} />
-                    : <div style={{ width:110, height:110, background:'#f1f5f9', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, border:'1px solid #e2e8f0' }}>📦</div>
+                    : <div style={{ width:110, height:110, background:'#f1f5f9', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, border:'1px solid #e2e8f0' }}>
+                        {getProductEmoji(editForm.name, categories.find(c => c.id === editForm.categoryId)?.name) || '📦'}
+                      </div>
                   }
                   <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                     <button type="button" className="btn btn-sm btn-outline"
@@ -1310,7 +1313,9 @@ export default function Inventory() {
                   {form.imageUrl
                     ? <img src={form.imageUrl} alt="preview"
                         style={{ width:110, height:110, objectFit:'cover', borderRadius:10, border:'1px solid #e2e8f0' }} />
-                    : <div style={{ width:110, height:110, background:'#f1f5f9', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, border:'1px solid #e2e8f0' }}>📦</div>
+                    : <div style={{ width:110, height:110, background:'#f1f5f9', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center', fontSize:40, border:'1px solid #e2e8f0' }}>
+                        {getProductEmoji(form.name, categories.find(c => c.id === form.categoryId)?.name) || '📦'}
+                      </div>
                   }
                   <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                     <button type="button" className="btn btn-sm btn-outline"
@@ -1470,7 +1475,7 @@ export default function Inventory() {
                   ? <img src={adjustProduct.imageUrl} alt={adjustProduct.name}
                       style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
                   : <div style={{ width: 44, height: 44, background: '#e2e8f0', borderRadius: 8,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>📦</div>
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{getProductEmoji(adjustProduct.name, adjustProduct.category?.name) || '📦'}</div>
                 }
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>{adjustProduct.name}</div>
