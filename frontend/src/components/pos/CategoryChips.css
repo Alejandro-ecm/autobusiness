@@ -1,0 +1,11 @@
+/* frontend/src/components/pos/CategoryChips.css */
+.pos-cat-chips {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  margin: 2px 0 4px;
+}
+.pos-cat-chip {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1.5px solid var(--color-border); background: var(--color-surface);
+  cursor: pointer; color: var(--color-text-soft); transition: all 0.12s;
+}
+.pos-cat-chip.active { background: #6366f1; color: #fff; border-color: #6366f1; }

@@ -4,6 +4,7 @@ import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { buildEscposTicket } from '../utils/escposTicket'
 import { bluetoothSupported, bluetoothConnected, bluetoothPrint } from '../utils/bluetoothPrinter'
+import CategoryChips from '../components/pos/CategoryChips'
 import './POS.css'
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
@@ -263,6 +264,7 @@ export default function POS() {
   const [customPrice, setCustomPrice] = useState('')
   const [customCategoryId, setCustomCategoryId] = useState('')
   const [categories, setCategories] = useState([])
+  const [categoryFilter, setCategoryFilter] = useState('') // filtro visual de la parrilla — '' = todas
   const addedFlashTimer = useRef(null)
   const searchRef = useRef()
   const productsRef = useRef([]) // ref para acceso sin stale closure en el listener global
@@ -766,12 +768,18 @@ export default function POS() {
     return items
   }, [topRow])
 
-  // Grid: todos los productos en orden alfabético
+  // Grid: todos los productos en orden alfabético, acotados a la categoría activa si hay una
   const displayProducts = useMemo(() => {
-    if (query) return products
-    return [...products].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
-  }, [query, products])
-  const showCarousel = !query && carouselItems.length > 0
+    const base = query
+      ? products
+      : [...products].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }))
+    if (!categoryFilter) return base
+    return base.filter(p => p.categoryId === categoryFilter)
+  }, [query, products, categoryFilter])
+  // El carrusel de "más vendidos" no respeta el filtro de categoría (es un ranking
+  // global), así que se oculta mientras haya una categoría activa para no mezclar
+  // productos de otras categorías en la pasarela.
+  const showCarousel = !query && !categoryFilter && carouselItems.length > 0
 
   // Vista de comprobante — con vista previa del ticket tal como se imprime
   if (lastSale) return (
@@ -868,6 +876,8 @@ export default function POS() {
         )}
       </div>
 
+      <CategoryChips categories={categories} activeId={categoryFilter} onSelect={setCategoryFilter} />
+
       {showCarousel && (
         <>
           <div className="pos-section-label">🔥 Más vendidos</div>
@@ -882,12 +892,17 @@ export default function POS() {
         </>
       )}
 
-      {!query && <div className="pos-section-label">📦 Todos los productos · A–Z</div>}
+      {!query && !categoryFilter && <div className="pos-section-label">📦 Todos los productos · A–Z</div>}
+      {!query && categoryFilter && (
+        <div className="pos-section-label">📦 {categories.find(c => c.id === categoryFilter)?.name || 'Categoría'}</div>
+      )}
       {query && <div className="pos-section-label">Resultados para "{query}"</div>}
 
       <div className="products-grid">
         {displayProducts.length === 0 && (
-          <div className="pos-no-results">Sin resultados para "{query}"</div>
+          <div className="pos-no-results">
+            {query ? `Sin resultados para "${query}"` : 'Sin productos en esta categoría'}
+          </div>
         )}
         {displayProducts.map(p => renderCard(p, p.id))}
       </div>
