@@ -4,7 +4,7 @@ import './CategoryChips.css'
 // Filtro visual por categoría para la parrilla de Caja — mismo patrón de UX que
 // los chips de Inventory.jsx (Todas + una por categoría), pero con clases CSS
 // propias (`pos-cat-chip`) para no compartir estilos globales con esa página.
-export default function CategoryChips({ categories, activeId, onSelect }) {
+export default function CategoryChips({ categories, activeId, onSelect, counts, totalCount }) {
   if (!categories || categories.length === 0) return null
 
   return (
@@ -14,7 +14,7 @@ export default function CategoryChips({ categories, activeId, onSelect }) {
         className={`pos-cat-chip${!activeId ? ' active' : ''}`}
         onClick={() => onSelect('')}
       >
-        Todas
+        Todas{totalCount != null ? ` (${totalCount})` : ''}
       </button>
       {categories.map(c => (
         <button
@@ -24,7 +24,7 @@ export default function CategoryChips({ categories, activeId, onSelect }) {
           style={activeId === c.id ? {} : { borderColor: c.color, color: c.color }}
           onClick={() => onSelect(activeId === c.id ? '' : c.id)}
         >
-          {c.name}
+          {c.name}{counts?.[c.id] != null ? ` (${counts[c.id]})` : ''}
         </button>
       ))}
     </div>

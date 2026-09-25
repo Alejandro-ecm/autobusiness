@@ -201,6 +201,23 @@
 .product-thumb img { width: 100%; height: 100%; object-fit: contain; }
 .product-thumb-placeholder { font-size: 32px; }
 
+/* Insignia de "se vende por peso" — ámbar para distinguirla a simple vista
+   del precio normal (que es indigo/azul), como en Toast/Square. */
+.product-weight-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, .4);
+  z-index: 1;
+  white-space: nowrap;
+}
+
 .product-info {
   display: flex;
   flex-direction: column;
@@ -342,7 +359,13 @@
 .cart-item-name {
   font-size: 13.5px;
   font-weight: 500;
-  margin-bottom: 8px;
+  margin-bottom: 2px;
+}
+
+.cart-item-breakdown {
+  font-size: 11px;
+  color: var(--color-text-soft);
+  margin-bottom: 6px;
 }
 
 .cart-item-controls {
@@ -429,6 +452,47 @@
 }
 .cart-change.positive { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
 .cart-change.negative { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+/* Botón de cobro — la acción más importante de toda la pantalla, tiene que
+   ser imposible de no ver. Verde (no el indigo de marca) porque en un POS
+   "verde = cobrar" es una convención que el cajero ya trae aprendida. */
+/* .btn-primary.pos-checkout-btn (no solo .pos-checkout-btn): con la misma
+   especificidad que .btn-primary de global.css, gana quien cargue después
+   en el bundle — frágil y ya nos mordió una vez. Dos clases le gana a esa
+   regla sin importar el orden de carga. */
+.btn-primary.pos-checkout-btn {
+  width: 100%;
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 56px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: .3px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border: none;
+  box-shadow: 0 6px 20px rgba(22, 163, 74, .35);
+  transition: transform .1s, box-shadow .15s;
+}
+.btn-primary.pos-checkout-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(22, 163, 74, .45);
+}
+.btn-primary.pos-checkout-btn:disabled {
+  background: #cbd5e1;
+  box-shadow: none;
+}
+.pos-checkout-kbd {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, .2);
+  border: 1px solid rgba(255, 255, 255, .35);
+}
 
 /* ── Ticket ── */
 .pos-ticket {

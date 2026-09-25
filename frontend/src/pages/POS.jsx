@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { pos as posApi, printJobs as printJobsApi, categories as categoriesApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
@@ -9,6 +10,8 @@ import {
   getDiagnosticLines, validateWeightKg, getScaleSettings, saveScaleSettings,
 } from '../utils/scaleReader'
 import CategoryChips from '../components/pos/CategoryChips'
+import ProductCard from '../components/pos/ProductCard'
+import HardwareBar from '../components/pos/HardwareBar'
 import { getProductEmoji } from '../utils/productEmoji'
 import './POS.css'
 
@@ -23,42 +26,6 @@ const isWeightItem = (i) => i.saleMode === 'WEIGHT' || i.saleMode === 'MIXED'
 const qtyLabel = (i) => isWeightItem(i)
   ? `${Number(i.quantity).toFixed(3)} ${i.baseUnit || 'kg'}`
   : String(i.quantity)
-
-// ── Código de barras compacto, siempre visible en la tarjeta de producto ──
-function CardBarcode({ code }) {
-  const ref = useRef()
-  useEffect(() => {
-    if (!ref.current || !code) return
-    import('jsbarcode').then(({ default: JsBarcode }) => {
-      const svg = ref.current
-      if (!svg) return
-      try {
-        // CODE128 siempre: acepta cualquier código y todas las tarjetas se ven uniformes
-        JsBarcode(svg, String(code).trim(), {
-          format:       'CODE128',
-          width:        1.4,
-          height:       30,
-          displayValue: false,
-          margin:       0,
-        })
-        // JsBarcode no pone viewBox: sin él, el SVG se recorta en vez de escalar
-        const w = svg.getAttribute('width'), h = svg.getAttribute('height')
-        if (w && h) {
-          svg.setAttribute('viewBox', `0 0 ${parseFloat(w)} ${parseFloat(h)}`)
-          svg.removeAttribute('width')
-          svg.removeAttribute('height')
-        }
-      } catch { /* código vacío/inválido — no se dibuja */ }
-    })
-  }, [code])
-  if (!code) return null
-  return (
-    <div className="product-barcode">
-      <svg ref={ref} />
-      <span className="product-barcode-num">{String(code).trim()}</span>
-    </div>
-  )
-}
 
 let mpPosInitialized = false
 async function initMPPos(publicKey) {
@@ -242,6 +209,7 @@ async function printViaCloud(sale, user) {
 export default function POS() {
   const { user } = useAuth()
   const { show } = useToast()
+  const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [topProducts, setTopProducts] = useState([])
   const [cart, setCart] = useState([])
@@ -318,22 +286,6 @@ export default function POS() {
     posApi.topProducts().then(setTopProducts).catch(() => {})
     categoriesApi.list().then(setCategories).catch(() => {})
     searchRef.current?.focus()
-  }, [])
-
-  // Captura global de teclado — redirige al buscador aunque no tenga foco
-  // Útil para lectores de barras hardware que "escriben" sin importar el foco
-  useEffect(() => {
-    const handleGlobalKey = (e) => {
-      if (e.ctrlKey || e.altKey || e.metaKey) return
-      const tag = document.activeElement?.tagName
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
-      // Si no hay ningún campo activo y se presiona una tecla imprimible → llevar foco al buscador
-      if (!isEditable && e.key.length === 1) {
-        searchRef.current?.focus()
-      }
-    }
-    window.addEventListener('keydown', handleGlobalKey)
-    return () => window.removeEventListener('keydown', handleGlobalKey)
   }, [])
 
   // Búsqueda con debounce
@@ -676,6 +628,32 @@ export default function POS() {
     } finally { setLoading(false) }
   }
 
+  // Captura global de teclado — redirige al buscador aunque no tenga foco
+  // (útil para lectores de barras hardware que "escriben" sin importar el
+  // foco) y atiende los atajos F1/F2/F3 de la barra de hardware. Definido
+  // aquí (después de checkout/change/cart) porque el arreglo de
+  // dependencias se evalúa en cada render — referenciar esas const antes de
+  // su declaración revienta con un ReferenceError en el build minificado.
+  useEffect(() => {
+    const handleGlobalKey = (e) => {
+      // checkout() ya valida carrito vacío / efectivo faltante o insuficiente
+      // y avisa con un toast — no hace falta replicar esa lógica aquí.
+      if (e.key === 'F1') { e.preventDefault(); if (!loading) checkout(); return }
+      if (e.key === 'F2') { e.preventDefault(); searchRef.current?.focus(); return }
+      if (e.key === 'F3') { e.preventDefault(); navigate('/customers'); return }
+
+      if (e.ctrlKey || e.altKey || e.metaKey) return
+      const tag = document.activeElement?.tagName
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+      // Si no hay ningún campo activo y se presiona una tecla imprimible → llevar foco al buscador
+      if (!isEditable && e.key.length === 1) {
+        searchRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleGlobalKey)
+    return () => window.removeEventListener('keydown', handleGlobalKey)
+  }, [cart, loading, payMethod, cashReceived, change, navigate])
+
   const esc = (s) => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 
   // HTML del ticket — el mismo para la vista previa y para imprimir
@@ -749,8 +727,8 @@ export default function POS() {
       ${sale.received ? `<div class="tot-row"><span>Efectivo recibido</span><span>${fmt(sale.received)}</span></div>` : ''}
       ${(sale.change || 0) > 0 ? `<div class="tot-row" style="font-weight:700;color:#0f172a"><span>Su cambio</span><span>${fmt(sale.change)}</span></div>` : ''}
       <div class="foot center">
-        <div class="thanks">★ ¡Gracias por su compra! ★</div>
-        <div>Te esperamos pronto</div>
+        <div class="thanks">★ ¡Gracias por tu compra! ★</div>
+        <div>Fue un gusto atenderte — ¡te esperamos pronto! 💜</div>
         <div class="noret">NO SE ACEPTAN DEVOLUCIONES</div>
         <div style="margin-top:6px;color:#94a3b8">— Ticket generado por AutoBusiness AI —</div>
       </div>
@@ -836,6 +814,17 @@ export default function POS() {
   // productos de otras categorías en la pasarela.
   const showCarousel = !query && !categoryFilter && carouselItems.length > 0
 
+  // Conteo de productos por categoría, para los chips — siempre sobre el
+  // catálogo completo (no el ya filtrado), así el número no cambia solo por
+  // tener un filtro activo.
+  const categoryCounts = useMemo(() => {
+    const counts = {}
+    for (const p of products) {
+      if (p.categoryId) counts[p.categoryId] = (counts[p.categoryId] || 0) + 1
+    }
+    return counts
+  }, [products])
+
   // Vista de comprobante — con vista previa del ticket tal como se imprime
   if (lastSale) return (
     <div className="pos-ticket">
@@ -865,41 +854,9 @@ export default function POS() {
     </div>
   )
 
-  const renderCard = (p, key, rank) => {
-    const stock = Number(p.stock)
-    const agotado = stock <= 0
-    return (
-      <button
-        key={key}
-        className={`product-card${agotado ? ' out-of-stock' : ''}`}
-        onClick={() => {
-          if (agotado) return
-          if (p.saleMode === 'WEIGHT' || p.saleMode === 'MIXED') { openWeightPicker(p); return }
-          addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80)
-        }}
-        disabled={agotado}
-        title={agotado ? 'Sin stock' : `${stock} disponibles`}
-      >
-        <div className="product-thumb">
-          {rank && <span className="product-rank">{rank}</span>}
-          {p.imageUrl
-            ? <img src={p.imageUrl} alt={p.name} />
-            : <span className="product-thumb-placeholder">{getProductEmoji(p.name, p.category?.name) || '📦'}</span>}
-        </div>
-        <div className="product-info">
-          <div className="product-name">{p.name}</div>
-          <div className="product-price">
-            {(p.saleMode === 'WEIGHT' || p.saleMode === 'MIXED') && p.pricePerKg
-              ? `⚖️ ${fmt(p.pricePerKg)} / ${p.baseUnit || 'kg'}`
-              : fmt(p.price)}
-          </div>
-          <div className={`product-stock${stock <= (p.minStock || 5) && !agotado ? ' low' : ''}`}>
-            {agotado ? 'Agotado' : stock <= (p.minStock || 5) ? `⚠ ${stock}` : `${stock} disp.`}
-          </div>
-          <CardBarcode code={p.barcode} />
-        </div>
-      </button>
-    )
+  const handleProductSelect = (p) => {
+    if (p.saleMode === 'WEIGHT' || p.saleMode === 'MIXED') { openWeightPicker(p); return }
+    addToCart(p); setMobileTab('cart'); setTimeout(() => searchRef.current?.focus(), 80)
   }
 
   const productPanel = (
@@ -915,6 +872,7 @@ export default function POS() {
           ✓ {scanFlash}
         </div>
       )}
+      <HardwareBar />
       <div className="pos-search">
         <input
           ref={searchRef}
@@ -931,7 +889,7 @@ export default function POS() {
         )}
       </div>
 
-      <CategoryChips categories={categories} activeId={categoryFilter} onSelect={setCategoryFilter} />
+      <CategoryChips categories={categories} activeId={categoryFilter} onSelect={setCategoryFilter} counts={categoryCounts} totalCount={products.length} />
 
       {showCarousel && (
         <>
@@ -941,7 +899,9 @@ export default function POS() {
               className="pos-carousel-track"
               style={{ animationDuration: `${carouselItems.length * 4}s` }}
             >
-              {[...carouselItems, ...carouselItems].map((p, i) => renderCard(p, `${p.id}-${i}`, rankById.get(p.id)))}
+              {[...carouselItems, ...carouselItems].map((p, i) => (
+                <ProductCard key={`${p.id}-${i}`} product={p} rank={rankById.get(p.id)} onSelect={handleProductSelect} />
+              ))}
             </div>
           </div>
         </>
@@ -959,7 +919,9 @@ export default function POS() {
             {query ? `Sin resultados para "${query}"` : 'Sin productos en esta categoría'}
           </div>
         )}
-        {displayProducts.map(p => renderCard(p, p.id))}
+        {displayProducts.map(p => (
+          <ProductCard key={p.id} product={p} onSelect={handleProductSelect} />
+        ))}
       </div>
 
     </div>
@@ -994,6 +956,11 @@ export default function POS() {
                   <div className="cart-item-name">
                     {item.name}
                     {item.isCustom && <span style={{ fontSize: 11, color: '#6366f1', marginLeft: 6, fontWeight: 600 }}>· libre</span>}
+                  </div>
+                  <div className="cart-item-breakdown">
+                    {isWeight
+                      ? `${Number(item.quantity).toFixed(3)} ${item.baseUnit || 'kg'} × ${fmt(item.price)}/${item.baseUnit || 'kg'}`
+                      : `${item.quantity} pz × ${fmt(item.price)}`}
                   </div>
                   <div className="cart-item-controls">
                     {isWeight ? (
@@ -1089,6 +1056,7 @@ export default function POS() {
                     placeholder="0.00"
                     value={cashReceived}
                     onChange={e => setCashReceived(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && !loading && checkout()}
                     step="0.50"
                   />
                 </div>
@@ -1102,13 +1070,17 @@ export default function POS() {
             )}
 
             <button
-              className="btn btn-primary btn-lg"
-              style={{ width: '100%', marginTop: 8 }}
+              className="btn btn-primary btn-lg pos-checkout-btn"
               onClick={checkout}
               disabled={loading || (payMethod === 'cash' && (!cashReceived || change < 0))}
               title={payMethod === 'cash' && !cashReceived ? 'Escribe el efectivo recibido para cobrar' : undefined}
             >
-              {loading ? <div className="spinner" /> : `${isOnline ? '💳' : '📴'} Cobrar ${fmt(total)}`}
+              {loading
+                ? <div className="spinner" />
+                : <>
+                    <span>{isOnline ? '💳' : '📴'} COBRAR {fmt(total)}</span>
+                    <kbd className="pos-checkout-kbd">F1</kbd>
+                  </>}
             </button>
           </div>
         </>

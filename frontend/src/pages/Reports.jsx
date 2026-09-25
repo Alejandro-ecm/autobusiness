@@ -96,8 +96,8 @@ function buildTicketHtml(sale, businessName) {
     <div class="tot-row"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
     <div class="grand"><span class="lbl">TOTAL</span><span class="amt">${fmt(sale.total)}</span></div>
     <div class="foot center">
-      <div class="thanks">★ ¡Gracias por su compra! ★</div>
-      <div>Te esperamos pronto</div>
+      <div class="thanks">★ ¡Gracias por tu compra! ★</div>
+      <div>Fue un gusto atenderte — ¡te esperamos pronto! 💜</div>
       <div class="noret">NO SE ACEPTAN DEVOLUCIONES</div>
       <div style="margin-top:6px;color:#94a3b8">— Ticket generado por AutoBusiness AI —</div>
     </div>
