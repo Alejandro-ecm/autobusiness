@@ -694,29 +694,39 @@ export default function POS() {
 
     return `<html><head><title>Ticket</title><meta charset="utf-8"><style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000;
-             width: 300px; margin: 0 auto; padding: 16px 12px; background: #fff; }
+      body { font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #1e293b;
+             width: 320px; margin: 0 auto; padding: 14px; background: #f1f5f9; }
+      .ticket { background: #fff; border-radius: 14px; padding: 20px 16px 16px;
+                box-shadow: 0 8px 24px rgba(15,23,42,.12); }
       .center { text-align: center; }
-      .biz { font-size: 17px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
-      .tagline { font-size: 10px; color: #333; margin-top: 3px; }
-      .sep   { border-top: 1px dashed #000; margin: 9px 0; }
-      .meta { font-size: 11px; line-height: 1.7; }
+      .biz-badge { width: 38px; height: 38px; border-radius: 10px; background: #6366f1;
+                   color: #fff; display: flex; align-items: center; justify-content: center;
+                   font-size: 18px; margin: 0 auto 8px; }
+      .biz { font-size: 16px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #0f172a; }
+      .sep { border-top: 1px dashed #cbd5e1; margin: 12px 0; }
+      .meta { font-size: 11px; line-height: 1.8; color: #475569; }
       .meta-row { display: flex; justify-content: space-between; }
+      .meta b { color: #0f172a; }
       table { width: 100%; border-collapse: collapse; font-size: 12px; }
-      thead th { font-size: 10px; text-align: left; letter-spacing: .5px;
-                 border-bottom: 1px solid #000; padding: 3px 0; }
+      thead th { font-size: 10px; text-align: left; letter-spacing: .5px; color: #94a3b8;
+                 font-weight: 700; border-bottom: 1px solid #e2e8f0; padding: 4px 0; }
       th.amt, td.amt { text-align: right; white-space: nowrap; }
-      td { padding: 4px 0; vertical-align: top; }
-      td.qty { width: 56px; font-weight: 700; }
-      .unit { font-size: 10px; color: #444; }
-      .tot-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
-      .grand { font-size: 17px; font-weight: 800; border-top: 2px solid #000;
-               border-bottom: 2px solid #000; padding: 7px 0; margin: 7px 0; }
-      .foot { font-size: 10.5px; color: #111; margin-top: 12px; line-height: 1.8; }
-      .foot .thanks { font-size: 12px; font-weight: 700; }
-      @media print { body { width: auto; } }
+      td { padding: 6px 0; vertical-align: top; }
+      td.qty { width: 56px; font-weight: 700; color: #6366f1; }
+      .unit { font-size: 10px; color: #94a3b8; }
+      .tot-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; color: #475569; }
+      .grand { background: #eef2ff; border-radius: 10px; padding: 12px 14px; margin: 10px 0;
+               display: flex; justify-content: space-between; align-items: center; }
+      .grand .lbl { font-size: 13px; font-weight: 700; color: #6366f1; }
+      .grand .amt { font-size: 20px; font-weight: 800; color: #6366f1; }
+      .foot { font-size: 10.5px; color: #64748b; margin-top: 14px; line-height: 1.8; }
+      .foot .thanks { font-size: 13px; font-weight: 700; color: #0f172a; }
+      .foot .noret { margin-top: 6px; font-weight: 700; color: #dc2626; }
+      @media print { body { width: auto; background: #fff; padding: 0; } .ticket { box-shadow: none; border-radius: 0; } }
     </style></head><body>
+      <div class="ticket">
       <div class="center">
+        <div class="biz-badge">🧾</div>
         <div class="biz">${esc(user.businessName) || 'AutoBusiness'}</div>
       </div>
       <div class="sep"></div>
@@ -734,14 +744,15 @@ export default function POS() {
       <div class="tot-row"><span>Artículos: ${sale.items.length}</span><span></span></div>
       <div class="tot-row"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
       ${sale.discountAmount > 0 ? `<div class="tot-row"><span>Descuento</span><span>-${fmt(sale.discountAmount)}</span></div>` : ''}
-      <div class="tot-row grand"><span>TOTAL</span><span>${fmt(sale.total)}</span></div>
+      <div class="grand"><span class="lbl">TOTAL</span><span class="amt">${fmt(sale.total)}</span></div>
       ${sale.received ? `<div class="tot-row"><span>Efectivo recibido</span><span>${fmt(sale.received)}</span></div>` : ''}
-      ${(sale.change || 0) > 0 ? `<div class="tot-row" style="font-weight:700"><span>Su cambio</span><span>${fmt(sale.change)}</span></div>` : ''}
+      ${(sale.change || 0) > 0 ? `<div class="tot-row" style="font-weight:700;color:#0f172a"><span>Su cambio</span><span>${fmt(sale.change)}</span></div>` : ''}
       <div class="foot center">
         <div class="thanks">★ ¡Gracias por su compra! ★</div>
         <div>Te esperamos pronto</div>
-        <div style="margin-top:6px;font-weight:700">NO SE ACEPTAN DEVOLUCIONES</div>
-        <div style="margin-top:6px;color:#666">— Ticket generado por AutoBusiness AI —</div>
+        <div class="noret">NO SE ACEPTAN DEVOLUCIONES</div>
+        <div style="margin-top:6px;color:#94a3b8">— Ticket generado por AutoBusiness AI —</div>
+      </div>
       </div>
     </body></html>`
   }
