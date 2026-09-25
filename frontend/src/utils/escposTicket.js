@@ -76,27 +76,40 @@ export function buildEscposTicket(j) {
   sep()
 
   // ── Tabla de artículos ──
+  // Ancho de columna CANT único para todo el ticket (no por ítem): si se
+  // calcula por ítem, un ticket que mezcla piezas y peso queda con la
+  // DESCRIPCION arrancando en columnas distintas por fila — desalineado en
+  // texto monoespaciado. Si algún ítem es por peso, toda la tabla usa la
+  // columna ancha, incluido el encabezado.
+  const hasWeightItem = (j.items || []).some(i => i.saleMode === 'WEIGHT' || i.saleMode === 'MIXED')
+  const qtyColWidth = hasWeightItem ? 9 : 5
+
   bold(true)
-  line('CANT '.padEnd(5) + 'DESCRIPCION'.padEnd(18) + '  IMPORTE')
+  line('CANT'.padEnd(qtyColWidth) + 'DESCRIPCION'.padEnd(18) + '  IMPORTE')
   bold(false)
   sep()
 
-  let piezas = 0
   for (const item of j.items || []) {
     const qty = Number(item.quantity)
-    piezas += qty
-    const qtyStr = Number.isInteger(qty) ? String(qty) : String(+qty.toFixed(3))
+    // Productos por peso (WEIGHT/MIXED): "2.350" a secas es indistinguible de
+    // piezas, así que llevan la unidad pegada y SIEMPRE la línea de precio/kg,
+    // no solo cuando qty !== 1 (0.8 kg también la necesita).
+    const isWeight = item.saleMode === 'WEIGHT' || item.saleMode === 'MIXED'
+    const qtyStr = isWeight
+      ? `${qty.toFixed(3)} ${item.baseUnit || 'kg'}`
+      : (Number.isInteger(qty) ? String(qty) : String(+qty.toFixed(3)))
     const amt = money(item.subtotal)
-    const nameWidth = LINE_WIDTH - 5 - amt.length - 1
+    const nameWidth = LINE_WIDTH - qtyColWidth - amt.length - 1
     const chunks = wrap(String(item.name), nameWidth)
-    row(qtyStr.padEnd(5) + chunks[0], amt)
-    for (let i = 1; i < chunks.length; i++) line('     ' + chunks[i])
-    if (qty !== 1) line('     ' + money(item.price) + ' c/u')
+    row(qtyStr.padEnd(qtyColWidth) + chunks[0], amt)
+    for (let i = 1; i < chunks.length; i++) line(' '.repeat(qtyColWidth) + chunks[i])
+    if (isWeight) line(' '.repeat(qtyColWidth) + money(item.price) + ' / ' + (item.baseUnit || 'kg'))
+    else if (qty !== 1) line(' '.repeat(qtyColWidth) + money(item.price) + ' c/u')
   }
   sep()
 
   // ── Totales ──
-  line('Articulos: ' + (Number.isInteger(piezas) ? piezas : +piezas.toFixed(3)))
+  line('Articulos: ' + (j.items || []).length)
   row('Subtotal', money(j.subtotal))
   if (Number(j.discountAmount) > 0) row('Descuento', '-' + money(j.discountAmount))
   line('='.repeat(LINE_WIDTH))

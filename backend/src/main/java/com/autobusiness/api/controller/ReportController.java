@@ -45,6 +45,8 @@ public class ReportController {
                 im.put("price",    i.getUnitPrice());
                 im.put("cost",     i.getUnitCost());
                 im.put("subtotal", i.getSubtotal());
+                im.put("saleMode", i.getProduct() != null ? i.getProduct().getSaleMode() : "UNIT");
+                im.put("baseUnit", i.getProduct() != null ? i.getProduct().getBaseUnit() : "unit");
                 return im;
             }).toList());
             return m;

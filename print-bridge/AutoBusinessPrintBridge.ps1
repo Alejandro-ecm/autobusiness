@@ -171,31 +171,49 @@ function Build-SaleTicket($j) {
     if ($j.payMethod) { T-Line $t ("Forma de pago: " + [string]$j.payMethod + $(if ($j.offline) {' (offline)'} else {''})) }
     T-Sep $t
 
-    # ── Tabla de articulos: CANT(4) DESCRIPCION(19) IMPORTE(9 der) ──
+    # ── Tabla de articulos: CANT DESCRIPCION IMPORTE(9 der) ──
+    # Ancho de columna CANT unico para todo el ticket (no por item): si se
+    # calcula por item, un ticket que mezcla piezas y peso queda con la
+    # DESCRIPCION arrancando en columnas distintas por fila -- desalineado en
+    # texto monoespaciado. Si algun item es por peso, toda la tabla usa la
+    # columna ancha, incluido el encabezado.
+    $hasWeightItem = @($j.items | Where-Object {
+        ($_.saleMode -eq 'WEIGHT') -or ($_.saleMode -eq 'MIXED')
+    }).Count -gt 0
+    $qtyColWidth = if ($hasWeightItem) { 9 } else { 5 }
+
     T-Bold $t $true
-    T-Line $t ('CANT'.PadRight(5) + 'DESCRIPCION'.PadRight(18) + '  IMPORTE')
+    T-Line $t ('CANT'.PadRight($qtyColWidth) + 'DESCRIPCION'.PadRight(18) + '  IMPORTE')
     T-Bold $t $false
     T-Sep $t
 
-    $piezas = 0
     foreach ($item in $j.items) {
         $qty = [decimal]$item.quantity
-        $piezas += $qty
-        $qtyStr = if ($qty -eq [Math]::Truncate($qty)) { [string][int]$qty } else { $qty.ToString('0.###') }
+        # Productos por peso (WEIGHT/MIXED): "2.35" a secas es indistinguible de
+        # piezas, asi que llevan la unidad pegada y SIEMPRE la linea de precio/kg,
+        # no solo cuando qty -ne 1 (0.8 kg tambien la necesita).
+        $isWeight = ($item.saleMode -eq 'WEIGHT') -or ($item.saleMode -eq 'MIXED')
+        $baseUnit = if ($item.baseUnit) { [string]$item.baseUnit } else { 'kg' }
+        $qtyStr = if ($isWeight) {
+            $qty.ToString('0.000') + ' ' + $baseUnit
+        } elseif ($qty -eq [Math]::Truncate($qty)) { [string][int]$qty } else { $qty.ToString('0.###') }
         $amt  = Format-Money $item.subtotal
-        $nameWidth = $LineWidth - 5 - $amt.Length - 1
+        $nameWidth = $LineWidth - $qtyColWidth - $amt.Length - 1
         $chunks = Split-Wrap ([string]$item.name) $nameWidth
         # Primera linea: cantidad + inicio del nombre + importe a la derecha
-        T-Row $t ($qtyStr.PadRight(5) + $chunks[0]) $amt
+        T-Row $t ($qtyStr.PadRight($qtyColWidth) + $chunks[0]) $amt
         # Nombre largo: continuar en lineas indentadas
-        for ($i = 1; $i -lt $chunks.Count; $i++) { T-Line $t ('     ' + $chunks[$i]) }
-        # Precio unitario cuando lleva mas de una pieza
-        if ($qty -ne 1) { T-Line $t ('     ' + (Format-Money $item.price) + ' c/u') }
+        for ($i = 1; $i -lt $chunks.Count; $i++) { T-Line $t (' ' * $qtyColWidth + $chunks[$i]) }
+        if ($isWeight) {
+            T-Line $t (' ' * $qtyColWidth + (Format-Money $item.price) + ' / ' + $baseUnit)
+        } elseif ($qty -ne 1) {
+            T-Line $t (' ' * $qtyColWidth + (Format-Money $item.price) + ' c/u')
+        }
     }
     T-Sep $t
 
     # ── Totales ──
-    T-Line $t ("Articulos: " + $piezas.ToString('0.###'))
+    T-Line $t ("Articulos: " + $j.items.Count)
     T-Row $t 'Subtotal' (Format-Money $j.subtotal)
     if ($j.discountAmount -and [decimal]$j.discountAmount -gt 0) {
         T-Row $t 'Descuento' ('-' + (Format-Money $j.discountAmount))

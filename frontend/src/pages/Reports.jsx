@@ -15,6 +15,13 @@ const folioOf = (id) => id ? String(id).replace(/-/g, '').slice(0, 8).toUpperCas
 
 const escHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+// Mismo criterio que el ticket del POS: los productos por peso deben mostrar
+// la unidad ("2.350 kg"), no un número pelón indistinguible de piezas.
+const isWeightItem = (i) => i.saleMode === 'WEIGHT' || i.saleMode === 'MIXED'
+const qtyLabel = (i) => isWeightItem(i)
+  ? `${Number(i.qty).toFixed(3)} ${i.baseUnit || 'kg'}`
+  : String(i.qty)
+
 // HTML de reimpresión de un ticket individual — visualmente consistente con el
 // ticket térmico del POS, pero adaptado a los campos que regresa /reports/sales
 // (sin descuento/cambio, que ese endpoint no expone).
@@ -24,12 +31,11 @@ function buildTicketHtml(sale, businessName) {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
   const subtotal = sale.items.reduce((s, i) => s + Number(i.subtotal), 0)
-  const piezas   = sale.items.reduce((s, i) => s + Number(i.qty), 0)
 
   const rows = sale.items.map(i => `
     <tr>
-      <td class="qty">${i.qty}</td>
-      <td>${escHtml(i.name)}${i.qty > 1 ? `<div class="unit">${fmt(i.price)} c/u</div>` : ''}</td>
+      <td class="qty">${qtyLabel(i)}</td>
+      <td>${escHtml(i.name)}${(isWeightItem(i) || i.qty > 1) ? `<div class="unit">${fmt(i.price)}${isWeightItem(i) ? ` / ${i.baseUnit || 'kg'}` : ' c/u'}</div>` : ''}</td>
       <td class="amt">${fmt(i.subtotal)}</td>
     </tr>`).join('')
 
@@ -49,7 +55,7 @@ function buildTicketHtml(sale, businessName) {
                border-bottom: 1px solid #000; padding: 3px 0; }
     th.amt, td.amt { text-align: right; white-space: nowrap; }
     td { padding: 4px 0; vertical-align: top; }
-    td.qty { width: 28px; font-weight: 700; }
+    td.qty { width: 56px; font-weight: 700; }
     .unit { font-size: 10px; color: #444; }
     .tot-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
     .grand { font-size: 17px; font-weight: 800; border-top: 2px solid #000;
@@ -74,7 +80,7 @@ function buildTicketHtml(sale, businessName) {
       <tbody>${rows}</tbody>
     </table>
     <div class="sep"></div>
-    <div class="tot-row"><span>Artículos: ${piezas}</span><span></span></div>
+    <div class="tot-row"><span>Artículos: ${sale.items.length}</span><span></span></div>
     <div class="tot-row"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
     <div class="tot-row grand"><span>TOTAL</span><span>${fmt(sale.total)}</span></div>
     <div class="foot center">

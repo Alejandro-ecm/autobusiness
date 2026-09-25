@@ -9,6 +9,15 @@ import './POS.css'
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const OFFLINE_KEY = 'ab_offline_sales'
 
+// Productos por peso (WEIGHT/MIXED) necesitan mostrar la unidad en el ticket —
+// "2.350 kg" en vez de "2.35" a secas, que un cliente no puede distinguir de
+// "2.35 piezas". El precio por unidad también debe mostrarse siempre para
+// estos, no solo cuando qty > 1 (una compra de 0.8 kg también lo necesita).
+const isWeightItem = (i) => i.saleMode === 'WEIGHT' || i.saleMode === 'MIXED'
+const qtyLabel = (i) => isWeightItem(i)
+  ? `${Number(i.quantity).toFixed(3)} ${i.baseUnit || 'kg'}`
+  : String(i.quantity)
+
 // ── Código de barras compacto, siempre visible en la tarjeta de producto ──
 function CardBarcode({ code }) {
   const ref = useRef()
@@ -178,7 +187,10 @@ function buildTicketData(sale, user) {
     cashier: user.name || '',
     payMethod: PAY_LABELS[sale.payMethod] || 'Efectivo',
     offline: !!sale.offline,
-    items: sale.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, subtotal: i.subtotal })),
+    items: sale.items.map(i => ({
+      name: i.name, quantity: i.quantity, price: i.price, subtotal: i.subtotal,
+      saleMode: i.saleMode, baseUnit: i.baseUnit,
+    })),
     subtotal: sale.items.reduce((s, i) => s + i.subtotal, 0),
     discountAmount: sale.discountAmount || 0,
     total: sale.total,
@@ -627,12 +639,11 @@ export default function POS() {
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     })
     const subtotal = sale.items.reduce((s, i) => s + i.subtotal, 0)
-    const piezas = sale.items.reduce((s, i) => s + Number(i.quantity), 0)
 
     const rows = sale.items.map(i => `
       <tr>
-        <td class="qty">${i.quantity}</td>
-        <td>${esc(i.name)}${i.quantity > 1 ? `<div class="unit">${fmt(i.price)} c/u</div>` : ''}</td>
+        <td class="qty">${qtyLabel(i)}</td>
+        <td>${esc(i.name)}${(isWeightItem(i) || i.quantity > 1) ? `<div class="unit">${fmt(i.price)}${isWeightItem(i) ? ` / ${i.baseUnit || 'kg'}` : ' c/u'}</div>` : ''}</td>
         <td class="amt">${fmt(i.subtotal)}</td>
       </tr>`).join('')
 
@@ -651,7 +662,7 @@ export default function POS() {
                  border-bottom: 1px solid #000; padding: 3px 0; }
       th.amt, td.amt { text-align: right; white-space: nowrap; }
       td { padding: 4px 0; vertical-align: top; }
-      td.qty { width: 28px; font-weight: 700; }
+      td.qty { width: 56px; font-weight: 700; }
       .unit { font-size: 10px; color: #444; }
       .tot-row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
       .grand { font-size: 17px; font-weight: 800; border-top: 2px solid #000;
@@ -675,7 +686,7 @@ export default function POS() {
         <tbody>${rows}</tbody>
       </table>
       <div class="sep"></div>
-      <div class="tot-row"><span>Artículos: ${piezas}</span><span></span></div>
+      <div class="tot-row"><span>Artículos: ${sale.items.length}</span><span></span></div>
       <div class="tot-row"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
       ${sale.discountAmount > 0 ? `<div class="tot-row"><span>Descuento</span><span>-${fmt(sale.discountAmount)}</span></div>` : ''}
       <div class="tot-row grand"><span>TOTAL</span><span>${fmt(sale.total)}</span></div>
