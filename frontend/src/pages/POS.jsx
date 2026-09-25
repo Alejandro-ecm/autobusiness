@@ -4,7 +4,10 @@ import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { buildEscposTicket } from '../utils/escposTicket'
 import { bluetoothSupported, bluetoothConnected, bluetoothPrint } from '../utils/bluetoothPrinter'
-import { scaleSupported, scaleConnected, scaleConnect, readScaleWeight } from '../utils/scaleReader'
+import {
+  scaleSupported, scaleConnected, scaleConnect, subscribeScale, getLastReading,
+  getDiagnosticLines, validateWeightKg, getScaleSettings, saveScaleSettings,
+} from '../utils/scaleReader'
 import CategoryChips from '../components/pos/CategoryChips'
 import './POS.css'
 
@@ -260,7 +263,19 @@ export default function POS() {
   const [addedFlash, setAddedFlash] = useState(null) // overlay grande "producto agregado"
   const [weightPicker, setWeightPicker] = useState(null) // producto WEIGHT/MIXED esperando cantidad decimal
   const [weightInput, setWeightInput] = useState('')
-  const [scaleBusy, setScaleBusy] = useState(false) // leyendo/conectando báscula
+  const [scaleConnecting, setScaleConnecting] = useState(false)
+  const [scaleLive, setScaleLive] = useState(null) // última lectura de báscula en vivo
+  const [scaleAdvancedOpen, setScaleAdvancedOpen] = useState(false)
+  const [scaleSettingsForm, setScaleSettingsForm] = useState(() => getScaleSettings())
+
+  // Mientras el selector de peso está abierto, mostrar la lectura de báscula
+  // en vivo (si hay una conectada). Nunca se agrega sola al carrito — el
+  // cajero siempre confirma con el botón "Usar este peso".
+  useEffect(() => {
+    if (!weightPicker) return
+    setScaleLive(getLastReading())
+    return subscribeScale(setScaleLive)
+  }, [weightPicker])
   const [customItemModal, setCustomItemModal] = useState(false) // producto libre (nombre + precio)
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
@@ -485,31 +500,31 @@ export default function POS() {
   // Abre el selector de cantidad decimal para productos por peso/metro (WEIGHT o MIXED)
   const openWeightPicker = (product) => { setWeightInput(''); setWeightPicker(product) }
 
-  // Lee el peso desde una báscula conectada por USB/serial (Web Serial API —
-  // solo Chrome/Edge de escritorio) y lo pone en el input de cantidad. El
-  // input manual sigue siempre disponible: esto es un atajo, no un requisito.
-  const readFromScale = async () => {
-    setScaleBusy(true)
+  // Conecta con una báscula por USB/serial (Web Serial API — solo Chrome/Edge
+  // de escritorio, HTTPS o localhost). El input manual sigue siempre
+  // disponible: esto es un atajo, no un requisito.
+  const handleConnectScale = async () => {
+    setScaleConnecting(true)
     try {
-      if (!scaleConnected()) await scaleConnect()
-      // Espera hasta ~4s a que llegue una lectura fresca — algunas básculas
-      // tardan un momento en empezar a transmitir tras conectar el puerto.
-      let w = null
-      for (let i = 0; i < 20 && w === null; i++) {
-        w = readScaleWeight()
-        if (w === null) await new Promise(r => setTimeout(r, 200))
-      }
-      if (w === null) {
-        show('La báscula no mandó una lectura. Revisa el cable y que esté encendida.', 'error')
-        return
-      }
-      setWeightInput(String(Math.abs(w).toFixed(3)))
+      await scaleConnect(scaleSettingsForm)
     } catch (err) {
-      if (err?.name !== 'NotFoundError') show(err?.message || 'No se pudo leer la báscula', 'error')
+      if (err?.name !== 'NotFoundError') show(err?.message || 'No se pudo conectar la báscula', 'error')
     } finally {
-      setScaleBusy(false)
+      setScaleConnecting(false)
     }
   }
+
+  // Usa la lectura en vivo de la báscula SOLO si ya está estable y dentro de
+  // capacidad — nunca a medio asentar. El cajero debe presionar esto a
+  // propósito; nada se agrega solo.
+  const handleUseScaleWeight = () => {
+    if (!scaleLive || !scaleLive.stable || scaleLive.kg === null) return
+    const err = validateWeightKg(scaleLive.kg, scaleSettingsForm.maxKg)
+    if (err) { show(err, 'error'); return }
+    setWeightInput(scaleLive.kg.toFixed(3))
+  }
+
+  const updateScaleSetting = (patch) => setScaleSettingsForm(saveScaleSettings(patch))
 
   const confirmWeight = () => {
     const qty = parseFloat(String(weightInput).replace(',', '.'))
@@ -1198,12 +1213,78 @@ export default function POS() {
                 ))}
               </div>
               {scaleSupported() && (
-                <button type="button" className="btn btn-outline" style={{ width: '100%', marginBottom: 10 }}
-                  onClick={readFromScale} disabled={scaleBusy}>
-                  {scaleBusy
-                    ? <div className="spinner" />
-                    : `⚖️ ${scaleConnected() ? 'Leer báscula' : 'Conectar báscula'}`}
-                </button>
+                <div style={{ marginBottom: 10, border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, textAlign: 'left' }}>
+                  {!scaleConnected() ? (
+                    <button type="button" className="btn btn-outline" style={{ width: '100%' }}
+                      onClick={handleConnectScale} disabled={scaleConnecting}>
+                      {scaleConnecting ? <div className="spinner" /> : '⚖️ Conectar báscula'}
+                    </button>
+                  ) : (
+                    <>
+                      <div style={{ textAlign: 'center', marginBottom: 8 }}>
+                        {scaleLive?.kg !== null && scaleLive?.kg !== undefined ? (
+                          <>
+                            <div style={{ fontSize: 26, fontWeight: 800, color: '#1e293b' }}>
+                              {scaleLive.kg.toFixed(3)} kg
+                            </div>
+                            <div style={{
+                              fontSize: 12, fontWeight: 700,
+                              color: scaleLive.stable ? '#16a34a' : '#d97706',
+                            }}>
+                              {scaleLive.stable ? '● Estable' : '○ Estabilizando…'}
+                            </div>
+                          </>
+                        ) : scaleLive && scaleLive.unit === null ? (
+                          <div style={{ fontSize: 13, color: '#d97706' }}>
+                            La báscula manda "{scaleLive.raw}" sin unidad reconocida — ingresa el peso a mano.
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 13, color: '#1e293b' }}>Esperando lectura…</div>
+                        )}
+                      </div>
+                      <button type="button" className="btn btn-primary" style={{ width: '100%' }}
+                        onClick={handleUseScaleWeight} disabled={!scaleLive?.stable}>
+                        ✓ Usar este peso
+                      </button>
+                    </>
+                  )}
+                  <button type="button" onClick={() => setScaleAdvancedOpen(o => !o)}
+                    style={{ background: 'none', border: 'none', padding: 0, marginTop: 8, fontSize: 11, color: '#1e293b', cursor: 'pointer', textDecoration: 'underline' }}>
+                    {scaleAdvancedOpen ? '▾ Ocultar configuración' : '▸ Configuración avanzada'}
+                  </button>
+                  {scaleAdvancedOpen && (
+                    <div style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                      <label style={{ fontSize: 11, color: '#1e293b' }}>
+                        Velocidad (baud rate)
+                        <select className="input" style={{ marginTop: 2 }}
+                          value={scaleSettingsForm.baudRate}
+                          onChange={e => updateScaleSetting({ baudRate: Number(e.target.value) })}>
+                          {[1200, 2400, 4800, 9600, 19200, 38400].map(b => <option key={b} value={b}>{b}</option>)}
+                        </select>
+                      </label>
+                      <label style={{ fontSize: 11, color: '#1e293b' }}>
+                        Comando de petición (solo básculas que no transmiten solas)
+                        <input className="input" style={{ marginTop: 2 }} placeholder="ej: P o W — vacío si no aplica"
+                          value={scaleSettingsForm.pollCommand}
+                          onChange={e => updateScaleSetting({ pollCommand: e.target.value })} />
+                      </label>
+                      <label style={{ fontSize: 11, color: '#1e293b' }}>
+                        Capacidad máxima (kg)
+                        <input className="input" type="number" style={{ marginTop: 2 }}
+                          value={scaleSettingsForm.maxKg}
+                          onChange={e => updateScaleSetting({ maxKg: Number(e.target.value) || 40 })} />
+                      </label>
+                      <div style={{ fontSize: 11, color: '#1e293b' }}>
+                        <div style={{ fontWeight: 700, marginBottom: 2 }}>Últimas líneas recibidas:</div>
+                        {getDiagnosticLines().length === 0
+                          ? <div>— sin datos aún —</div>
+                          : getDiagnosticLines().map((l, i) => (
+                              <div key={i} style={{ fontFamily: 'monospace', fontSize: 10 }}>{l}</div>
+                            ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
               <input
                 className="input"
