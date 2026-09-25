@@ -1,10 +1,39 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../store/AuthContext'
 import { useEffect, useState } from 'react'
-import { orders as ordersApi } from '../../api'
+import { orders as ordersApi, notifications as notificationsApi } from '../../api'
 import './Sidebar.css'
 
 const ACTIVE = new Set(['pending', 'confirmed', 'preparing', 'ready'])
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const raw = atob(base64)
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)))
+}
+
+// Registra el dispositivo para push reales (funcionan con la app/pestaña cerrada).
+// No reemplaza el aviso local de abajo, que sirve de respaldo inmediato con la
+// pestaña abierta aunque el push tarde o el permiso se haya negado.
+async function subscribeToPush() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    const registration = await navigator.serviceWorker.ready
+    let sub = await registration.pushManager.getSubscription()
+    if (!sub) {
+      const { publicKey } = await notificationsApi.vapidKey()
+      sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      })
+    }
+    const json = sub.toJSON()
+    await notificationsApi.subscribe({ ...json, userAgent: navigator.userAgent })
+  } catch {
+    // Sin permiso, sin SW listo, o el navegador no soporta push — no es crítico.
+  }
+}
 
 function usePendingOrdersCount(enabled = true) {
   const [count, setCount] = useState(0)
@@ -65,8 +94,13 @@ export default function Sidebar({ open, onClose, collapsed, onToggleCollapse }) 
   const pendingOrders = usePendingOrdersCount(isOwner)
 
   useEffect(() => {
-    if (isOwner && 'Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission()
+    if (!isOwner || !('Notification' in window)) return
+    if (Notification.permission === 'granted') {
+      subscribeToPush()
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then(perm => {
+        if (perm === 'granted') subscribeToPush()
+      })
     }
   }, [isOwner])
 

@@ -7,6 +7,7 @@ import com.autobusiness.domain.repository.BusinessRepository;
 import com.autobusiness.domain.repository.PushSubscriptionRepository;
 import com.autobusiness.domain.service.NotificationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,16 +24,13 @@ public class NotificationController {
     private final PushSubscriptionRepository pushRepo;
     private final BusinessRepository businessRepo;
 
-    /**
-     * GET /api/notifications/vapid-key — clave pública VAPID para el Service Worker
-     * En producción: generar con web-push keygen y almacenar en env
-     */
+    @Value("${vapid.public-key}")
+    private String vapidPublicKey;
+
+    /** GET /api/notifications/vapid-key — clave pública VAPID para el Service Worker */
     @GetMapping("/vapid-key")
     public ResponseEntity<?> vapidKey() {
-        // Placeholder — reemplazar con clave VAPID real en producción
-        return ResponseEntity.ok(Map.of(
-                "publicKey", "BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjZJHm-J1IsZtdpgb2h_kf9d0_9oc"
-        ));
+        return ResponseEntity.ok(Map.of("publicKey", vapidPublicKey));
     }
 
     /** POST /api/notifications/subscribe — registrar dispositivo para push */

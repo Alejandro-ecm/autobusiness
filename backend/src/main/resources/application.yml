@@ -79,6 +79,14 @@ resend:
   api-key: ${RESEND_API_KEY:}
   from-email: ${RESEND_FROM_EMAIL:AutoBusiness AI <onboarding@resend.dev>}
 
+# Par de llaves VAPID para Web Push. El default es solo para desarrollo local —
+# en produccion, generar un par propio y configurarlo via env vars para que la
+# llave privada no quede en el codigo fuente.
+vapid:
+  public-key: ${VAPID_PUBLIC_KEY:BHQd4Jgba15CulWEP48Rb5GYODeumFSWP98ZH3dcO4VjLRE8aY4-_jHxaEh4WI05Gq71eCTeJVn0I1OrInOViIw}
+  private-key: ${VAPID_PRIVATE_KEY:6rxdQXencpdVzluBdjhZe-7e1S9MXMSwnhdOOgwp2us}
+  subject: ${VAPID_SUBJECT:https://autobusiness.skytechnologieslatam.com}
+
 app:
   base-url: ${APP_BASE_URL:https://autobusiness.skytechnologieslatam.com}
   base-domain: ${APP_BASE_DOMAIN:autobusiness.skytechnologieslatam.com}

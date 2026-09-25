@@ -29,6 +29,9 @@ services:
       WA_INTERNAL_TOKEN: ${WA_INTERNAL_TOKEN:-autobusiness_wa_internal_dev}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-AutoBusiness AI <onboarding@resend.dev>}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-BHQd4Jgba15CulWEP48Rb5GYODeumFSWP98ZH3dcO4VjLRE8aY4-_jHxaEh4WI05Gq71eCTeJVn0I1OrInOViIw}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-6rxdQXencpdVzluBdjhZe-7e1S9MXMSwnhdOOgwp2us}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-https://autobusiness.skytechnologieslatam.com}
       MP_ACCESS_TOKEN: ${MP_ACCESS_TOKEN:-TEST-placeholder-change-me}
       MP_NOTIFICATION_URL: ${MP_NOTIFICATION_URL:-http://localhost:8080/api/payments/mercadopago/webhook}
       MP_SUCCESS_URL: ${MP_SUCCESS_URL:-http://localhost:3000/payment/success}

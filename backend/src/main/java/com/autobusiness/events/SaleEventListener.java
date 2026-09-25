@@ -6,6 +6,7 @@ import com.autobusiness.domain.model.Alert;
 import com.autobusiness.domain.repository.AlertRepository;
 import com.autobusiness.domain.repository.ProductRepository;
 import com.autobusiness.domain.service.AiEmployeeJobsService;
+import com.autobusiness.domain.service.NotificationService;
 import com.autobusiness.infrastructure.ai.AiEngineClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class SaleEventListener {
     private final ProductRepository productRepo;
     private final AiEngineClient aiEngineClient;
     private final AiEmployeeJobsService aiEmployeeJobs;
+    private final NotificationService notificationService;
 
     @Async
     @EventListener
@@ -49,6 +51,11 @@ public class SaleEventListener {
                             .build());
                     log.warn("event=stock.low product={} stock={}",
                             item.getProduct().getName(), stockStr);
+
+                    notificationService.sendToAll(sale.getBusiness().getId(),
+                            critical ? "⛔ Producto agotado" : "⚠️ Stock bajo",
+                            item.getProduct().getName() + " — " + stockStr + " " + item.getProduct().getBaseUnit() + " restantes",
+                            "/inventory");
 
                     // Repositor IA: aviso inmediato por WhatsApp cuando se agota
                     if (critical) {

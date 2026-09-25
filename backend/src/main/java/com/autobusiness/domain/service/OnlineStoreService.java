@@ -26,6 +26,7 @@ public class OnlineStoreService {
     private final SaleRepository saleRepo;
     private final BranchRepository branchRepo;
     private final EventPublisher eventPublisher;
+    private final NotificationService notificationService;
 
     public Map<String, Object> getStorefront(String businessSlug) {
         Business business = businessRepo.findBySlug(businessSlug)
@@ -109,6 +110,10 @@ public class OnlineStoreService {
         Order saved = orderRepo.save(order);
         log.info("order.created id={} business={} paymentMethod={} total={}",
                 saved.getId(), business.getId(), resolvedPaymentMethod, saved.getTotal());
+
+        notificationService.sendToAll(business.getId(), "🛒 Nuevo pedido online",
+                saved.getOrderNumber() + " — $" + saved.getTotal().setScale(2, java.math.RoundingMode.HALF_UP), "/orders");
+
         return saved;
     }
 
