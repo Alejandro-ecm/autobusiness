@@ -4,6 +4,7 @@ import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { buildEscposTicket } from '../utils/escposTicket'
 import { bluetoothSupported, bluetoothConnected, bluetoothPrint } from '../utils/bluetoothPrinter'
+import { scaleSupported, scaleConnected, scaleConnect, readScaleWeight } from '../utils/scaleReader'
 import CategoryChips from '../components/pos/CategoryChips'
 import './POS.css'
 
@@ -259,6 +260,7 @@ export default function POS() {
   const [addedFlash, setAddedFlash] = useState(null) // overlay grande "producto agregado"
   const [weightPicker, setWeightPicker] = useState(null) // producto WEIGHT/MIXED esperando cantidad decimal
   const [weightInput, setWeightInput] = useState('')
+  const [scaleBusy, setScaleBusy] = useState(false) // leyendo/conectando báscula
   const [customItemModal, setCustomItemModal] = useState(false) // producto libre (nombre + precio)
   const [customName, setCustomName] = useState('')
   const [customPrice, setCustomPrice] = useState('')
@@ -482,6 +484,32 @@ export default function POS() {
 
   // Abre el selector de cantidad decimal para productos por peso/metro (WEIGHT o MIXED)
   const openWeightPicker = (product) => { setWeightInput(''); setWeightPicker(product) }
+
+  // Lee el peso desde una báscula conectada por USB/serial (Web Serial API —
+  // solo Chrome/Edge de escritorio) y lo pone en el input de cantidad. El
+  // input manual sigue siempre disponible: esto es un atajo, no un requisito.
+  const readFromScale = async () => {
+    setScaleBusy(true)
+    try {
+      if (!scaleConnected()) await scaleConnect()
+      // Espera hasta ~4s a que llegue una lectura fresca — algunas básculas
+      // tardan un momento en empezar a transmitir tras conectar el puerto.
+      let w = null
+      for (let i = 0; i < 20 && w === null; i++) {
+        w = readScaleWeight()
+        if (w === null) await new Promise(r => setTimeout(r, 200))
+      }
+      if (w === null) {
+        show('La báscula no mandó una lectura. Revisa el cable y que esté encendida.', 'error')
+        return
+      }
+      setWeightInput(String(Math.abs(w).toFixed(3)))
+    } catch (err) {
+      if (err?.name !== 'NotFoundError') show(err?.message || 'No se pudo leer la báscula', 'error')
+    } finally {
+      setScaleBusy(false)
+    }
+  }
 
   const confirmWeight = () => {
     const qty = parseFloat(String(weightInput).replace(',', '.'))
@@ -1169,6 +1197,14 @@ export default function POS() {
                   </button>
                 ))}
               </div>
+              {scaleSupported() && (
+                <button type="button" className="btn btn-outline" style={{ width: '100%', marginBottom: 10 }}
+                  onClick={readFromScale} disabled={scaleBusy}>
+                  {scaleBusy
+                    ? <div className="spinner" />
+                    : `⚖️ ${scaleConnected() ? 'Leer báscula' : 'Conectar báscula'}`}
+                </button>
+              )}
               <input
                 className="input"
                 type="number"
