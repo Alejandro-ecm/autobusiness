@@ -36,8 +36,18 @@ async function initMPPos(publicKey) {
   mpPosInitialized = true
 }
 
+// Cierra un modal con la tecla Esc — accesibilidad de teclado (WCAG 2.1 AA).
+function useEscToClose(onClose) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [onClose])
+}
+
 function PosPaymentBrick({ amount, preferenceId, cartItems, branchId, discountAmount, onSuccess, onError, onClose, onDirectTicket, directLoading }) {
   const [BrickComponent, setBrickComponent] = useState(null)
+  useEscToClose(onClose)
 
   useEffect(() => {
     import('@mercadopago/sdk-react').then(m => setBrickComponent(() => m.Payment))
@@ -281,6 +291,19 @@ export default function POS() {
 
   // Mantener productsRef sincronizado para el listener global
   useEffect(() => { productsRef.current = products }, [products])
+
+  // Cierra el modal abierto con Esc — accesibilidad de teclado (WCAG 2.1 AA).
+  // PosPaymentBrick tiene su propio useEscToClose porque es un modal aparte.
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key !== 'Escape') return
+      if (weightPicker) setWeightPicker(null)
+      else if (customItemModal) setCustomItemModal(false)
+      else if (cardConfirm) setCardConfirm(false)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [weightPicker, customItemModal, cardConfirm])
 
   // Carga inicial
   useEffect(() => {

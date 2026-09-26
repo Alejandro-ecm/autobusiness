@@ -77,10 +77,15 @@ input, textarea, select { font-family: var(--font); }
   transition: all .15s ease;
 }
 .btn-primary {
-  background: var(--color-primary);
+  /* var(--color-primary) sobre blanco da ~4.47:1 — justo debajo del minimo
+     WCAG AA de 4.5:1 para texto normal. Se usa el tono "hover" ya existente
+     como fondo base (~6.2:1) para no tocar --color-primary (usado en bordes,
+     iconos y acentos en toda la app) y mantener el contraste sin ampliar
+     el alcance del cambio. */
+  background: var(--color-primary-hover);
   color: #fff;
 }
-.btn-primary:hover { background: var(--color-primary-hover); }
+.btn-primary:hover { background: #4338ca; }
 .btn-outline {
   background: transparent;
   color: var(--color-text);
