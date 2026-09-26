@@ -6,8 +6,12 @@ import com.autobusiness.domain.model.Branch;
 import com.autobusiness.domain.model.PasswordResetToken;
 import com.autobusiness.domain.model.PendingRegistration;
 import com.autobusiness.domain.model.User;
+import com.autobusiness.domain.model.Customer;
+import com.autobusiness.domain.model.LegalAcceptance;
 import com.autobusiness.domain.repository.BusinessRepository;
 import com.autobusiness.domain.repository.BranchRepository;
+import com.autobusiness.domain.repository.CustomerRepository;
+import com.autobusiness.domain.repository.LegalAcceptanceRepository;
 import com.autobusiness.domain.repository.PasswordResetTokenRepository;
 import com.autobusiness.domain.repository.PendingRegistrationRepository;
 import com.autobusiness.domain.repository.UserRepository;
@@ -16,6 +20,7 @@ import com.autobusiness.infrastructure.email.ResendClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,8 +29,10 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,6 +65,10 @@ public class AuthService {
     private final AlejandriaClient alejandria;
     private final LegalService legalService;
     private final ResendClient resendClient;
+    private final LegalAcceptanceRepository legalAcceptanceRepo;
+    private final CustomerRepository customerRepo;
+
+    private static final long DELETION_GRACE_PERIOD_DAYS = 30;
 
     @Value("${app.base-url}")
     private String appBaseUrl;
@@ -97,6 +108,11 @@ public class AuthService {
         userMap.put("businessName", user.getBusiness().getName());
         userMap.put("businessSlug", user.getBusiness().getSlug());
         userMap.put("ticketRefundText", user.getBusiness().getTicketRefundText());
+        if (user.getBusiness().getDeletionRequestedAt() != null) {
+            userMap.put("deletionRequestedAt", user.getBusiness().getDeletionRequestedAt());
+            userMap.put("deletionScheduledFor",
+                    user.getBusiness().getDeletionRequestedAt().plus(DELETION_GRACE_PERIOD_DAYS, ChronoUnit.DAYS));
+        }
         userMap.put("subscription", Map.of(
                 "plan",     sub.get("plan"),
                 "status",   sub.get("status"),
@@ -179,8 +195,14 @@ public class AuthService {
         return Map.of("token", token, "user", userMap2);
     }
 
+    /**
+     * Derechos ARCO — paso 1: marca el negocio para eliminacion, pero no
+     * borra ni anonimiza nada todavia. La anonimizacion real la ejecuta
+     * runScheduledDeletions() cuando se cumple el periodo de gracia, para
+     * que el dueño tenga oportunidad de cancelar.
+     */
     @Transactional
-    public Map<String, Object> deleteAccount(UUID userId, UUID businessId) {
+    public Map<String, Object> requestAccountDeletion(UUID userId, UUID businessId) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
         if (!"OWNER".equals(user.getRole()))
@@ -191,8 +213,50 @@ public class AuthService {
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
 
+        Instant requestedAt = Instant.now();
+        business.setDeletionRequestedAt(requestedAt);
+        businessRepo.save(business);
+
+        Instant scheduledFor = requestedAt.plus(DELETION_GRACE_PERIOD_DAYS, ChronoUnit.DAYS);
+        log.info("Account deletion requested: business={} scheduledFor={}", businessId, scheduledFor);
+        return Map.of(
+                "message", "Solicitud de eliminación registrada",
+                "deletionRequestedAt", requestedAt,
+                "deletionScheduledFor", scheduledFor
+        );
+    }
+
+    /** Derechos ARCO — cancela una solicitud de eliminación dentro del periodo de gracia. */
+    @Transactional
+    public Map<String, Object> cancelAccountDeletion(UUID userId, UUID businessId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (!"OWNER".equals(user.getRole()))
+            throw new IllegalStateException("Solo el dueño puede cancelar la eliminación");
+        if (!user.getBusiness().getId().equals(businessId))
+            throw new IllegalStateException("No tienes permiso sobre este negocio");
+
+        Business business = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+        business.setDeletionRequestedAt(null);
+        businessRepo.save(business);
+
+        log.info("Account deletion cancelled: business={}", businessId);
+        return Map.of("message", "Solicitud de eliminación cancelada");
+    }
+
+    /**
+     * Anonimizacion real (antes era el contenido de deleteAccount, ejecutado
+     * al instante). No toca sales/orders/inventory_movements — esos se
+     * conservan por obligaciones fiscales, solo pierden el nombre real al
+     * quedar ligados a un negocio/usuario anonimizado.
+     */
+    @Transactional
+    void executeAccountDeletion(UUID businessId) {
+        Business business = businessRepo.findById(businessId)
+                .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+
         String tombstone = UUID.randomUUID().toString();
-        // Anonymize all users in the business
         userRepo.findByBusinessId(businessId).forEach(u -> {
             u.setEmail("deleted-" + u.getId() + "@deleted.autobusiness");
             u.setName("[Cuenta Eliminada]");
@@ -201,14 +265,86 @@ public class AuthService {
             userRepo.save(u);
         });
 
-        // Mark business as deleted
         business.setActive(false);
         business.setSuspended(true);
         business.setName("[Eliminado] " + business.getName());
         businessRepo.save(business);
 
-        log.info("Account deleted: business={}", businessId);
-        return Map.of("message", "Cuenta eliminada correctamente");
+        log.info("Account deletion executed: business={}", businessId);
+    }
+
+    /** Corre 1x/dia — ejecuta las eliminaciones cuyo periodo de gracia ya venció. */
+    @Scheduled(cron = "0 0 3 * * *")
+    @Transactional
+    public void runScheduledDeletions() {
+        Instant cutoff = Instant.now().minus(DELETION_GRACE_PERIOD_DAYS, ChronoUnit.DAYS);
+        for (Business b : businessRepo.findByDeletionRequestedAtIsNotNull()) {
+            if (b.getDeletionRequestedAt().isBefore(cutoff) || b.getDeletionRequestedAt().equals(cutoff)) {
+                executeAccountDeletion(b.getId());
+            }
+        }
+    }
+
+    /**
+     * Derechos ARCO — exporta los datos personales del usuario en JSON. No
+     * duplica lo que Inventario/Reportes ya exportan en CSV (productos,
+     * ventas): esto es perfil, historial de aceptaciones legales, y si es
+     * OWNER, datos del negocio y su cartera de clientes/fiado.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> exportAccountData(UUID userId, UUID businessId) {
+        User user = userRepo.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+
+        Map<String, Object> profile = new HashMap<>();
+        profile.put("id", user.getId());
+        profile.put("name", user.getName());
+        profile.put("email", user.getEmail());
+        profile.put("role", user.getRole());
+        profile.put("createdAt", user.getCreatedAt());
+
+        List<Map<String, Object>> acceptances = new ArrayList<>();
+        for (LegalAcceptance a : legalAcceptanceRepo.findByUserIdOrderByAcceptedAtDesc(userId)) {
+            Map<String, Object> row = new HashMap<>();
+            row.put("termsVersion", a.getTermsVersion());
+            row.put("privacyVersion", a.getPrivacyVersion());
+            row.put("acceptableUseVersion", a.getAcceptableUseVersion());
+            row.put("acceptedAt", a.getAcceptedAt());
+            row.put("ipAddress", a.getIpAddress());
+            acceptances.add(row);
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("exportedAt", Instant.now());
+        result.put("profile", profile);
+        result.put("legalAcceptances", acceptances);
+
+        if ("OWNER".equals(user.getRole())) {
+            Business business = user.getBusiness();
+            Map<String, Object> businessData = new HashMap<>();
+            businessData.put("name", business.getName());
+            businessData.put("slug", business.getSlug());
+            businessData.put("phone", business.getPhone());
+            businessData.put("email", business.getEmail());
+            businessData.put("address", business.getAddress());
+            businessData.put("createdAt", business.getCreatedAt());
+            result.put("business", businessData);
+
+            List<Map<String, Object>> customers = new ArrayList<>();
+            for (Customer c : customerRepo.findByBusinessIdAndIsActiveTrueOrderByName(businessId)) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("name", c.getName());
+                row.put("phone", c.getPhone());
+                row.put("email", c.getEmail());
+                row.put("address", c.getAddress());
+                row.put("totalCredit", c.getTotalCredit());
+                row.put("createdAt", c.getCreatedAt());
+                customers.add(row);
+            }
+            result.put("customers", customers);
+        }
+
+        return result;
     }
 
     @Transactional

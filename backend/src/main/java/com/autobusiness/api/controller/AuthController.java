@@ -69,14 +69,36 @@ public class AuthController {
         return ResponseEntity.ok(authService.completeOnboarding(p.businessId(), body.get("profileType")));
     }
 
+    // Derechos ARCO: ya no borra al instante — inicia el periodo de gracia
+    // de 30 dias que la pantalla de eliminacion siempre prometio.
     @DeleteMapping("/account")
-    public ResponseEntity<?> deleteAccount(@AuthenticationPrincipal AuthPrincipal p) {
+    public ResponseEntity<?> requestAccountDeletion(@AuthenticationPrincipal AuthPrincipal p) {
         try {
-            return ResponseEntity.ok(authService.deleteAccount(p.userId(), p.businessId()));
+            return ResponseEntity.ok(authService.requestAccountDeletion(p.userId(), p.businessId()));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(Map.of("error", "Error al eliminar cuenta"));
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al solicitar eliminación"));
+        }
+    }
+
+    @PostMapping("/account/cancel-deletion")
+    public ResponseEntity<?> cancelAccountDeletion(@AuthenticationPrincipal AuthPrincipal p) {
+        try {
+            return ResponseEntity.ok(authService.cancelAccountDeletion(p.userId(), p.businessId()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al cancelar eliminación"));
+        }
+    }
+
+    @GetMapping("/account/export")
+    public ResponseEntity<?> exportAccountData(@AuthenticationPrincipal AuthPrincipal p) {
+        try {
+            return ResponseEntity.ok(authService.exportAccountData(p.userId(), p.businessId()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Error al exportar datos"));
         }
     }
 

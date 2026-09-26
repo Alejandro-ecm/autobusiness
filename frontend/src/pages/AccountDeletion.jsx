@@ -1,16 +1,21 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
-import client from '../api/client'
+import { auth as authApi } from '../api'
 
 const SUPPORT_EMAIL = 'soporte@skytechnologieslatam.com'
 
+const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : ''
+
 export default function AccountDeletion() {
-  const { user, logout } = useAuth()
-  const [step, setStep] = useState('info')   // 'info' | 'confirm' | 'done' | 'error'
+  const { user, updateUser } = useAuth()
+  const pendingDeletion = !!user?.deletionRequestedAt
+  const [step, setStep] = useState(pendingDeletion ? 'pending' : 'info')   // 'info' | 'confirm' | 'pending' | 'done' | 'cancelled'
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
   const [confirmText, setConfirmText] = useState('')
+  const [scheduledFor, setScheduledFor] = useState(user?.deletionScheduledFor || null)
+  const [exporting, setExporting] = useState(false)
 
   const handleDelete = async () => {
     if (confirmText.trim().toUpperCase() !== 'ELIMINAR') {
@@ -20,22 +25,45 @@ export default function AccountDeletion() {
     setLoading(true)
     setErrorMsg('')
     try {
-      await client.delete('/auth/account')
-      logout()
+      const res = await authApi.requestDeletion()
+      setScheduledFor(res.deletionScheduledFor)
+      updateUser({ deletionRequestedAt: res.deletionRequestedAt, deletionScheduledFor: res.deletionScheduledFor })
       setStep('done')
     } catch (err) {
-      // If the endpoint doesn't exist yet, show email fallback
-      const status = err?.response?.status
-      if (status === 404 || status === 405) {
-        setStep('email-fallback')
-      } else {
-        setErrorMsg(
-          err?.response?.data?.error ||
-          'No se pudo eliminar la cuenta. Por favor, contacta a soporte.'
-        )
-      }
+      setErrorMsg(err?.error || 'No se pudo procesar la solicitud. Por favor, contacta a soporte.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    setLoading(true)
+    setErrorMsg('')
+    try {
+      await authApi.cancelDeletion()
+      updateUser({ deletionRequestedAt: null, deletionScheduledFor: null })
+      setStep('cancelled')
+    } catch (err) {
+      setErrorMsg(err?.error || 'No se pudo cancelar la solicitud. Por favor, contacta a soporte.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const data = await authApi.exportData()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `mis-datos-autobusiness-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(a.href)
+    } catch {
+      setErrorMsg('No se pudieron descargar tus datos. Intenta de nuevo.')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -52,32 +80,48 @@ export default function AccountDeletion() {
           </div>
           <h1 style={styles.title}>Eliminar mi cuenta</h1>
           <p style={styles.subtitle}>
-            Esta acción es permanente e irreversible.
+            Tienes 30 días para cancelar tu solicitud antes de que se haga efectiva.
           </p>
         </div>
+
+        {/* Descargar mis datos — disponible siempre que haya sesión, sin importar el paso */}
+        {user && step !== 'pending' && (
+          <div style={{ ...styles.card, textAlign: 'center' }}>
+            <p style={styles.bodyText}>
+              ¿Solo quieres una copia de tus datos? Puedes descargarlos sin eliminar tu cuenta.
+            </p>
+            <button style={styles.btnOutline} onClick={handleExport} disabled={exporting}>
+              {exporting ? 'Preparando descarga...' : '⬇ Descargar mis datos (JSON)'}
+            </button>
+          </div>
+        )}
 
         {/* Step: Info */}
         {step === 'info' && (
           <div style={styles.card}>
             <div style={styles.warningBanner}>
               <span style={styles.warningIcon}>&#9888;</span>
-              <strong>Advertencia: acción permanente</strong>
+              <strong>Antes de continuar</strong>
             </div>
 
             <p style={styles.bodyText}>
-              Al eliminar tu cuenta de <strong>AutoBusiness AI</strong>, se borrarán
-              de forma <strong>permanente e irreversible</strong> los siguientes datos:
+              Al solicitar la eliminación de tu cuenta de <strong>AutoBusiness AI</strong>, en
+              <strong> 30 días</strong> se anonimizarán de forma permanente los siguientes datos
+              (puedes cancelar la solicitud en cualquier momento antes de esa fecha):
             </p>
 
             <ul style={styles.list}>
               <li>Tu perfil de usuario y credenciales de acceso</li>
               <li>Todos los datos de tu negocio (nombre, configuración, sucursales)</li>
-              <li>Inventario completo (productos, categorías, movimientos)</li>
-              <li>Historial de ventas y pedidos en línea</li>
-              <li>Datos de clientes registrados en tu cuenta</li>
               <li>Usuarios internos (administradores, cajeros)</li>
-              <li>Análisis financieros e insights generados por IA</li>
+              <li>Datos de clientes registrados en tu cuenta</li>
             </ul>
+
+            <p style={styles.bodyText}>
+              Tu inventario, ventas y pedidos <strong>no se borran</strong> — la ley fiscal
+              mexicana exige conservarlos hasta 5 años. Quedan desvinculados de tu nombre real
+              (anonimizados), no de tu negocio como registro contable.
+            </p>
 
             <div style={styles.infoBox}>
               <p style={{ margin: 0 }}>
@@ -86,11 +130,6 @@ export default function AccountDeletion() {
                 de cuenta no cancela automáticamente los cargos recurrentes de MercadoPago.
               </p>
             </div>
-
-            <p style={styles.bodyText}>
-              Los datos se eliminan en un plazo máximo de <strong>30 días</strong> desde la solicitud.
-              Algunos datos pueden retenerse si la ley fiscal mexicana lo requiere (hasta 5 años).
-            </p>
 
             <div style={styles.actions}>
               {user ? (
@@ -129,8 +168,9 @@ export default function AccountDeletion() {
 
             {user && (
               <p style={styles.bodyText}>
-                Vas a eliminar la cuenta de <strong>{user.email}</strong> y todos los datos del
-                negocio <strong>{user.businessName || 'tu negocio'}</strong>.
+                Vas a solicitar la eliminación de la cuenta <strong>{user.email}</strong> y del
+                negocio <strong>{user.businessName || 'tu negocio'}</strong>. Tendrás 30 días
+                para cancelar antes de que se haga efectiva.
               </p>
             )}
 
@@ -157,7 +197,7 @@ export default function AccountDeletion() {
                 onClick={handleDelete}
                 disabled={loading}
               >
-                {loading ? 'Eliminando...' : 'Eliminar cuenta definitivamente'}
+                {loading ? 'Enviando solicitud...' : 'Solicitar eliminación de cuenta'}
               </button>
               <button
                 style={styles.cancelLink}
@@ -169,17 +209,27 @@ export default function AccountDeletion() {
           </div>
         )}
 
-        {/* Step: Done */}
+        {/* Step: Done — solicitud enviada, con fecha real y opción de cancelar */}
         {step === 'done' && (
           <div style={styles.card}>
             <div style={styles.successBanner}>
               <span style={{ fontSize: 32 }}>&#10003;</span>
-              <strong>Cuenta eliminada</strong>
+              <strong>Solicitud registrada</strong>
             </div>
             <p style={styles.bodyText}>
-              Tu cuenta y todos los datos asociados han sido marcados para eliminación.
-              El proceso se completará en un plazo máximo de <strong>30 días</strong>.
+              Tu cuenta se eliminará el <strong>{fmtDate(scheduledFor)}</strong> si no cancelas
+              antes. Antes de esa fecha, tu negocio sigue funcionando con normalidad.
             </p>
+            {errorMsg && <div style={styles.errorBox}>{errorMsg}</div>}
+            <div style={styles.actions}>
+              <button
+                style={loading ? { ...styles.btnOutline, opacity: 0.6, cursor: 'not-allowed' } : styles.btnOutline}
+                onClick={handleCancel}
+                disabled={loading}
+              >
+                {loading ? 'Cancelando...' : 'Cancelar la eliminación'}
+              </button>
+            </div>
             <p style={styles.bodyText}>
               Si tienes dudas, escríbenos a{' '}
               <a href={`mailto:${SUPPORT_EMAIL}`} style={styles.link}>{SUPPORT_EMAIL}</a>.
@@ -187,29 +237,45 @@ export default function AccountDeletion() {
           </div>
         )}
 
-        {/* Step: Email fallback (endpoint not yet implemented) */}
-        {step === 'email-fallback' && (
+        {/* Step: Pending — ya existía una solicitud activa al entrar a esta pagina */}
+        {step === 'pending' && (
           <div style={styles.card}>
-              <div style={{ ...styles.infoBox, marginBottom: 20 }}>
-              <strong>Solicitud recibida</strong>
+            <div style={styles.warningBanner}>
+              <span style={styles.warningIcon}>&#9888;</span>
+              <strong>Eliminación programada</strong>
             </div>
             <p style={styles.bodyText}>
-              Para completar la eliminación de tu cuenta, envía un correo desde la dirección
-              registrada en tu cuenta a:
+              Ya solicitaste eliminar la cuenta de <strong>{user?.businessName || 'tu negocio'}</strong>.
+              Se eliminará el <strong>{fmtDate(scheduledFor)}</strong> si no cancelas antes.
             </p>
-            <div style={styles.emailBox}>
-              <a href={`mailto:${SUPPORT_EMAIL}?subject=Solicitud%20eliminaci%C3%B3n%20de%20cuenta`}
-                style={styles.emailLink}>
-                {SUPPORT_EMAIL}
-              </a>
+            {errorMsg && <div style={styles.errorBox}>{errorMsg}</div>}
+            <div style={styles.actions}>
+              <button
+                style={loading ? { ...styles.btnDanger, opacity: 0.6, cursor: 'not-allowed' } : styles.btnDanger}
+                onClick={handleCancel}
+                disabled={loading}
+              >
+                {loading ? 'Cancelando...' : 'Cancelar la eliminación'}
+              </button>
+              <Link to="/" style={styles.cancelLink}>Volver al inicio</Link>
+            </div>
+          </div>
+        )}
+
+        {/* Step: Cancelled */}
+        {step === 'cancelled' && (
+          <div style={styles.card}>
+            <div style={styles.successBanner}>
+              <span style={{ fontSize: 32 }}>&#10003;</span>
+              <strong>Eliminación cancelada</strong>
             </div>
             <p style={styles.bodyText}>
-              Asunto: <strong>Solicitud eliminación de cuenta</strong><br />
-              Incluye en el cuerpo: tu email registrado y el nombre de tu negocio.
+              Tu cuenta y la de <strong>{user?.businessName || 'tu negocio'}</strong> siguen
+              activas con normalidad.
             </p>
-            <p style={styles.bodyText}>
-              Procesaremos la solicitud en un plazo máximo de <strong>72 horas hábiles</strong>.
-            </p>
+            <div style={styles.actions}>
+              <Link to="/" style={styles.btnPrimary}>Volver al inicio</Link>
+            </div>
           </div>
         )}
 

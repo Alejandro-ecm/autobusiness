@@ -76,6 +76,9 @@ public class Business {
     @Column(length = 200)
     private String ticketRefundText;
 
+    // Derechos ARCO — periodo de gracia antes de anonimizar la cuenta. Ver V37.
+    private Instant deletionRequestedAt;
+
     // Cola de impresión en la nube
     @Column(unique = true)
     private UUID printKey;

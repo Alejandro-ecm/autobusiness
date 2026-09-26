@@ -20,10 +20,13 @@ async function authRequest(path, data) {
 }
 
 export const auth = {
-  login:          (email, password) => authRequest('/auth/login', { email, password }),
-  register:       (data)            => authRequest('/auth/register', data),
-  forgotPassword: (email)           => authRequest('/auth/forgot-password', { email }),
-  resetPassword:  (token, password) => authRequest('/auth/reset-password', { token, password }),
+  login:            (email, password) => authRequest('/auth/login', { email, password }),
+  register:         (data)            => authRequest('/auth/register', data),
+  forgotPassword:   (email)           => authRequest('/auth/forgot-password', { email }),
+  resetPassword:    (token, password) => authRequest('/auth/reset-password', { token, password }),
+  requestDeletion:  ()                => client.delete('/auth/account'),
+  cancelDeletion:   ()                => client.post('/auth/account/cancel-deletion'),
+  exportData:       ()                => client.get('/auth/account/export'),
 }
 
 export const dashboard = {
@@ -49,8 +52,8 @@ export const inventory = {
   update:      (id, data)      => client.put(`/inventory/products/${id}`, data),
   remove:      (id)            => client.delete(`/inventory/products/${id}`),
   setBarcode:  (id, barcode, barcode2, extraBarcodes) => client.patch(`/inventory/products/${id}/barcode`, { barcode, barcode2, extraBarcodes }),
-  adjustStock: (id, delta, reason) =>
-    client.patch(`/inventory/products/${id}/stock`, { delta, reason }),
+  adjustStock: (id, delta, reason, type) =>
+    client.patch(`/inventory/products/${id}/stock`, { delta, reason, type }),
   import:      (rows)          => client.post('/inventory/products/import', rows),
   movements:   ()              => client.get('/inventory/movements'),
   transfer:    (data)          => client.post('/inventory/transfers', data),
