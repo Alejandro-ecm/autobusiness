@@ -165,9 +165,19 @@ export default function Landing() {
             <a href="#features">Funciones</a>
             <a href="#pricing">Precios</a>
             <Link to="/login">Iniciar sesión</Link>
+          </div>
+          <div className="landing-footer-links">
+            <Link to="/privacidad">Aviso de Privacidad</Link>
+            <Link to="/terminos">Términos y Condiciones</Link>
+            <Link to="/cookies">Cookies</Link>
+            <Link to="/reembolsos">Reembolsos</Link>
             <Link to="/acceptable-use">Uso Aceptable</Link>
           </div>
-          <p className="landing-footer-copy">© 2025 AutoBusiness AI · Hecho con ❤️ en México</p>
+          <p className="landing-footer-copy">
+            © 2025 AutoBusiness AI — Sky Technologies Latam · Hecho con ❤️ en México
+            <br />
+            <a href="mailto:soporte@skytechnologieslatam.com" style={{ color: 'inherit' }}>soporte@skytechnologieslatam.com</a>
+          </p>
         </div>
       </footer>
     </div>

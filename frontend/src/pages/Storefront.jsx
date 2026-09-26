@@ -1045,6 +1045,28 @@ export default function Storefront() {
         )}
       </div>
 
+      {/* Footer — datos del negocio y enlaces legales, requeridos para PROFECO/LFPDPPP */}
+      <div className="sf-footer" style={{
+        padding: '24px 20px 90px', textAlign: 'center', fontSize: 12.5,
+        color: '#64748b', borderTop: '1px solid rgba(148,163,184,.25)', marginTop: 24,
+      }}>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>{business.name}</div>
+        {business.address && <div>{business.address}</div>}
+        {(business.phone || business.email) && (
+          <div>
+            {business.phone}{business.phone && business.email ? ' · ' : ''}{business.email}
+          </div>
+        )}
+        <div style={{ marginTop: 10, display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <a href={`/tienda/${slug}/privacidad`} style={{ color: 'inherit' }}>Aviso de Privacidad</a>
+          <span>·</span>
+          <a href={`/tienda/${slug}/reembolsos`} style={{ color: 'inherit' }}>Cambios y devoluciones</a>
+          <span>·</span>
+          <a href="/terminos" style={{ color: 'inherit' }}>Términos</a>
+        </div>
+        <div style={{ marginTop: 8, opacity: .7 }}>Tienda impulsada por AutoBusiness AI</div>
+      </div>
+
       {/* Sticky cart bar */}
       {cartCount > 0 && (
         <div className="sf-cart-bar">
