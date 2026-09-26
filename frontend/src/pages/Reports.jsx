@@ -14,6 +14,7 @@ const PAY_LABEL = { cash:'Efectivo', card:'Tarjeta', transfer:'Transferencia', m
 const folioOf = (id) => id ? String(id).replace(/-/g, '').slice(0, 8).toUpperCase() : '—'
 
 const escHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const DEFAULT_REFUND_TEXT = 'Consulta nuestra política de cambios y devoluciones'
 
 // Mismo criterio que el ticket del POS: los productos por peso deben mostrar
 // la unidad ("2.350 kg"), no un número pelón indistinguible de piezas.
@@ -25,7 +26,7 @@ const qtyLabel = (i) => isWeightItem(i)
 // HTML de reimpresión de un ticket individual — visualmente consistente con el
 // ticket térmico del POS, pero adaptado a los campos que regresa /reports/sales
 // (sin descuento/cambio, que ese endpoint no expone).
-function buildTicketHtml(sale, businessName) {
+function buildTicketHtml(sale, businessName, refundText) {
   const folio = folioOf(sale.id)
   const fecha = new Date(sale.date).toLocaleString('es-MX', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -98,7 +99,7 @@ function buildTicketHtml(sale, businessName) {
     <div class="foot center">
       <div class="thanks">★ ¡Gracias por tu compra! ★</div>
       <div>Fue un gusto atenderte — ¡te esperamos pronto! 💜</div>
-      <div class="noret">NO SE ACEPTAN DEVOLUCIONES</div>
+      <div class="noret">${escHtml(refundText) || DEFAULT_REFUND_TEXT}</div>
       <div style="margin-top:6px;color:#94a3b8">— Ticket generado por AutoBusiness AI —</div>
     </div>
     </div>
@@ -208,7 +209,7 @@ export default function Reports() {
   const printSaleTicket = (sale) => {
     const w = window.open('', '_blank', 'width=380,height=600')
     if (!w) { show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'); return }
-    w.document.write(buildTicketHtml(sale, user?.businessName))
+    w.document.write(buildTicketHtml(sale, user?.businessName, user?.ticketRefundText))
     w.document.close()
   }
 
@@ -241,7 +242,15 @@ export default function Reports() {
     table{width:100%;border-collapse:collapse;margin-top:16px}
     th{background:#f1f5f9;padding:8px 10px;font-size:12px;text-align:left}
     td{padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:12px}
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px; margin-bottom: 16px;
+      padding: 8px 16px; border: none; border-radius: 20px; background: #6366f1;
+      color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .back-btn:hover { background: #4f46e5; }
+    @media print { .back-btn { display: none !important; } }
     </style></head><body>
+    <button class="back-btn" onclick="if(window.opener){window.close()}else{location.href='/reports'}">← Volver a AutoBusiness</button>
     <h2>Reporte de Ventas</h2>
     <p style="color:#1e293b">${filteredSales.length} ventas · Total: ${fmt(totalRevenue)}</p>
     <table><thead><tr><th>Fecha</th><th>Pago</th><th>Cajero</th><th>Productos</th><th>Total</th></tr></thead>
@@ -443,7 +452,7 @@ export default function Reports() {
                   <span className="text-soft text-sm">Folio #{folioOf(previewSale.id)}</span>
                 </div>
                 <div className="reports-ticket-preview">
-                  <iframe title="Vista previa del ticket" srcDoc={buildTicketHtml(previewSale, user?.businessName)} />
+                  <iframe title="Vista previa del ticket" srcDoc={buildTicketHtml(previewSale, user?.businessName, user?.ticketRefundText)} />
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-primary" onClick={() => printSaleTicket(previewSale)}>🖨️ Imprimir / Guardar PDF</button>

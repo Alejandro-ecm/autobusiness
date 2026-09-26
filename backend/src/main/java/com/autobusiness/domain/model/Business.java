@@ -72,6 +72,10 @@ public class Business {
     @Column(columnDefinition = "TEXT")
     private String storeRefundPolicy;
 
+    // Texto corto de devoluciones impreso en el ticket — ver V36.
+    @Column(length = 200)
+    private String ticketRefundText;
+
     // Cola de impresión en la nube
     @Column(unique = true)
     private UUID printKey;

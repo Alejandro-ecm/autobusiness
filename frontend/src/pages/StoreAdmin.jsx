@@ -149,6 +149,7 @@ export default function StoreAdmin() {
         address:     b.address     || '',
         storePrivacyNotice: b.storePrivacyNotice || '',
         storeRefundPolicy:  b.storeRefundPolicy  || '',
+        ticketRefundText:   b.ticketRefundText    || '',
       })
       if (b.businessHours) {
         try { setHours({ ...DEFAULT_HOURS, ...JSON.parse(b.businessHours) }) } catch { /* ignore */ }
@@ -244,8 +245,10 @@ export default function StoreAdmin() {
     setDesignLoading(true)
     try {
       await businessApi.updateSettings({ ...design, businessHours: JSON.stringify(hours) })
-      // Refleja el nuevo nombre del negocio en el sidebar al instante (sin re-login)
+      // Refleja los cambios al instante (sin re-login): nombre en el sidebar,
+      // y el texto de devoluciones para que el próximo ticket ya lo use.
       if (design.name?.trim()) updateUser({ businessName: design.name.trim() })
+      updateUser({ ticketRefundText: design.ticketRefundText || null })
       show('Diseño guardado correctamente', 'success')
     } catch (e) {
       show(e?.error || 'Error al guardar diseño', 'error')
@@ -641,6 +644,20 @@ export default function StoreAdmin() {
                 placeholder="Déjalo vacío para usar la plantilla genérica…"
                 style={{ resize: 'vertical', fontFamily: 'inherit' }}
               />
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">Texto de devoluciones en el ticket impreso</label>
+              <input
+                className="input"
+                maxLength={200}
+                value={design.ticketRefundText}
+                onChange={e => setDesign(d => ({ ...d, ticketRefundText: e.target.value }))}
+                placeholder="Consulta nuestra política de cambios y devoluciones"
+              />
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                Se imprime al final de cada ticket del Punto de Venta. Vacío = texto neutro por defecto.
+              </p>
             </div>
           </div>
 

@@ -5,6 +5,7 @@
 
 const LINE_WIDTH = 32
 const CODE_PAGE = 16 // ESC t 16 = Windows-1252 (acentos en español)
+const DEFAULT_REFUND_TEXT = 'Consulta nuestra política de cambios y devoluciones'
 
 // Windows-1252 coincide con los code points Unicode en el rango de acentos
 // del español (á é í ó ú ñ ¿ ¡), así que basta truncar a un byte
@@ -129,7 +130,7 @@ export function buildEscposTicket(j) {
   line('Te esperamos pronto')
   feed(1)
   bold(true)
-  line('NO SE ACEPTAN DEVOLUCIONES')
+  for (const l of wrap(j.refundText || DEFAULT_REFUND_TEXT, LINE_WIDTH)) line(l)
   bold(false)
   feed(1)
   line('- Ticket de AutoBusiness AI -')

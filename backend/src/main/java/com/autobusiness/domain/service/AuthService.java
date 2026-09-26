@@ -96,6 +96,7 @@ public class AuthService {
         userMap.put("businessId",   user.getBusiness().getId());
         userMap.put("businessName", user.getBusiness().getName());
         userMap.put("businessSlug", user.getBusiness().getSlug());
+        userMap.put("ticketRefundText", user.getBusiness().getTicketRefundText());
         userMap.put("subscription", Map.of(
                 "plan",     sub.get("plan"),
                 "status",   sub.get("status"),

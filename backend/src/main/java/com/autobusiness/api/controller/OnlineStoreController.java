@@ -174,6 +174,10 @@ public class OnlineStoreController {
                 business.setStorePrivacyNotice(body.get("storePrivacyNotice") != null ? body.get("storePrivacyNotice").toString() : null);
             if (body.containsKey("storeRefundPolicy"))
                 business.setStoreRefundPolicy(body.get("storeRefundPolicy") != null ? body.get("storeRefundPolicy").toString() : null);
+            if (body.containsKey("ticketRefundText")) {
+                String text = body.get("ticketRefundText") != null ? body.get("ticketRefundText").toString().trim() : null;
+                business.setTicketRefundText((text == null || text.isEmpty()) ? null : text.substring(0, Math.min(200, text.length())));
+            }
 
             businessRepo.save(business);
             return ResponseEntity.ok(Map.of("message", "Configuración guardada"));

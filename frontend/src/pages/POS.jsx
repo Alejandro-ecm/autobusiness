@@ -17,6 +17,7 @@ import './POS.css'
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 const OFFLINE_KEY = 'ab_offline_sales'
+const DEFAULT_REFUND_TEXT = 'Consulta nuestra política de cambios y devoluciones'
 
 // Productos por peso (WEIGHT/MIXED) necesitan mostrar la unidad en el ticket —
 // "2.350 kg" en vez de "2.35" a secas, que un cliente no puede distinguir de
@@ -169,6 +170,7 @@ function buildTicketData(sale, user) {
     total: sale.total,
     received: sale.received || 0,
     change: sale.change || 0,
+    refundText: user.ticketRefundText || DEFAULT_REFUND_TEXT,
   }
 }
 
@@ -732,7 +734,7 @@ export default function POS() {
       <div class="foot center">
         <div class="thanks">★ ¡Gracias por tu compra! ★</div>
         <div>Fue un gusto atenderte — ¡te esperamos pronto! 💜</div>
-        <div class="noret">NO SE ACEPTAN DEVOLUCIONES</div>
+        <div class="noret">${esc(user.ticketRefundText) || DEFAULT_REFUND_TEXT}</div>
         <div style="margin-top:6px;color:#94a3b8">— Ticket generado por AutoBusiness AI —</div>
       </div>
       </div>

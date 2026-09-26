@@ -48,6 +48,7 @@ public class OnlineStoreService {
         biz.put("address", business.getAddress() != null ? business.getAddress() : "");
         biz.put("storePrivacyNotice", business.getStorePrivacyNotice() != null ? business.getStorePrivacyNotice() : "");
         biz.put("storeRefundPolicy", business.getStoreRefundPolicy() != null ? business.getStoreRefundPolicy() : "");
+        biz.put("ticketRefundText", business.getTicketRefundText() != null ? business.getTicketRefundText() : "");
         return Map.of("business", biz, "products", products);
     }
 
