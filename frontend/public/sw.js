@@ -1,10 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════
    AutoBusiness AI — Service Worker v1
-   Estrategia: Cache-First para assets, Network-First para API,
-   IndexedDB queue para POS offline
+   Estrategia: Cache-First para assets con hash, Network-First para
+   API/manifest.json/sw.js (para que reflejen cambios en el siguiente
+   reload sin depender de subir CACHE_NAME a mano), IndexedDB queue
+   para POS offline
 ═══════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME   = 'autobusiness-v3'
+const CACHE_NAME   = 'autobusiness-v4'
 const API_CACHE    = 'autobusiness-api-v1'
 const OFFLINE_DB   = 'ab-offline'
 const OFFLINE_STORE = 'pending-sales'
@@ -60,12 +62,21 @@ self.addEventListener('fetch', event => {
     return
   }
 
+  // manifest.json y el propio sw.js: Network-First. Son metadata de la PWA,
+  // no assets con hash — tienen que reflejar el cambio en el siguiente
+  // reload solo, sin depender de subir CACHE_NAME a mano cada vez (eso fue
+  // lo que obligo al bump manual a v3 para el fix de orientacion).
+  if (url.pathname === '/manifest.json' || url.pathname === '/sw.js') {
+    event.respondWith(networkFirstWithCache(event.request, CACHE_NAME))
+    return
+  }
+
   // API routes: Network-First con fallback a cache
   if (url.pathname.startsWith('/api/')) {
     const shouldCache = API_CACHE_ROUTES.some(r => url.pathname.startsWith(r))
 
     if (shouldCache) {
-      event.respondWith(networkFirstWithCache(event.request))
+      event.respondWith(networkFirstWithCache(event.request, API_CACHE, JSON.stringify({ error: 'Sin conexión', offline: true })))
     }
     return
   }
@@ -107,18 +118,23 @@ async function cacheFirstWithNetwork(req) {
   }
 }
 
-async function networkFirstWithCache(req) {
+// Network-First con cache de respaldo — recibe a que cache guardar (API_CACHE
+// para rutas de API, CACHE_NAME para manifest.json/sw.js) y un cuerpo
+// opcional para cuando no hay red y tampoco hay nada cacheado todavia.
+async function networkFirstWithCache(req, cacheName, offlineBody) {
   try {
     const resp = await fetch(req)
     if (resp.ok) {
-      const cache = await caches.open(API_CACHE)
+      const cache = await caches.open(cacheName)
       cache.put(req, resp.clone())
     }
     return resp
   } catch {
     const cached = await caches.match(req)
-    return cached || new Response(JSON.stringify({ error: 'Sin conexión', offline: true }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } })
+    if (cached) return cached
+    return offlineBody
+      ? new Response(offlineBody, { status: 503, headers: { 'Content-Type': 'application/json' } })
+      : new Response(null, { status: 503 })
   }
 }
 
