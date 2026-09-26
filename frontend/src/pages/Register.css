@@ -29,13 +29,6 @@
   font-size: 14px; color: #e0e7ff;
 }
 .register-plan-badge strong { color: #fff; }
-.register-testimonial {
-  background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px;
-}
-.register-testimonial p {
-  font-size: 15px; font-style: italic; opacity: 0.9; margin: 0 0 10px; line-height: 1.6;
-}
-.register-testimonial span { font-size: 13px; opacity: 0.6; }
 
 /* ── Right panel ── */
 .register-right {

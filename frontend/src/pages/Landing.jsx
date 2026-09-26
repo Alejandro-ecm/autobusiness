@@ -148,7 +148,7 @@ export default function Landing() {
       {/* CTA final */}
       <section className="landing-final-cta">
         <h2>¿Listo para hacer crecer tu negocio?</h2>
-        <p>Únete a cientos de tiendas mexicanas que ya usan AutoBusiness.</p>
+        <p>Únete a los negocios mexicanos que ya usan AutoBusiness.</p>
         <Link to="/register" className="landing-btn-hero">
           Crear mi cuenta ahora — es gratis
         </Link>

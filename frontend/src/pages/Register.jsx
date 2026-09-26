@@ -128,10 +128,6 @@ export default function Register() {
             </div>
           )}
         </div>
-        <div className="register-testimonial">
-          <p>"Antes manejaba el inventario en papel. Con AutoBusiness ya tengo todo en el celular."</p>
-          <span>— Tienda de abarrotes, CDMX</span>
-        </div>
       </div>
 
       <div className="register-right">
