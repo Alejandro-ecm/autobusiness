@@ -394,3 +394,7 @@
 /* Leaflet map picker */
 .leaflet-container { font-family: inherit; }
 .leaflet-control-attribution { font-size: 9px; }
+
+.legal-checkbox-input:focus-visible ~ .legal-checkbox-box {
+  outline: 2px solid #6366f1; outline-offset: 2px;
+}

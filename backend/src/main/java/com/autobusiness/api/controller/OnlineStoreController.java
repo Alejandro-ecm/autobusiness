@@ -39,7 +39,8 @@ public class OnlineStoreController {
     @PostMapping("/store/{slug}/orders")
     public ResponseEntity<?> placeOrder(
             @PathVariable String slug,
-            @RequestBody Map<String, Object> body) {
+            @RequestBody Map<String, Object> body,
+            jakarta.servlet.http.HttpServletRequest request) {
         try {
             @SuppressWarnings("unchecked")
             List<Map<String, Object>> items = (List<Map<String, Object>>) body.get("items");
@@ -49,6 +50,7 @@ public class OnlineStoreController {
                     ? body.get("paymentMethod").toString() : "cash_on_delivery";
             String deliveryType = body.get("deliveryType") != null
                     ? body.get("deliveryType").toString() : "delivery";
+            boolean consentAccepted = Boolean.parseBoolean(String.valueOf(body.get("consentAccepted")));
             return ResponseEntity.ok(storeService.placeOrder(
                     slug,
                     body.get("customerName")    != null ? body.get("customerName").toString()    : "Cliente",
@@ -59,11 +61,21 @@ public class OnlineStoreController {
                     lat, lng,
                     items,
                     paymentMethod,
-                    deliveryType
+                    deliveryType,
+                    consentAccepted,
+                    getClientIp(request)
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
+        String xff = request.getHeader("X-Forwarded-For");
+        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) return realIp.trim();
+        return request.getRemoteAddr();
     }
 
     // Público — crear preferencia de Mercado Pago para una orden de tienda online

@@ -27,6 +27,7 @@ public class OnlineStoreService {
     private final BranchRepository branchRepo;
     private final EventPublisher eventPublisher;
     private final NotificationService notificationService;
+    private final LegalService legalService;
 
     public Map<String, Object> getStorefront(String businessSlug) {
         Business business = businessRepo.findBySlug(businessSlug)
@@ -49,7 +50,12 @@ public class OnlineStoreService {
                              String customerPhone, String deliveryAddress, String mapsUrl,
                              Double deliveryLat, Double deliveryLng,
                              List<Map<String, Object>> items,
-                             String paymentMethod, String deliveryType) {
+                             String paymentMethod, String deliveryType,
+                             boolean consentAccepted, String consentIp) {
+        if (!consentAccepted) {
+            throw new IllegalArgumentException("Debes aceptar el Aviso de Privacidad y los Términos para continuar");
+        }
+
         Business business = businessRepo.findBySlug(businessSlug)
                 .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
 
@@ -57,6 +63,7 @@ public class OnlineStoreService {
         String resolvedPaymentMethod = (paymentMethod != null && !paymentMethod.isBlank())
                 ? paymentMethod : "cash_on_delivery";
         String resolvedDeliveryType = "pickup".equals(deliveryType) ? "pickup" : "delivery";
+        Map<String, String> legalVersions = legalService.getActiveVersions();
 
         Order order = Order.builder()
                 .business(business)
@@ -70,6 +77,11 @@ public class OnlineStoreService {
                 .deliveryLng(deliveryLng)
                 .paymentMethod(resolvedPaymentMethod)
                 .deliveryType(resolvedDeliveryType)
+                .consentAccepted(true)
+                .consentTermsVersion(legalVersions.get("termsVersion"))
+                .consentPrivacyVersion(legalVersions.get("privacyVersion"))
+                .consentIp(consentIp)
+                .consentAt(Instant.now())
                 .build();
 
         BigDecimal total = BigDecimal.ZERO;

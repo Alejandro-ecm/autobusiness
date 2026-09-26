@@ -413,6 +413,7 @@ export default function Storefront() {
   const [paymentMethod, setPaymentMethod] = useState('online')
   const [deliveryType, setDeliveryType] = useState('delivery')
   const [customer, setCustomer] = useState({ name: '', phone: '', email: '', address: '', mapsUrl: '', lat: null, lng: null })
+  const [consentAccepted, setConsentAccepted] = useState(false)
   const [locating, setLocating] = useState(false)
   const [locationAccuracy, setLocationAccuracy] = useState(null)
   const [showMap, setShowMap] = useState(false)
@@ -507,6 +508,10 @@ export default function Storefront() {
       if (!showMap) getLocation()
       return
     }
+    if (!consentAccepted) {
+      show('Debes aceptar el Aviso de Privacidad y los Términos para continuar', 'error')
+      return
+    }
     setOrdering(true)
     try {
       const res = await storeApi.placeOrder(slug, {
@@ -518,6 +523,7 @@ export default function Storefront() {
         deliveryLat:     customer.lat,
         deliveryLng:     customer.lng,
         deliveryType,
+        consentAccepted,
         items: cart.map(i => ({ productId: i.productId, quantity: i.qty }))
       })
       setOrderResult(res)
@@ -842,6 +848,40 @@ export default function Storefront() {
                 </button>
               </div>
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 14, cursor: 'pointer' }}>
+              <span style={{ position: 'relative', width: 20, height: 20, flexShrink: 0, marginTop: 1 }}>
+                <input
+                  type="checkbox"
+                  checked={consentAccepted}
+                  onChange={() => setConsentAccepted(v => !v)}
+                  className="legal-checkbox-input"
+                  style={{ position: 'absolute', inset: 0, width: 20, height: 20, margin: 0, opacity: 0, cursor: 'pointer' }}
+                />
+                <div
+                  aria-hidden="true"
+                  className="legal-checkbox-box"
+                  style={{
+                    width: 20, height: 20, borderRadius: 5,
+                    border: `2px solid ${consentAccepted ? '#6366f1' : '#cbd5e1'}`,
+                    background: consentAccepted ? '#6366f1' : '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all .15s', pointerEvents: 'none',
+                  }}>
+                  {consentAccepted && (
+                    <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                      <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                </div>
+              </span>
+              <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
+                He leído y acepto el{' '}
+                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>Aviso de Privacidad</a>
+                {' '}y los{' '}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>Términos y Condiciones</a>.
+              </span>
+            </label>
 
             <button type="submit" className="sf-btn-primary"
               style={{ width: '100%', marginTop: 12, ...((deliveryType === 'delivery' && (!customer.lat || !customer.lng)) ? { opacity: .55, filter: 'grayscale(.4)' } : {}) }}

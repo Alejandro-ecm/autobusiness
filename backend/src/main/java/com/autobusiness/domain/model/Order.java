@@ -57,6 +57,15 @@ public class Order {
 
     private String notes;
 
+    // Consentimiento del comprador (checkout público, sin cuenta) — ver V34.
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean consentAccepted = false;
+    private String consentTermsVersion;
+    private String consentPrivacyVersion;
+    private String consentIp;
+    private Instant consentAt;
+
     @CreationTimestamp
     private Instant createdAt;
 
