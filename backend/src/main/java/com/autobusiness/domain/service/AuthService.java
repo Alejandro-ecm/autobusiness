@@ -238,6 +238,8 @@ public class AuthService {
 
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
+        if (!business.isActive())
+            throw new IllegalStateException("Esta cuenta ya fue eliminada y no se puede recuperar");
         business.setDeletionRequestedAt(null);
         businessRepo.save(business);
 
@@ -268,6 +270,9 @@ public class AuthService {
         business.setActive(false);
         business.setSuspended(true);
         business.setName("[Eliminado] " + business.getName());
+        // Limpiar la marca de solicitud — si no, runScheduledDeletions() la
+        // volveria a encontrar y reprocesar cada noche indefinidamente.
+        business.setDeletionRequestedAt(null);
         businessRepo.save(business);
 
         log.info("Account deletion executed: business={}", businessId);
@@ -295,6 +300,8 @@ public class AuthService {
     public Map<String, Object> exportAccountData(UUID userId, UUID businessId) {
         User user = userRepo.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado"));
+        if (!user.getBusiness().getId().equals(businessId))
+            throw new IllegalStateException("No tienes permiso sobre este negocio");
 
         Map<String, Object> profile = new HashMap<>();
         profile.put("id", user.getId());

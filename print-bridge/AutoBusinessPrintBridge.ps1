@@ -241,7 +241,8 @@ function Build-SaleTicket($j) {
     T-Line $t 'Te esperamos pronto'
     T-Feed $t 1
     T-Bold $t $true
-    T-Line $t 'NO SE ACEPTAN DEVOLUCIONES'
+    $refundText = if ($j.refundText) { [string]$j.refundText } else { 'Consulta nuestra politica de cambios y devoluciones' }
+    foreach ($line in (Split-Wrap $refundText $LineWidth)) { T-Line $t $line }
     T-Bold $t $false
     T-Feed $t 1
     T-Line $t '- Ticket de AutoBusiness AI -'

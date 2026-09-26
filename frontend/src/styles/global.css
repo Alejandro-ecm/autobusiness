@@ -86,6 +86,11 @@ input, textarea, select { font-family: var(--font); }
   color: #fff;
 }
 .btn-primary:hover { background: #4338ca; }
+
+/* Checkbox accesible reutilizado en Register/Login/Storefront (consentimiento legal) */
+.legal-checkbox-input:focus-visible ~ .legal-checkbox-box {
+  outline: 2px solid #6366f1; outline-offset: 2px;
+}
 .btn-outline {
   background: transparent;
   color: var(--color-text);

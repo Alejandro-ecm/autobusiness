@@ -97,6 +97,8 @@ public class AuthController {
     public ResponseEntity<?> exportAccountData(@AuthenticationPrincipal AuthPrincipal p) {
         try {
             return ResponseEntity.ok(authService.exportAccountData(p.userId(), p.businessId()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(403).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "Error al exportar datos"));
         }

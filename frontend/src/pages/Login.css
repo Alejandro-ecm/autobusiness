@@ -184,7 +184,3 @@
   border-radius: 4px;
   font-family: monospace;
 }
-
-.legal-checkbox-input:focus-visible ~ .legal-checkbox-box {
-  outline: 2px solid #6366f1; outline-offset: 2px;
-}

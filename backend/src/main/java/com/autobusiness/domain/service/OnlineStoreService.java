@@ -59,12 +59,12 @@ public class OnlineStoreService {
                              List<Map<String, Object>> items,
                              String paymentMethod, String deliveryType,
                              boolean consentAccepted, String consentIp) {
+        Business business = businessRepo.findBySlug(businessSlug)
+                .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
+
         if (!consentAccepted) {
             throw new IllegalArgumentException("Debes aceptar el Aviso de Privacidad y los Términos para continuar");
         }
-
-        Business business = businessRepo.findBySlug(businessSlug)
-                .orElseThrow(() -> new IllegalArgumentException("Tienda no encontrada"));
 
         String orderNumber = generateOrderNumber(business.getId());
         String resolvedPaymentMethod = (paymentMethod != null && !paymentMethod.isBlank())

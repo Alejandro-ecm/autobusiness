@@ -39,8 +39,6 @@ export function DraftBanner({ children }) {
   )
 }
 
-export const legalStyles = styles
-
 const styles = {
   page: {
     minHeight: '100vh',
@@ -153,3 +151,5 @@ const styles = {
     flexWrap: 'wrap',
   },
 }
+
+export const legalStyles = styles

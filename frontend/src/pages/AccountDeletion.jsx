@@ -513,20 +513,6 @@ const styles = {
     textDecoration: 'none',
     fontWeight: 500,
   },
-  emailBox: {
-    background: '#f8fafc',
-    border: '1.5px solid #e2e8f0',
-    borderRadius: 10,
-    padding: '14px',
-    textAlign: 'center',
-    margin: '12px 0',
-  },
-  emailLink: {
-    color: '#6366f1',
-    fontWeight: 700,
-    fontSize: 15,
-    textDecoration: 'none',
-  },
   footer: {
     marginTop: 32,
     paddingTop: 24,
