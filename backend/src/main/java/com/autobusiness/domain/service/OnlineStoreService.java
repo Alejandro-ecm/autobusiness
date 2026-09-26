@@ -42,6 +42,12 @@ public class OnlineStoreService {
         biz.put("storeTheme", business.getStoreTheme() != null ? business.getStoreTheme() : "modern");
         biz.put("mpPublicKey", business.getMpPublicKey() != null ? business.getMpPublicKey() : "");
         biz.put("businessHours", business.getBusinessHours() != null ? business.getBusinessHours() : "");
+        // Datos de contacto visibles al publico (aviso de privacidad / PROFECO)
+        biz.put("phone", business.getPhone() != null ? business.getPhone() : "");
+        biz.put("email", business.getEmail() != null ? business.getEmail() : "");
+        biz.put("address", business.getAddress() != null ? business.getAddress() : "");
+        biz.put("storePrivacyNotice", business.getStorePrivacyNotice() != null ? business.getStorePrivacyNotice() : "");
+        biz.put("storeRefundPolicy", business.getStoreRefundPolicy() != null ? business.getStoreRefundPolicy() : "");
         return Map.of("business", biz, "products", products);
     }
 

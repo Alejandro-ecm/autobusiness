@@ -145,6 +145,10 @@ export default function StoreAdmin() {
         logoUrl:     b.logoUrl     || '',
         bannerUrl:   b.bannerUrl   || '',
         storeTheme:  b.storeTheme  || 'modern',
+        phone:       b.phone       || '',
+        address:     b.address     || '',
+        storePrivacyNotice: b.storePrivacyNotice || '',
+        storeRefundPolicy:  b.storeRefundPolicy  || '',
       })
       if (b.businessHours) {
         try { setHours({ ...DEFAULT_HOURS, ...JSON.parse(b.businessHours) }) } catch { /* ignore */ }
@@ -580,6 +584,63 @@ export default function StoreAdmin() {
                 </div>
               )}
               {bannerError && <p className="design-preview-error">No se pudo cargar la imagen.</p>}
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">Teléfono de contacto</label>
+              <input
+                className="input"
+                value={design.phone}
+                onChange={e => setDesign(d => ({ ...d, phone: e.target.value }))}
+                placeholder="Ej: 55 1234 5678"
+              />
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">Domicilio del negocio</label>
+              <input
+                className="input"
+                value={design.address}
+                onChange={e => setDesign(d => ({ ...d, address: e.target.value }))}
+                placeholder="Calle, número, colonia, ciudad"
+              />
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                Se muestra en el pie de tu tienda y en tu aviso de privacidad — requerido por la ley para negocios que venden en línea.
+              </p>
+            </div>
+          </div>
+
+          {/* Legal */}
+          <div className="card design-section">
+            <h3 className="design-section-title">Aviso de privacidad y devoluciones de tu tienda</h3>
+            <p className="design-section-sub">
+              Estos textos se muestran públicamente en tu Tienda Online. Si los dejas vacíos, se
+              muestra una plantilla genérica con los datos de tu negocio — te recomendamos
+              personalizarla y hacerla revisar por un abogado antes de considerarla definitiva.
+            </p>
+
+            <div className="design-field">
+              <label className="design-label">Aviso de Privacidad de tu tienda</label>
+              <textarea
+                className="input"
+                rows={6}
+                value={design.storePrivacyNotice}
+                onChange={e => setDesign(d => ({ ...d, storePrivacyNotice: e.target.value }))}
+                placeholder="Déjalo vacío para usar la plantilla genérica…"
+                style={{ resize: 'vertical', fontFamily: 'inherit' }}
+              />
+            </div>
+
+            <div className="design-field">
+              <label className="design-label">Política de reembolsos y devoluciones de tu tienda</label>
+              <textarea
+                className="input"
+                rows={5}
+                value={design.storeRefundPolicy}
+                onChange={e => setDesign(d => ({ ...d, storeRefundPolicy: e.target.value }))}
+                placeholder="Déjalo vacío para usar la plantilla genérica…"
+                style={{ resize: 'vertical', fontFamily: 'inherit' }}
+              />
             </div>
           </div>
 

@@ -166,6 +166,14 @@ public class OnlineStoreController {
             }
             if (body.containsKey("businessHours"))
                 business.setBusinessHours(body.get("businessHours") != null ? body.get("businessHours").toString() : null);
+            if (body.containsKey("phone"))
+                business.setPhone(body.get("phone") != null ? body.get("phone").toString() : null);
+            if (body.containsKey("address"))
+                business.setAddress(body.get("address") != null ? body.get("address").toString() : null);
+            if (body.containsKey("storePrivacyNotice"))
+                business.setStorePrivacyNotice(body.get("storePrivacyNotice") != null ? body.get("storePrivacyNotice").toString() : null);
+            if (body.containsKey("storeRefundPolicy"))
+                business.setStoreRefundPolicy(body.get("storeRefundPolicy") != null ? body.get("storeRefundPolicy").toString() : null);
 
             businessRepo.save(business);
             return ResponseEntity.ok(Map.of("message", "Configuración guardada"));

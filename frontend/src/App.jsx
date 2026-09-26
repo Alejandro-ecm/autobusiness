@@ -28,6 +28,10 @@ import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsOfService from './pages/TermsOfService'
 import AccountDeletion from './pages/AccountDeletion'
 import AcceptableUse from './pages/AcceptableUse'
+import CookiePolicy from './pages/CookiePolicy'
+import RefundPolicy from './pages/RefundPolicy'
+import StorePrivacyPolicy from './pages/StorePrivacyPolicy'
+import StoreRefundPolicy from './pages/StoreRefundPolicy'
 import Checkout from './pages/Checkout'
 import Soporte from './pages/Soporte'
 import EmpleadosIA from './pages/EmpleadosIA'
@@ -59,6 +63,8 @@ function AppRoutes() {
       <Route path="/reset-password" element={<Login />} />
       <Route path="/register" element={(user && !user.requiresLegalAcceptance) ? <Navigate to={home} /> : <Register />} />
       <Route path="/tienda/:slug" element={<Storefront />} />
+      <Route path="/tienda/:slug/privacidad" element={<StorePrivacyPolicy />} />
+      <Route path="/tienda/:slug/reembolsos" element={<StoreRefundPolicy />} />
       <Route path="/marketplace" element={<Marketplace />} />
       <Route path="/payment/success" element={<PaymentResult />} />
       <Route path="/payment/failure" element={<PaymentResult />} />
@@ -66,6 +72,10 @@ function AppRoutes() {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacidad" element={<PrivacyPolicy />} />
+      <Route path="/terminos" element={<TermsOfService />} />
+      <Route path="/cookies" element={<CookiePolicy />} />
+      <Route path="/reembolsos" element={<RefundPolicy />} />
       <Route path="/account-deletion" element={<AccountDeletion />} />
       <Route path="/acceptable-use" element={<AcceptableUse />} />
 

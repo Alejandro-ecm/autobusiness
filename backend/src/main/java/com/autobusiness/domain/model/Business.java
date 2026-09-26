@@ -66,6 +66,12 @@ public class Business {
     @Column(columnDefinition = "TEXT")
     private String businessHours;
 
+    // Plantillas legales de la Tienda Online, editables por el dueño — ver V35.
+    @Column(columnDefinition = "TEXT")
+    private String storePrivacyNotice;
+    @Column(columnDefinition = "TEXT")
+    private String storeRefundPolicy;
+
     // Cola de impresión en la nube
     @Column(unique = true)
     private UUID printKey;
