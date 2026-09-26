@@ -508,7 +508,7 @@ export default function POS() {
   const total = Math.max(0, subtotalRaw - discountAmount)
   const change = cashReceived ? parseFloat(cashReceived) - total : 0
 
-  const doCheckout = async (offlineFallback = false) => {
+  const doCheckout = async (offlineFallback = false, clientSaleId) => {
     const payload = {
       branchId: user.branchId,
       items: cart.map(i => i.isCustom
@@ -517,6 +517,7 @@ export default function POS() {
       paymentMethod: payMethod,
       cashReceived: payMethod === 'cash' && cashReceived ? parseFloat(cashReceived) : undefined,
       discountAmount: discountAmount > 0 ? discountAmount : undefined,
+      clientSaleId,
     }
 
     if (offlineFallback) {
@@ -574,12 +575,13 @@ export default function POS() {
   const directToTicket = async () => {
     setPayBrick({ open: false, preferenceId: null, mpPublicKey: null, amount: 0 })
     setLoading(true)
+    const clientSaleId = crypto.randomUUID()
     try {
-      if (!isOnline) { await doCheckout(true); return }
-      await doCheckout(false)
+      if (!isOnline) { await doCheckout(true, clientSaleId); return }
+      await doCheckout(false, clientSaleId)
     } catch (err) {
       if (!navigator.onLine) {
-        await doCheckout(true)
+        await doCheckout(true, clientSaleId)
       } else {
         show(err?.response?.data?.error || err?.message || 'Error al registrar venta', 'error')
       }
@@ -616,12 +618,13 @@ export default function POS() {
 
 
     setLoading(true)
+    const clientSaleId = crypto.randomUUID()
     try {
-      if (!isOnline) { await doCheckout(true); return }
-      await doCheckout(false)
+      if (!isOnline) { await doCheckout(true, clientSaleId); return }
+      await doCheckout(false, clientSaleId)
     } catch (err) {
       if (!navigator.onLine) {
-        await doCheckout(true)
+        await doCheckout(true, clientSaleId)
       } else {
         show(err?.response?.data?.error || err?.message || 'Error al procesar venta', 'error')
       }
@@ -1372,7 +1375,7 @@ export default function POS() {
                   onClick={async () => {
                     setCardConfirm(false)
                     setLoading(true)
-                    try { await doCheckout(false) }
+                    try { await doCheckout(false, crypto.randomUUID()) }
                     catch (err) { show(err?.error || err?.message || 'Error al registrar venta', 'error') }
                     finally { setLoading(false) }
                   }}

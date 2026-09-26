@@ -85,6 +85,9 @@ public class PosController {
             throw new IllegalArgumentException("Se requiere branchId");
         }
 
+        Object clientSaleIdObj = body.get("clientSaleId");
+        String clientSaleId = clientSaleIdObj != null ? clientSaleIdObj.toString() : null;
+
         Sale sale = posService.checkout(new PosService.CheckoutRequest(
                 principal.businessId(),
                 UUID.fromString(branchIdObj.toString()),
@@ -92,7 +95,8 @@ public class PosController {
                 items,
                 body.getOrDefault("paymentMethod", "cash").toString(),
                 cashReceived,
-                discountAmount
+                discountAmount,
+                clientSaleId
         ));
 
         return ResponseEntity.ok(Map.of(
@@ -192,7 +196,8 @@ public class PosController {
                         items,
                         "card",
                         null,
-                        discountAmount));
+                        discountAmount,
+                        null)); // pago con tarjeta vía Bricks: no pasa por el flujo offline
 
                 String transactionId = mpResult.get("id").toString();
                 mpService.linkSaleToPayment(transactionId, sale.getId());

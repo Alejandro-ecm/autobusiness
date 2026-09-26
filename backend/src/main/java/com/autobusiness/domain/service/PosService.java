@@ -6,10 +6,15 @@ import com.autobusiness.events.EventPublisher;
 import com.autobusiness.events.SaleCreatedEvent;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -30,8 +35,22 @@ public class PosService {
     private final CashRegisterSessionRepository sessionRepo;
     private final CategoryRepository categoryRepo;
     private final EventPublisher eventPublisher;
+    private final PlatformTransactionManager txManager;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    // Transaccion propia (no la del metodo que la invoca) para el intento de
+    // guardado: si el INSERT choca con el indice unico de clientSaleId, esta
+    // transaccion hace rollback SOLA y el metodo que llama puede seguir
+    // usando su propia conexion/transaccion para leer la venta que sí se
+    // guardo, en vez de heredar un estado "aborted" de Postgres.
+    private TransactionTemplate requiresNewTx;
+
+    @PostConstruct
+    void initTx() {
+        requiresNewTx = new TransactionTemplate(txManager);
+        requiresNewTx.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    }
 
     /**
      * quantity es BigDecimal para soportar kg decimales (ej: 1.750).
@@ -58,11 +77,46 @@ public class PosService {
             List<CartItemRequest> items,
             String paymentMethod,
             BigDecimal cashReceived,
-            BigDecimal discountAmount
+            BigDecimal discountAmount,
+            // Idempotencia de ventas offline — ver clientSaleId en Sale.java.
+            // Null para los flujos que no lo necesitan (tarjeta, pedidos online).
+            String clientSaleId
     ) {}
 
-    @Transactional
+    /**
+     * Idempotente cuando req.clientSaleId() no es null: un reintento con el
+     * mismo id nunca crea una segunda venta ni descuenta stock dos veces.
+     * 1) Se busca primero por si ya se proceso (caso normal: red se corto
+     *    DESPUES de que el servidor ya guardo, pero la respuesta no llego).
+     * 2) Si no existe, se intenta guardar en una transaccion propia
+     *    (REQUIRES_NEW). Si dos reintentos llegan casi al mismo tiempo, el
+     *    indice unico de BD hace fallar al segundo con
+     *    DataIntegrityViolationException — se captura y se devuelve la venta
+     *    que si se alcanzo a guardar, en vez de propagar el error.
+     */
     public Sale checkout(CheckoutRequest req) {
+        if (req.clientSaleId() != null) {
+            Optional<Sale> existing = saleRepo.findByBusinessIdAndClientSaleId(req.businessId(), req.clientSaleId());
+            if (existing.isPresent()) {
+                log.info("checkout.idempotent.hit clientSaleId={} saleId={}", req.clientSaleId(), existing.get().getId());
+                return existing.get();
+            }
+        }
+        try {
+            return requiresNewTx.execute(status -> buildAndSaveSale(req));
+        } catch (DataIntegrityViolationException e) {
+            if (req.clientSaleId() != null) {
+                Optional<Sale> saved = saleRepo.findByBusinessIdAndClientSaleId(req.businessId(), req.clientSaleId());
+                if (saved.isPresent()) {
+                    log.info("checkout.idempotent.race clientSaleId={} saleId={}", req.clientSaleId(), saved.get().getId());
+                    return saved.get();
+                }
+            }
+            throw e;
+        }
+    }
+
+    private Sale buildAndSaveSale(CheckoutRequest req) {
         Business business = businessRepo.findById(req.businessId())
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
         Branch branch = branchRepo.findById(req.branchId())
@@ -162,7 +216,13 @@ public class PosService {
             sale.setChangeGiven(req.cashReceived().subtract(total));
         }
 
-        Sale saved = saleRepo.save(sale);
+        sale.setClientSaleId(req.clientSaleId());
+
+        // saveAndFlush (no save): fuerza el INSERT ya, dentro de esta transaccion
+        // REQUIRES_NEW, para que una violacion del indice unico de
+        // clientSaleId se traduzca a DataIntegrityViolationException aqui
+        // mismo y no como una excepcion menos predecible al hacer commit.
+        Sale saved = saleRepo.saveAndFlush(sale);
         log.info("sale.created id={} business={} total={}", saved.getId(), req.businessId(), saved.getTotal());
         eventPublisher.publish(new SaleCreatedEvent(saved));
         return saved;

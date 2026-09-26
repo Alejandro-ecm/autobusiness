@@ -17,6 +17,8 @@ public interface SaleRepository extends JpaRepository<Sale, UUID> {
     boolean existsBySourceOrderId(UUID sourceOrderId);
     java.util.Optional<Sale> findBySourceOrderId(UUID sourceOrderId);
 
+    java.util.Optional<Sale> findByBusinessIdAndClientSaleId(UUID businessId, String clientSaleId);
+
     @Query("SELECT COALESCE(SUM(s.total), 0) FROM Sale s WHERE s.business.id = :businessId " +
            "AND s.createdAt BETWEEN :from AND :to AND s.status = 'completed'")
     BigDecimal sumByBusinessAndPeriod(@Param("businessId") UUID businessId,

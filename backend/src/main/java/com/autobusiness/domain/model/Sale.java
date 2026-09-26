@@ -66,6 +66,14 @@ public class Sale {
     @Column(name = "source_order_id")
     private UUID sourceOrderId;
 
+    // Generado por el frontend (crypto.randomUUID()) al armar el cobro — el
+    // mismo id se reenvia en cada reintento de una venta offline, para que
+    // el backend pueda detectar duplicados si se corta la red a medio
+    // checkout. Nulo para ventas que no pasan por ese flujo (tarjeta directa,
+    // pedidos online).
+    @Column(name = "client_sale_id", length = 64)
+    private String clientSaleId;
+
     @CreationTimestamp
     private Instant createdAt;
 

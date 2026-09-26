@@ -2,14 +2,12 @@
    AutoBusiness AI — Service Worker v1
    Estrategia: Cache-First para assets con hash, Network-First para
    API/manifest.json/sw.js (para que reflejen cambios en el siguiente
-   reload sin depender de subir CACHE_NAME a mano), IndexedDB queue
-   para POS offline
+   reload sin depender de subir CACHE_NAME a mano). Las ventas offline
+   del POS se encolan en localStorage (ver POS.jsx), no aquí.
 ═══════════════════════════════════════════════════════════════ */
 
 const CACHE_NAME   = 'autobusiness-v4'
 const API_CACHE    = 'autobusiness-api-v1'
-const OFFLINE_DB   = 'ab-offline'
-const OFFLINE_STORE = 'pending-sales'
 
 const STATIC_ASSETS = [
   '/',
@@ -138,46 +136,6 @@ async function networkFirstWithCache(req, cacheName, offlineBody) {
   }
 }
 
-// ── Background Sync: enviar ventas pendientes ─────────────────
-self.addEventListener('sync', event => {
-  if (event.tag === 'sync-pending-sales') {
-    event.waitUntil(syncPendingSales())
-  }
-})
-
-async function syncPendingSales() {
-  const db   = await openDB()
-  const sales = await getAllPending(db)
-  if (!sales.length) return
-
-  const token = await getToken()
-  let synced  = 0
-
-  for (const sale of sales) {
-    try {
-      const resp = await fetch('/api/pos/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(sale.data),
-      })
-      if (resp.ok) {
-        await deletePending(db, sale.id)
-        synced++
-      }
-    } catch { /* retry next time */ }
-  }
-
-  if (synced > 0) {
-    self.registration.showNotification('AutoBusiness', {
-      body: `${synced} venta${synced > 1 ? 's' : ''} sincronizada${synced > 1 ? 's' : ''} correctamente`,
-      icon: '/favicon-192.png',
-    })
-  }
-}
-
 // ── Push Notifications ────────────────────────────────────────
 self.addEventListener('push', event => {
   let data = { title: 'AutoBusiness', body: 'Tienes una notificación nueva' }
@@ -199,39 +157,3 @@ self.addEventListener('notificationclick', event => {
   const url = event.notification.data?.url || '/'
   event.waitUntil(clients.openWindow(url))
 })
-
-// ── IndexedDB helpers ─────────────────────────────────────────
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(OFFLINE_DB, 1)
-    req.onupgradeneeded = e => {
-      e.target.result.createObjectStore(OFFLINE_STORE, { keyPath: 'id', autoIncrement: true })
-    }
-    req.onsuccess = e => resolve(e.target.result)
-    req.onerror   = e => reject(e.target.error)
-  })
-}
-
-function getAllPending(db) {
-  return new Promise((resolve, reject) => {
-    const tx  = db.transaction(OFFLINE_STORE, 'readonly')
-    const req = tx.objectStore(OFFLINE_STORE).getAll()
-    req.onsuccess = () => resolve(req.result)
-    req.onerror   = () => reject(req.error)
-  })
-}
-
-function deletePending(db, id) {
-  return new Promise((resolve, reject) => {
-    const tx  = db.transaction(OFFLINE_STORE, 'readwrite')
-    const req = tx.objectStore(OFFLINE_STORE).delete(id)
-    req.onsuccess = resolve
-    req.onerror   = () => reject(req.error)
-  })
-}
-
-async function getToken() {
-  const clients = await self.clients.matchAll()
-  // Token se pasa via postMessage desde el cliente
-  return null
-}
