@@ -4,7 +4,7 @@
    IndexedDB queue para POS offline
 ═══════════════════════════════════════════════════════════════ */
 
-const CACHE_NAME   = 'autobusiness-v2'
+const CACHE_NAME   = 'autobusiness-v3'
 const API_CACHE    = 'autobusiness-api-v1'
 const OFFLINE_DB   = 'ab-offline'
 const OFFLINE_STORE = 'pending-sales'
