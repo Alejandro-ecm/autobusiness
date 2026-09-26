@@ -115,7 +115,7 @@ export default function SuperAdmin() {
         value={search} onChange={e => setSearch(e.target.value)} style={{ maxWidth: 340 }} />
 
       {/* Tabla */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card" style={{ padding: 0, overflowX: 'auto', overflowY: 'hidden' }}>
         <table className="inv-table">
           <thead>
             <tr>

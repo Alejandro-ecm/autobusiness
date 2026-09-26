@@ -891,7 +891,7 @@ export default function Inventory() {
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card" style={{ padding: 0, overflowX: 'auto', overflowY: 'hidden' }}>
         <table className="inv-table">
           <thead>
             <tr>

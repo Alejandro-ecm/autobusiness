@@ -342,7 +342,7 @@ export default function StoreAdmin() {
             {bulkLoading && <span className="spinner" style={{ width: 16, height: 16 }} />}
           </div>
         )}
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="card" style={{ padding: 0, overflowX: 'auto', overflowY: 'hidden' }}>
           <table className="inv-table">
             <thead>
               <tr>

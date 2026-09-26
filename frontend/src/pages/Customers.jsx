@@ -162,7 +162,7 @@ export default function Customers() {
       />
 
       {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="card" style={{ padding: 0, overflowX: 'auto', overflowY: 'hidden' }}>
         <table className="inv-table">
           <thead>
             <tr>

@@ -353,7 +353,7 @@ export default function Reports() {
               <p className="text-soft">Sin ventas en este período</p>
             </div>
           ) : (
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="card" style={{ padding: 0, overflowX: 'auto', overflowY: 'hidden' }}>
               <table className="inv-table">
                 <thead>
                   <tr>
