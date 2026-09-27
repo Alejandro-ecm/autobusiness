@@ -372,6 +372,31 @@
   text-align: center;
 }
 
+/* Cantidad tecleable directamente (ej. "50" copias) en vez de solo +1/-1 */
+.qty-value-input {
+  font-size: 14px;
+  font-weight: 600;
+  width: 40px;
+  text-align: center;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 2px 0;
+  color: inherit;
+  font-family: inherit;
+}
+.qty-value-input:hover,
+.qty-value-input:focus {
+  border-color: var(--color-border);
+  background: var(--color-bg);
+  outline: none;
+}
+.qty-value-input::-webkit-inner-spin-button,
+.qty-value-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .cart-item-price {
   margin-left: auto;
   font-size: 16px;
