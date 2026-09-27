@@ -19,6 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
@@ -26,6 +27,11 @@ import java.util.*;
 @RequiredArgsConstructor
 @Slf4j
 public class PosService {
+
+    // Negocio 100% Mexico — el "dia" del corte de caja debe cortar a
+    // medianoche hora local, no medianoche UTC (que cae a las 6pm hora de
+    // CDMX y hacia que ventas de la noche anterior aparecieran como "de hoy").
+    private static final ZoneId MX_ZONE = ZoneId.of("America/Mexico_City");
 
     private final SaleRepository saleRepo;
     private final ProductRepository productRepo;
@@ -311,7 +317,7 @@ public class PosService {
 
     // ── Corte de caja ────────────────────────────────────────────────────────
     public Map<String, Object> getTodaySummary(UUID businessId) {
-        Instant from = Instant.now().truncatedTo(ChronoUnit.DAYS);
+        Instant from = Instant.now().atZone(MX_ZONE).toLocalDate().atStartOfDay(MX_ZONE).toInstant();
         Instant to   = Instant.now();
 
         BigDecimal totalRevenue = Objects.requireNonNullElse(
@@ -348,7 +354,7 @@ public class PosService {
 
     @Transactional
     public Map<String, Object> closeRegister(UUID businessId, UUID cashierId, String notes) {
-        Instant from = Instant.now().truncatedTo(ChronoUnit.DAYS);
+        Instant from = Instant.now().atZone(MX_ZONE).toLocalDate().atStartOfDay(MX_ZONE).toInstant();
         Instant to   = Instant.now();
 
         BigDecimal totalRevenue = Objects.requireNonNullElse(

@@ -10,12 +10,18 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class DashboardService {
+
+    // Mismo criterio que PosService: "hoy" corta a medianoche hora de
+    // CDMX, no UTC (evita que ventas de la noche anterior, o el arranque
+    // del dia, muestren cifras que no corresponden a la fecha local).
+    private static final ZoneId MX_ZONE = ZoneId.of("America/Mexico_City");
 
     private final SaleRepository saleRepo;
     private final ProductRepository productRepo;
@@ -27,7 +33,7 @@ public class DashboardService {
 
     public Map<String, Object> getOwnerDashboard(UUID businessId) {
         Instant now = Instant.now();
-        Instant todayStart = now.truncatedTo(ChronoUnit.DAYS);
+        Instant todayStart = now.atZone(MX_ZONE).toLocalDate().atStartOfDay(MX_ZONE).toInstant();
         Instant monthStart = now.minus(30, ChronoUnit.DAYS);
         Instant prevMonthStart = now.minus(60, ChronoUnit.DAYS);
 
