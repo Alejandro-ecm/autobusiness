@@ -1004,7 +1004,16 @@ export default function POS() {
                     ) : (
                       <>
                         <button className="qty-btn" onClick={() => updateQty(item.cartKey, item.quantity - 1)}>−</button>
-                        <span className="qty-value">{item.quantity}</span>
+                        <input
+                          className="qty-value-input"
+                          type="number"
+                          inputMode="numeric"
+                          min="1"
+                          step="1"
+                          value={item.quantity}
+                          onFocus={e => e.target.select()}
+                          onChange={e => updateQty(item.cartKey, parseInt(e.target.value, 10) || 0)}
+                        />
                         <button
                           className="qty-btn"
                           onClick={() => updateQty(item.cartKey, item.quantity + 1)}
