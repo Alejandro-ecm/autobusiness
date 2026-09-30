@@ -630,6 +630,15 @@ export default function Finance() {
                 </span>
                 <span className="conta-amount negative">({fmt(data.cost)})</span>
               </div>
+              {Number(data.lossCost) > 0 && (
+                <div className="conta-row conta-row--cost">
+                  <span>
+                    🗑️ (−) Merma
+                    <Tooltip text="Productos golpeados, podridos o caducados que se dieron de baja, valuados a costo. Se registran desde Inventario." />
+                  </span>
+                  <span className="conta-amount negative">({fmt(data.lossCost)})</span>
+                </div>
+              )}
               <div className="conta-row conta-row--cost">
                 <span>
                   🔁 Transferencias internas recibidas

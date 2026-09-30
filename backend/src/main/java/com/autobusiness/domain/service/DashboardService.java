@@ -30,6 +30,7 @@ public class DashboardService {
     private final BranchRepository branchRepo;
     private final PurchaseRepository purchaseRepo;
     private final InventoryTransferRepository transferRepo;
+    private final InventoryMovementRepository movementRepo;
 
     public Map<String, Object> getOwnerDashboard(UUID businessId) {
         Instant now = Instant.now();
@@ -98,7 +99,11 @@ public class DashboardService {
                 transferRepo.sumIncomingCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
         BigDecimal outgoingTransferCost = Objects.requireNonNullElse(
                 transferRepo.sumOutgoingCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
-        BigDecimal grossProfit = revenue.subtract(cost);
+        // Merma a costo del periodo (golpeado/podrido/caducado) — antes no se
+        // reflejaba en Finanzas, solo en la tarjeta de Inventario.
+        BigDecimal lossCost = Objects.requireNonNullElse(
+                movementRepo.sumLossCostByBusinessAndPeriod(businessId, from, now), BigDecimal.ZERO);
+        BigDecimal grossProfit = revenue.subtract(cost).subtract(lossCost);
         BigDecimal margin = revenue.compareTo(BigDecimal.ZERO) == 0 ? BigDecimal.ZERO :
                 grossProfit.divide(revenue, 4, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100)).setScale(1, RoundingMode.HALF_UP);
@@ -129,6 +134,7 @@ public class DashboardService {
         result.put("period", "ultimos 30 dias");
         result.put("revenue", revenue);
         result.put("cost", cost);
+        result.put("lossCost", lossCost);
         result.put("purchases", purchases);
         result.put("netCash", netCash);
         result.put("incomingTransferCost", incomingTransferCost);
