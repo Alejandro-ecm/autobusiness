@@ -92,7 +92,11 @@ public class InventoryController {
         try {
             BigDecimal delta = new BigDecimal(body.get("delta").toString());
             String reason = body.get("reason") != null ? body.get("reason").toString() : "Ajuste manual";
-            return ResponseEntity.ok(inventoryService.adjustStock(principal.businessId(), productId, delta, reason));
+            // Unico override de tipo permitido desde el cliente: LOSS (merma).
+            // Cualquier otro valor se ignora y el tipo se infiere del signo de delta.
+            String rawType = body.get("type") != null ? body.get("type").toString() : null;
+            String type = "LOSS".equals(rawType) ? "LOSS" : null;
+            return ResponseEntity.ok(inventoryService.adjustStock(principal.businessId(), productId, delta, reason, principal.userId(), type));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

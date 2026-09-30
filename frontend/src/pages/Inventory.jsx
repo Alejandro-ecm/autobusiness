@@ -198,6 +198,10 @@ export default function Inventory() {
   const [adjustProduct, setAdjustProduct] = useState(null)
   const [adjustQty,     setAdjustQty]     = useState('')
   const [adjusting,     setAdjusting]     = useState(false)
+  const [losses,        setLosses]        = useState([])
+  const [mermaMode,     setMermaMode]     = useState(false)
+  const [mermaMotivo,   setMermaMotivo]   = useState('')
+  const [mermaNota,     setMermaNota]     = useState('')
   const [genLoading,    setGenLoading]    = useState(null)   // productId generando
   const [printSelected, setPrintSelected] = useState(new Set())
   const [bulkGenerating, setBulkGenerating] = useState(false)
@@ -215,6 +219,13 @@ export default function Inventory() {
 
   const loadEarnings = () => categoriesApi.earnings().then(setCatEarnings).catch(() => {})
 
+  // Mermas de los últimos 7 días — el backend ya guarda estos movimientos
+  // como type=LOSS, solo filtramos del feed general (sin endpoint nuevo).
+  const loadLosses = () => inventoryApi.movements().then(data => {
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000
+    setLosses(data.filter(m => m.type === 'LOSS' && new Date(m.createdAt).getTime() >= weekAgo))
+  }).catch(() => {})
+
   const toggleEarnings = () => {
     const next = !showEarnings
     setShowEarnings(next)
@@ -224,6 +235,7 @@ export default function Inventory() {
   useEffect(() => {
     load()
     loadCategories()
+    loadLosses()
     const iv = setInterval(load, 15_000)
     return () => clearInterval(iv)
   }, [])
@@ -273,6 +285,7 @@ export default function Inventory() {
   const totalRetailValue = products.reduce((s, p) => s + p.price * p.stock, 0)
   const outOfStock = products.filter(p => p.stock === 0).length
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= p.minStock).length
+  const lossValue = losses.reduce((s, m) => s + m.quantity * (m.product?.cost || 0), 0)
 
   const printInventory = () => {
     const rows = filtered.map(p => {
@@ -698,17 +711,37 @@ export default function Inventory() {
   const openAdjust = (product) => {
     setAdjustProduct(product)
     setAdjustQty('')
+    setMermaMode(false)
+    setMermaMotivo('')
+    setMermaNota('')
   }
 
-  const doAdjust = async (delta) => {
+  const closeAdjust = () => {
+    setAdjustProduct(null)
+    setMermaMode(false)
+    setMermaMotivo('')
+    setMermaNota('')
+  }
+
+  const MERMA_MOTIVOS = ['Golpeado', 'Podrido', 'Caducado', 'Otro']
+
+  const doAdjust = async (delta, isMerma = false) => {
     const qty = parseFloat(adjustQty)
     if (!qty || qty <= 0) { show('Ingresa una cantidad válida mayor a 0', 'error'); return }
+    if (isMerma && !mermaMotivo) { show('Selecciona el motivo de la merma', 'error'); return }
     setAdjusting(true)
     try {
-      await inventoryApi.adjustStock(adjustProduct.id, delta > 0 ? qty : -qty, 'Ajuste manual')
-      show(delta > 0 ? `+${qty} unidades agregadas` : `-${qty} unidades quitadas`, 'success')
-      setAdjustProduct(null)
+      if (isMerma) {
+        const reason = 'Merma: ' + mermaMotivo + (mermaNota.trim() ? ' — ' + mermaNota.trim() : '')
+        await inventoryApi.adjustStock(adjustProduct.id, -qty, reason, 'LOSS')
+        show(`🗑️ Merma registrada: -${qty} unidades`, 'success')
+      } else {
+        await inventoryApi.adjustStock(adjustProduct.id, delta > 0 ? qty : -qty, 'Ajuste manual')
+        show(delta > 0 ? `+${qty} unidades agregadas` : `-${qty} unidades quitadas`, 'success')
+      }
+      closeAdjust()
       load()
+      loadLosses()
     } catch (err) {
       show(err?.error || 'Error al ajustar', 'error')
     } finally { setAdjusting(false) }
@@ -775,6 +808,7 @@ export default function Inventory() {
           <div className="inv-stat"><span className="inv-stat-val" style={{ color: '#15803d' }}>${totalRetailValue.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span><span className="inv-stat-label">Valor a precio venta</span></div>
           <div className="inv-stat"><span className="inv-stat-val" style={{ color: outOfStock > 0 ? '#b91c1c' : '#15803d' }}>{outOfStock}</span><span className="inv-stat-label">Agotados</span></div>
           <div className="inv-stat"><span className="inv-stat-val" style={{ color: lowStockCount > 0 ? '#b45309' : '#15803d' }}>{lowStockCount}</span><span className="inv-stat-label">Stock bajo</span></div>
+          <div className="inv-stat"><span className="inv-stat-val" style={{ color: lossValue > 0 ? '#b91c1c' : '#15803d' }}>${lossValue.toLocaleString('es-MX', { maximumFractionDigits: 0 })}</span><span className="inv-stat-label">Merma (7 días)</span></div>
         </div>
       )}
 
@@ -1458,11 +1492,11 @@ export default function Inventory() {
 
       {/* ── Modal Ajustar inventario ── */}
       {adjustProduct && (
-        <div className="modal-overlay" onClick={() => setAdjustProduct(null)}>
+        <div className="modal-overlay" onClick={closeAdjust}>
           <div className="modal-box card" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Ajustar inventario</h3>
-              <button className="modal-close" onClick={() => setAdjustProduct(null)}>×</button>
+              <button className="modal-close" onClick={closeAdjust}>×</button>
             </div>
 
             <div style={{ padding: '0 0 16px' }}>
@@ -1542,6 +1576,76 @@ export default function Inventory() {
                 </button>
               </div>
 
+              {/* Merma: golpeado/podrido/caducado/otro — se guarda como
+                  movimiento tipo LOSS con motivo obligatorio, distinto de
+                  un "quitar" normal, para poder reportar cuánto se pierde
+                  por semana y por qué */}
+              {!mermaMode ? (
+                <button
+                  className="btn"
+                  disabled={adjusting || !adjustQty}
+                  onClick={() => setMermaMode(true)}
+                  style={{
+                    width: '100%', marginTop: 10,
+                    background: '#fff7ed', color: '#c2410c', border: '1px solid #fdba74',
+                    borderRadius: 12, padding: '10px 10px', fontWeight: 700, fontSize: 13,
+                    cursor: adjusting || !adjustQty ? 'not-allowed' : 'pointer',
+                    opacity: adjusting || !adjustQty ? 0.6 : 1,
+                  }}>
+                  🗑️ Registrar como merma (golpeado, podrido, caducado)
+                </button>
+              ) : (
+                <div style={{
+                  marginTop: 10, background: '#fff7ed', border: '1px solid #fdba74',
+                  borderRadius: 12, padding: 12,
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#c2410c', marginBottom: 8 }}>
+                    Motivo de la merma *
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                    {MERMA_MOTIVOS.map(m => (
+                      <button key={m} type="button"
+                        onClick={() => setMermaMotivo(m)}
+                        style={{
+                          padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                          border: mermaMotivo === m ? '1.5px solid #c2410c' : '1px solid #fdba74',
+                          background: mermaMotivo === m ? '#c2410c' : '#fff',
+                          color: mermaMotivo === m ? '#fff' : '#c2410c',
+                          cursor: 'pointer',
+                        }}>
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    className="input"
+                    placeholder="Nota opcional (ej: se cayó la caja al acomodar)"
+                    value={mermaNota}
+                    onChange={e => setMermaNota(e.target.value)}
+                    style={{ fontSize: 13, marginBottom: 10 }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      className="btn"
+                      disabled={adjusting || !adjustQty || !mermaMotivo}
+                      onClick={() => doAdjust(-1, true)}
+                      style={{
+                        flex: 1, background: '#c2410c', color: '#fff', border: 'none',
+                        borderRadius: 10, padding: '10px', fontWeight: 700, fontSize: 13,
+                        cursor: adjusting || !adjustQty || !mermaMotivo ? 'not-allowed' : 'pointer',
+                        opacity: adjusting || !adjustQty || !mermaMotivo ? 0.6 : 1,
+                      }}>
+                      Confirmar merma
+                    </button>
+                    <button type="button" className="btn btn-outline"
+                      onClick={() => { setMermaMode(false); setMermaMotivo(''); setMermaNota('') }}
+                      style={{ flex: '0 0 auto' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Preview del resultado */}
               {adjustQty && parseFloat(adjustQty) > 0 && (
                 <div style={{
@@ -1559,7 +1663,7 @@ export default function Inventory() {
               )}
 
               <div style={{ marginTop: 16, textAlign: 'center' }}>
-                <button className="btn btn-outline" onClick={() => setAdjustProduct(null)}>Cancelar</button>
+                <button className="btn btn-outline" onClick={closeAdjust}>Cancelar</button>
               </div>
             </div>
           </div>

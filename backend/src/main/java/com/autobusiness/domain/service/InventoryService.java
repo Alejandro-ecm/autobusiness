@@ -33,11 +33,21 @@ public class InventoryService {
 
     @Transactional
     public Product adjustStock(UUID businessId, UUID productId, BigDecimal delta, String reason) {
-        return adjustStock(businessId, productId, delta, reason, null);
+        return adjustStock(businessId, productId, delta, reason, null, null);
     }
 
     @Transactional
     public Product adjustStock(UUID businessId, UUID productId, BigDecimal delta, String reason, UUID userId) {
+        return adjustStock(businessId, productId, delta, reason, userId, null);
+    }
+
+    /**
+     * type permite marcar explicitamente el movimiento (ej. "LOSS" para merma)
+     * en vez de inferirlo del signo de delta. Null preserva el comportamiento
+     * anterior (IN/OUT segun signo).
+     */
+    @Transactional
+    public Product adjustStock(UUID businessId, UUID productId, BigDecimal delta, String reason, UUID userId, String type) {
         Product product = productRepo.findById(productId)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
 
@@ -55,7 +65,7 @@ public class InventoryService {
         movementRepo.save(InventoryMovement.builder()
                 .business(product.getBusiness())
                 .product(product)
-                .type(delta.compareTo(BigDecimal.ZERO) >= 0 ? "IN" : "OUT")
+                .type(type != null ? type : (delta.compareTo(BigDecimal.ZERO) >= 0 ? "IN" : "OUT"))
                 .quantity(delta.abs())
                 .reason(reason != null ? reason : "Ajuste manual")
                 .createdBy(user)
