@@ -112,3 +112,24 @@ cd ai-engine && pip install -r requirements.txt && uvicorn main:app --reload --p
 # 4. Frontend
 cd frontend && npm install && npm run dev
 ```
+
+## Smoke test (correr ANTES de cada deploy)
+
+Verifica que la app real carga sin errores — cosas que `vite build`/`mvn package`
+no detectan (errores de runtime, pantallas en blanco, loaders colgados).
+Requiere el stack levantado (`docker compose up` o el modo local de arriba).
+
+```bash
+cd frontend && node scripts/smoke.mjs
+```
+
+Prueba: login con el usuario demo, luego `/caja`, `/reports`, `/inventory`,
+`/finance`, `/customers`, `/privacidad`, `/terminos`, `/cookies`, `/reembolsos`
+y la Tienda Online pública (`/tienda/tienda-demo`). Marca FALLA si hay errores
+de consola (`console.error`/`pageerror`), si la pantalla se queda en el loader
+más de 10s, o si no aparece el elemento clave de esa ruta. Sale con código 1
+si algo falla — úsalo como gate antes de desplegar.
+
+Variables opcionales: `SMOKE_APP_URL` (default `http://localhost:3000`),
+`SMOKE_API_URL` (default `http://localhost:8080/api`), `SMOKE_EMAIL` /
+`SMOKE_PASSWORD` (default el usuario demo).
