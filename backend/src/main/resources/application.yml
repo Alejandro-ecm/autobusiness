@@ -98,6 +98,13 @@ vapid:
   private-key: ${VAPID_PRIVATE_KEY:6rxdQXencpdVzluBdjhZe-7e1S9MXMSwnhdOOgwp2us}
   subject: ${VAPID_SUBJECT:https://autobusiness.skytechnologieslatam.com}
 
+account:
+  deletion:
+    # true = runScheduledDeletions() solo registra en el log que negocios
+    # eliminaria (sin tocar nada). Default false: no cambia el comportamiento
+    # ya activo en produccion. Util para verificar el job sin riesgo.
+    dry-run: ${ACCOUNT_DELETION_DRY_RUN:false}
+
 app:
   base-url: ${APP_BASE_URL:https://autobusiness.skytechnologieslatam.com}
   base-domain: ${APP_BASE_DOMAIN:autobusiness.skytechnologieslatam.com}

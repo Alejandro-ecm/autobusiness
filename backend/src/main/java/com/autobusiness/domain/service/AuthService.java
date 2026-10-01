@@ -73,6 +73,13 @@ public class AuthService {
     @Value("${app.base-url}")
     private String appBaseUrl;
 
+    // Si es true, runScheduledDeletions() solo registra en el log qué
+    // negocios ELIMINARIA, sin tocar nada — util para verificar el cutoff
+    // de dias en un ambiente real (incluida produccion) sin riesgo. Default
+    // false: el comportamiento actual (ya en produccion) no cambia solo.
+    @Value("${account.deletion.dry-run:false}")
+    private boolean deletionDryRun;
+
     public Map<String, Object> login(String email, String password) {
         User user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Credenciales inválidas"));
@@ -258,6 +265,17 @@ public class AuthService {
         Business business = businessRepo.findById(businessId)
                 .orElseThrow(() -> new IllegalArgumentException("Negocio no encontrado"));
 
+        // Guarda de idempotencia: si ya se proceso antes (business.isActive()
+        // == false), no se vuelve a anonimizar nada. Protege contra una
+        // segunda invocacion sobre el mismo negocio (reintento manual, doble
+        // trigger, etc.) ademas de la proteccion normal via
+        // deletionRequestedAt=null que ya evita que runScheduledDeletions()
+        // lo vuelva a encontrar.
+        if (!business.isActive()) {
+            log.warn("executeAccountDeletion: business={} ya estaba inactivo, no se reprocesa", businessId);
+            return;
+        }
+
         String tombstone = UUID.randomUUID().toString();
         userRepo.findByBusinessId(businessId).forEach(u -> {
             u.setEmail("deleted-" + u.getId() + "@deleted.autobusiness");
@@ -285,7 +303,12 @@ public class AuthService {
         Instant cutoff = Instant.now().minus(DELETION_GRACE_PERIOD_DAYS, ChronoUnit.DAYS);
         for (Business b : businessRepo.findByDeletionRequestedAtIsNotNull()) {
             if (b.getDeletionRequestedAt().isBefore(cutoff) || b.getDeletionRequestedAt().equals(cutoff)) {
-                executeAccountDeletion(b.getId());
+                if (deletionDryRun) {
+                    log.warn("DRY-RUN account.deletion: se eliminaria business={} name={} deletionRequestedAt={}",
+                            b.getId(), b.getName(), b.getDeletionRequestedAt());
+                } else {
+                    executeAccountDeletion(b.getId());
+                }
             }
         }
     }
