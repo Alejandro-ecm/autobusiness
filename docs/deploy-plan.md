@@ -85,15 +85,27 @@ contenedores en producción, usar `restart` o `up -d` (sin `-v`, sin
   `docker-compose.prod.yml` + `setup-server.sh` son una **ruta de
   despliegue alterna** (VPS self-hosted) — no corren dentro de Vercel y no
   sirven el dominio de producción actual. No confundirlos con el flujo real.
-- **Riesgo confirmado de Preview Deployments**: el rewrite en `vercel.json`
-  es estático (no varía por environment), así que cualquier Preview
-  Deployment (ej. al pushear una rama como `release/2026-10`) apunta al
-  **mismo** backend de Railway de producción — no existe un backend de
-  staging. Si se navega una URL de Preview, **no** hacer login real, no
-  completar checkouts, no registrar negocios de prueba ahí — cualquier
-  acción de escritura toca datos reales. (Mejora futura, no bloqueante:
-  usar `vercel.ts` con `deploymentEnv` para apuntar Preview a un backend de
-  staging, una vez que ese staging exista.)
+- **Mitigación de Preview Deployments (reemplaza el "riesgo aceptado"
+  anterior)**: el rewrite en `vercel.json` es estático (no varía por
+  environment), así que cualquier Preview Deployment (ej. al pushear una
+  rama como `release/2026-10`) apuntaría al **mismo** backend de Railway de
+  producción si no se hace nada — no existe un backend de staging. La
+  mitigación elegida: fijar `VITE_API_URL` con scope **Preview únicamente**
+  (ni Production ni Development) en un valor inválido/seguro (ej.
+  `https://preview-disabled.invalid`), para que cualquier llamada desde un
+  Preview Deployment falle limpiamente en vez de escribir contra datos
+  reales. Es pura configuración del dashboard de Vercel, no toca código.
+  Pasos (los ejecuta el dueño del proyecto en Vercel, no vía CLI/CI):
+  1. Vercel → proyecto → **Settings → Environment Variables**.
+  2. **Add New** → key `VITE_API_URL`, value `https://preview-disabled.invalid`,
+     scope: marcar únicamente **Preview** (desmarcar Production y Development).
+  3. Guardar y confirmar que no existe ya una `VITE_API_URL` en Production
+     que choque (no debería — ver tabla de variables más abajo).
+  4. Re-generar (redeploy) cualquier Preview Deployment existente para que
+     tome la variable nueva.
+  (Mejora futura, no bloqueante: usar `vercel.ts` con `deploymentEnv` para
+  apuntar Preview a un backend de staging real, una vez que ese staging
+  exista — más preciso que invalidar la URL, pero no es necesario hoy.)
 - **Auto-deploy de Vercel sobre `main` — pendiente de confirmar en el
   dashboard** (no se puede ver desde el repo; CLI de Vercel no instalado en
   esta sesión). Dos escenarios:
@@ -123,7 +135,8 @@ contenedores en producción, usar `restart` o `up -d` (sin `-v`, sin
 
 | Variable | Requerida para | Si falta |
 |---|---|---|
-| `VITE_*` | Ninguna fijada hoy — el cliente usa rutas relativas `/api` | N/A |
+| `VITE_API_URL` (scope **Preview**) | Mitigación de Preview Deployments (ver "Topología real de producción" arriba) — valor inválido a propósito para que Preview no escriba contra el Railway de producción | Pendiente de que el usuario la configure en el dashboard; sin ella, Preview seguiría compartiendo el backend de producción |
+| `VITE_*` en Production/Development | Ninguna fijada — el cliente usa rutas relativas `/api` | N/A |
 | Llave **pública** de VAPID | Solo si en el futuro el frontend necesita `pushManager.subscribe()` en el navegador | No rompe nada hoy, push notifications son server-initiated |
 
 Nunca poner la llave **privada** de VAPID ni `RESEND_API_KEY` en Vercel —
