@@ -1,23 +1,31 @@
 package com.autobusiness.api.controller;
 
 import com.autobusiness.config.JwtAuthFilter.AuthPrincipal;
+import com.autobusiness.config.RateLimiter;
 import com.autobusiness.domain.service.AuthService;
 import com.autobusiness.domain.service.MercadoPagoService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Slf4j
 public class AuthController {
+
+    private static final int FORGOT_PASSWORD_MAX_ATTEMPTS = 5;
+    private static final Duration FORGOT_PASSWORD_WINDOW = Duration.ofMinutes(15);
 
     private final AuthService authService;
     private final MercadoPagoService mpService;
+    private final RateLimiter rateLimiter;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
@@ -50,8 +58,17 @@ public class AuthController {
 
     /** POST /auth/forgot-password — siempre responde 200 genérico, exista o no el email */
     @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
-        authService.forgotPassword(body.get("email"));
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body, HttpServletRequest request) {
+        // request.getRemoteAddr() ya viene resuelto de forma segura por
+        // Tomcat (server.forward-headers-strategy=native, ver application.yml)
+        String ip = request.getRemoteAddr();
+        if (rateLimiter.allow("forgot-password:" + ip, FORGOT_PASSWORD_MAX_ATTEMPTS, FORGOT_PASSWORD_WINDOW)) {
+            authService.forgotPassword(body.get("email"));
+        } else {
+            log.warn("forgot-password rate limit excedido para IP {}", ip);
+        }
+        // Mismo mensaje genérico en ambos casos — no revela si se bloqueó por
+        // rate limit o si el email no existe.
         return ResponseEntity.ok(Map.of("message", "Si el correo existe, te enviamos un enlace para recuperar tu contraseña"));
     }
 

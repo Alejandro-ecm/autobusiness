@@ -40,11 +40,25 @@ server:
   # viene de una IP interna (rangos privados RFC1918 + loopback — el default
   # de Tomcat, sin sobreescribir server.tomcat.remoteip.internal-proxies).
   # Una peticion que llega directo desde internet con esos headers falsos NO
-  # cambia request.getRemoteAddr() — el header simplemente se ignora. Hoy
-  # (sin proxy en produccion todavia) esto ya cubre el caso real: el nginx
-  # del contenedor frontend, que SI esta en la red interna de Docker.
-  # Si en el futuro se agrega un proxy publico (Cloudflare, un load balancer
-  # externo), hay que sumar su rango de IPs a internal-proxies aqui.
+  # cambia request.getRemoteAddr() — el header simplemente se ignora. Esto es
+  # cierto sin importar si la peticion pasa por un proxy intermedio o no:
+  # quien conecta via TCP directo al contenedor siempre es el proxy interno
+  # confiable, nunca el atacante.
+  #
+  # Topologia real de produccion (confirmada 2026-09-30): frontend en Vercel,
+  # backend aqui en Railway — Vercel hace rewrite de /api/* hacia esta URL de
+  # Railway (ver vercel.json en la raiz del repo), el navegador nunca llama
+  # directo a Railway. El nginx de docker-compose.prod.yml/setup-server.sh es
+  # una ruta de despliegue alterna (VPS self-hosted), no la que sirve el
+  # dominio de produccion actual.
+  #
+  # PENDIENTE: no esta confirmado si el rango interno real que usa Railway
+  # entre su borde publico y este contenedor cae dentro del default de Tomcat
+  # (RFC1918+loopback) o si es otro rango (ej. CGNAT 100.64.0.0/10). No se
+  # adivina aqui — usar GET /super-admin/diagnostics/request-info (SUPER_ADMIN,
+  # con app.diagnostics-enabled=true temporalmente) desde dos redes reales
+  # distintas para confirmarlo antes de, si hace falta, sobreescribir
+  # server.tomcat.remoteip.internal-proxies con el rango real observado.
   forward-headers-strategy: native
   tomcat:
     threads:

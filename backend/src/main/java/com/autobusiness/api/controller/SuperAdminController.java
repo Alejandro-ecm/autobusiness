@@ -7,9 +7,12 @@ import com.autobusiness.domain.repository.BusinessRepository;
 import com.autobusiness.domain.repository.SaleRepository;
 import com.autobusiness.domain.repository.SubscriptionRepository;
 import com.autobusiness.domain.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +31,13 @@ public class SuperAdminController {
     private final UserRepository userRepo;
     private final SubscriptionRepository subscriptionRepo;
     private final SaleRepository saleRepo;
+
+    // Apaga/enciende GET /super-admin/diagnostics/request-info. Default false
+    // a propósito — es un endpoint temporal, solo para verificar en vivo la
+    // topología real de red (Vercel -> Railway) tras un deploy; se enciende
+    // en Railway únicamente durante esa verificación y se vuelve a apagar.
+    @Value("${app.diagnostics-enabled:false}")
+    private boolean diagnosticsEnabled;
 
     /** Verifica que quien llama es SUPER_ADMIN */
     private void requireSuperAdmin(AuthPrincipal p) {
@@ -139,5 +149,27 @@ public class SuperAdminController {
         sub.setCurrentPeriodEnd(Instant.now().plus(30, ChronoUnit.DAYS));
         subscriptionRepo.save(sub);
         return ResponseEntity.ok(Map.of("plan", plan, "status", "ACTIVE"));
+    }
+
+    /**
+     * GET /api/super-admin/diagnostics/request-info — endpoint temporal para
+     * confirmar en producción, llamando desde redes distintas, que la IP
+     * resuelta (request.getRemoteAddr()) es la IP pública real de cada
+     * cliente y no colapsa a una IP interna de Railway. Nunca incluye
+     * Authorization/Cookie. Requiere SUPER_ADMIN + app.diagnostics-enabled=true.
+     */
+    @GetMapping("/diagnostics/request-info")
+    public ResponseEntity<?> requestInfo(@AuthenticationPrincipal AuthPrincipal p, HttpServletRequest request) {
+        requireSuperAdmin(p);
+        if (!diagnosticsEnabled) {
+            throw new AccessDeniedException("Diagnostics deshabilitado (app.diagnostics-enabled=false)");
+        }
+        return ResponseEntity.ok(Map.of(
+                "remoteAddr",        request.getRemoteAddr(),
+                "xForwardedFor",     Optional.ofNullable(request.getHeader("X-Forwarded-For")).orElse(""),
+                "xRealIp",           Optional.ofNullable(request.getHeader("X-Real-IP")).orElse(""),
+                "xForwardedProto",   Optional.ofNullable(request.getHeader("X-Forwarded-Proto")).orElse(""),
+                "xForwardedHost",    Optional.ofNullable(request.getHeader("X-Forwarded-Host")).orElse("")
+        ));
     }
 }
