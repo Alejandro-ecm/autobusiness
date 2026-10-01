@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { store as storeApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import { getProductEmoji } from '../utils/productEmoji'
+import ConsentCheckbox from '../components/ConsentCheckbox'
 import './Storefront.css'
 import 'leaflet/dist/leaflet.css'
 
@@ -849,39 +850,17 @@ export default function Storefront() {
               </div>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginTop: 14, cursor: 'pointer' }}>
-              <span style={{ position: 'relative', width: 20, height: 20, flexShrink: 0, marginTop: 1 }}>
-                <input
-                  type="checkbox"
-                  checked={consentAccepted}
-                  onChange={() => setConsentAccepted(v => !v)}
-                  className="legal-checkbox-input"
-                  style={{ position: 'absolute', inset: 0, width: 20, height: 20, margin: 0, opacity: 0, cursor: 'pointer' }}
-                />
-                <div
-                  aria-hidden="true"
-                  className="legal-checkbox-box"
-                  style={{
-                    width: 20, height: 20, borderRadius: 5,
-                    border: `2px solid ${consentAccepted ? '#6366f1' : '#cbd5e1'}`,
-                    background: consentAccepted ? '#6366f1' : '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'all .15s', pointerEvents: 'none',
-                  }}>
-                  {consentAccepted && (
-                    <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
-                      <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </div>
-              </span>
-              <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1.5 }}>
-                He leído y acepto el{' '}
-                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>Aviso de Privacidad</a>
-                {' '}y los{' '}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>Términos y Condiciones</a>.
-              </span>
-            </label>
+            <ConsentCheckbox
+              checked={consentAccepted}
+              onChange={() => setConsentAccepted(v => !v)}
+              style={{ marginTop: 14 }}
+              labelStyle={{ fontSize: 12, color: '#64748b' }}
+            >
+              He leído y acepto el{' '}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>Aviso de Privacidad</a>
+              {' '}y los{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#6366f1', fontWeight: 600 }}>Términos y Condiciones</a>.
+            </ConsentCheckbox>
 
             <button type="submit" className="sf-btn-primary"
               style={{ width: '100%', marginTop: 12, ...((deliveryType === 'delivery' && (!customer.lat || !customer.lng)) ? { opacity: .55, filter: 'grayscale(.4)' } : {}) }}

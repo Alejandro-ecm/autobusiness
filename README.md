@@ -133,3 +133,13 @@ si algo falla — úsalo como gate antes de desplegar.
 Variables opcionales: `SMOKE_APP_URL` (default `http://localhost:3000`),
 `SMOKE_API_URL` (default `http://localhost:8080/api`), `SMOKE_EMAIL` /
 `SMOKE_PASSWORD` (default el usuario demo).
+
+## Auditoría de accesibilidad (axe-core)
+
+Corre axe-core sobre las mismas rutas del smoke test y resume violaciones
+por severidad (critical/serious/moderate/minor). Es un reporte para revisar
+manualmente, no bloquea el deploy (no sale con código de error).
+
+```bash
+cd frontend && node scripts/a11y.mjs
+```

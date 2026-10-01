@@ -4,6 +4,7 @@ import { useAuth } from '../store/AuthContext'
 import { legal as legalApi } from '../api'
 import { trackEvent } from '../lib/alejandria'
 import { validateEmailDomain } from '../lib/emailValidation'
+import ConsentCheckbox from '../components/ConsentCheckbox'
 import './Register.css'
 
 function DocModal({ type, title, onClose }) {
@@ -178,49 +179,24 @@ export default function Register() {
                 { key: 'privacy',       type: 'privacy',       label: 'Política de Privacidad' },
                 { key: 'acceptableUse', type: 'acceptable-use',label: 'Política de Uso Aceptable' },
               ].map(({ key, type, label }) => (
-                <label key={key} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10,
-                  cursor: 'pointer',
-                }}>
-                  <span style={{ position: 'relative', width: 20, height: 20, flexShrink: 0, marginTop: 1 }}>
-                    <input
-                      type="checkbox"
-                      checked={accepted[key]}
-                      onChange={() => setAccepted(a => ({ ...a, [key]: !a[key] }))}
-                      className="legal-checkbox-input"
-                      style={{ position: 'absolute', inset: 0, width: 20, height: 20, margin: 0, opacity: 0, cursor: 'pointer' }}
-                    />
-                    <div
-                      aria-hidden="true"
-                      className="legal-checkbox-box"
-                      style={{
-                        width: 20, height: 20, borderRadius: 5,
-                        border: `2px solid ${accepted[key] ? '#6366f1' : '#cbd5e1'}`,
-                        background: accepted[key] ? '#6366f1' : '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all .15s', pointerEvents: 'none',
-                      }}>
-                      {accepted[key] && (
-                        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
-                          <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </div>
-                  </span>
-                  <span style={{ fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
-                    He leído y acepto{' '}
-                    <button
-                      type="button"
-                      onClick={() => setDocModal({ type, title: label })}
-                      style={{
-                        background: 'none', border: 'none', padding: 0,
-                        color: '#6366f1', fontWeight: 600, cursor: 'pointer',
-                        textDecoration: 'underline', fontSize: 13,
-                      }}>
-                      los {label}
-                    </button>.
-                  </span>
-                </label>
+                <ConsentCheckbox
+                  key={key}
+                  checked={accepted[key]}
+                  onChange={() => setAccepted(a => ({ ...a, [key]: !a[key] }))}
+                  style={{ marginBottom: 10 }}
+                >
+                  He leído y acepto{' '}
+                  <button
+                    type="button"
+                    onClick={() => setDocModal({ type, title: label })}
+                    style={{
+                      background: 'none', border: 'none', padding: 0,
+                      color: '#6366f1', fontWeight: 600, cursor: 'pointer',
+                      textDecoration: 'underline', fontSize: 13,
+                    }}>
+                    los {label}
+                  </button>.
+                </ConsentCheckbox>
               ))}
 
               {/* Declaración */}
