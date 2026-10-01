@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { scaleSupported, scaleConnected, subscribeScale, getLastReading } from '../../utils/scaleReader'
+import { sellsByWeight } from '../../utils/businessProfile'
 import './HardwareBar.css'
 
 const SHORTCUTS = [
@@ -10,11 +11,13 @@ const SHORTCUTS = [
 
 // Franja delgada de estado de hardware + atajos de teclado, arriba de la
 // parrilla de productos. La báscula solo se muestra si el navegador la
-// soporta (Web Serial) — en un dispositivo sin esa capacidad (móvil, Safari,
-// Firefox) simplemente no aparece, no es un negocio que necesite verla.
-export default function HardwareBar() {
+// soporta (Web Serial) y si el giro del negocio vende por peso — en un
+// dispositivo sin esa capacidad, o en un negocio que no pesa (papelería),
+// simplemente no aparece.
+export default function HardwareBar({ profileType }) {
   const [connected, setConnected] = useState(scaleConnected())
   const [reading, setReading] = useState(getLastReading())
+  const showScale = scaleSupported() && sellsByWeight(profileType)
 
   useEffect(() => {
     if (!scaleSupported()) return
@@ -25,7 +28,7 @@ export default function HardwareBar() {
 
   return (
     <div className="pos-hwbar">
-      {scaleSupported() && (
+      {showScale && (
         <span className={`pos-hwbar-pill${connected ? ' on' : ''}`}>
           {connected
             ? `🟢 Báscula lista${reading?.kg != null ? `: ${reading.kg.toFixed(3)} kg` : ''}`

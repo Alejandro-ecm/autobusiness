@@ -900,7 +900,7 @@ export default function POS() {
           ✓ {scanFlash}
         </div>
       )}
-      <HardwareBar />
+      <HardwareBar profileType={user?.profileType} />
       <div className="pos-search">
         <input
           ref={searchRef}

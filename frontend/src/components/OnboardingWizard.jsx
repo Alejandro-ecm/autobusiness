@@ -2,16 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext'
 import { onboarding as onboardingApi } from '../api'
+import { PROFILES } from '../utils/businessProfile'
 import './OnboardingWizard.css'
-
-const PROFILES = [
-  { id: 'tienda',     icon: '🏪', label: 'Tienda / Miscelánea',    desc: 'Abarrotes, dulces, limpieza' },
-  { id: 'abarrotes',  icon: '🛒', label: 'Abarrotes / Super',      desc: 'Productos al mayoreo y menudeo' },
-  { id: 'ropa',       icon: '👕', label: 'Ropa / Boutique',         desc: 'Prendas, tallas, colores' },
-  { id: 'zapateria',  icon: '👟', label: 'Zapatería',               desc: 'Calzado, tallas, modelos' },
-  { id: 'abastos',    icon: '⚖️', label: 'Abastos / Mayorista',     desc: 'Ventas por kg, costal, tonelada' },
-  { id: 'otro',       icon: '🏢', label: 'Otro negocio',            desc: 'Cualquier otro tipo' },
-]
 
 export default function OnboardingWizard() {
   const { updateUser, user } = useAuth()

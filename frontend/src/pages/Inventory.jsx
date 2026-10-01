@@ -4,6 +4,7 @@ import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { getProductEmoji } from '../utils/productEmoji'
+import { sellsByWeight } from '../utils/businessProfile'
 import './Inventory.css'
 
 const API = import.meta.env.VITE_API_URL || '/api'
@@ -167,7 +168,7 @@ function ExtraBarcodesEditor({ show, onToggle, values, onChangeAt, onGenerateAt 
 
 export default function Inventory() {
   const { show } = useToast()
-  const { isOwner } = useAuth()
+  const { isOwner, user } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const [products, setProducts] = useState([])
@@ -1188,33 +1189,35 @@ export default function Inventory() {
               </label>
 
               {/* ── Venta por peso o medida (opcional) ── */}
-              <div className="form-row" style={{ marginTop: 8 }}>
-                <div className="input-group">
-                  <label>¿También se vende por peso o medida?</label>
-                  <select className="input" value={editForm.baseUnit && editForm.baseUnit !== 'unit' ? editForm.baseUnit : ''}
-                    onChange={e => {
-                      const unit = e.target.value
-                      setEditForm(f => ({ ...f, baseUnit: unit || 'unit', saleMode: unit ? 'MIXED' : 'UNIT', pricePerKg: unit ? f.pricePerKg : '' }))
-                    }}>
-                    <option value="">No, solo por pieza</option>
-                    <option value="kg">kg (kilogramos)</option>
-                    <option value="g">g (gramos)</option>
-                    <option value="L">L (litros)</option>
-                    <option value="mL">mL (mililitros)</option>
-                    <option value="ton">tonelada</option>
-                    <option value="m">m (metros)</option>
-                    <option value="cm">cm (centímetros)</option>
-                  </select>
-                </div>
-                {editForm.baseUnit && editForm.baseUnit !== 'unit' && (
+              {sellsByWeight(user?.profileType) && (
+                <div className="form-row" style={{ marginTop: 8 }}>
                   <div className="input-group">
-                    <label>Precio por {editForm.baseUnit}</label>
-                    <input className="input" type="number" step="0.01" min="0"
-                      value={editForm.pricePerKg || ''} onChange={setEdit('pricePerKg')}
-                      placeholder="ej: 25.00" />
+                    <label>¿También se vende por peso o medida?</label>
+                    <select className="input" value={editForm.baseUnit && editForm.baseUnit !== 'unit' ? editForm.baseUnit : ''}
+                      onChange={e => {
+                        const unit = e.target.value
+                        setEditForm(f => ({ ...f, baseUnit: unit || 'unit', saleMode: unit ? 'MIXED' : 'UNIT', pricePerKg: unit ? f.pricePerKg : '' }))
+                      }}>
+                      <option value="">No, solo por pieza</option>
+                      <option value="kg">kg (kilogramos)</option>
+                      <option value="g">g (gramos)</option>
+                      <option value="L">L (litros)</option>
+                      <option value="mL">mL (mililitros)</option>
+                      <option value="ton">tonelada</option>
+                      <option value="m">m (metros)</option>
+                      <option value="cm">cm (centímetros)</option>
+                    </select>
                   </div>
-                )}
-              </div>
+                  {editForm.baseUnit && editForm.baseUnit !== 'unit' && (
+                    <div className="input-group">
+                      <label>Precio por {editForm.baseUnit}</label>
+                      <input className="input" type="number" step="0.01" min="0"
+                        value={editForm.pricePerKg || ''} onChange={setEdit('pricePerKg')}
+                        placeholder="ej: 25.00" />
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="input-group">
                 <label style={{ display:'flex', alignItems:'center', gap:6 }}>
                   Variantes (empaque)
@@ -1375,33 +1378,35 @@ export default function Inventory() {
               </label>
 
               {/* ── Venta por peso o medida (opcional) ── */}
-              <div className="form-row" style={{ marginTop: 8 }}>
-                <div className="input-group">
-                  <label>¿También se vende por peso o medida?</label>
-                  <select className="input" value={form.baseUnit && form.baseUnit !== 'unit' ? form.baseUnit : ''}
-                    onChange={e => {
-                      const unit = e.target.value
-                      setForm(f => ({ ...f, baseUnit: unit || 'unit', saleMode: unit ? 'MIXED' : 'UNIT', pricePerKg: unit ? f.pricePerKg : '' }))
-                    }}>
-                    <option value="">No, solo por pieza</option>
-                    <option value="kg">kg (kilogramos)</option>
-                    <option value="g">g (gramos)</option>
-                    <option value="L">L (litros)</option>
-                    <option value="mL">mL (mililitros)</option>
-                    <option value="ton">tonelada</option>
-                    <option value="m">m (metros)</option>
-                    <option value="cm">cm (centímetros)</option>
-                  </select>
-                </div>
-                {form.baseUnit && form.baseUnit !== 'unit' && (
+              {sellsByWeight(user?.profileType) && (
+                <div className="form-row" style={{ marginTop: 8 }}>
                   <div className="input-group">
-                    <label>Precio por {form.baseUnit}</label>
-                    <input className="input" type="number" step="0.01" min="0"
-                      value={form.pricePerKg} onChange={set('pricePerKg')}
-                      placeholder="ej: 25.00" />
+                    <label>¿También se vende por peso o medida?</label>
+                    <select className="input" value={form.baseUnit && form.baseUnit !== 'unit' ? form.baseUnit : ''}
+                      onChange={e => {
+                        const unit = e.target.value
+                        setForm(f => ({ ...f, baseUnit: unit || 'unit', saleMode: unit ? 'MIXED' : 'UNIT', pricePerKg: unit ? f.pricePerKg : '' }))
+                      }}>
+                      <option value="">No, solo por pieza</option>
+                      <option value="kg">kg (kilogramos)</option>
+                      <option value="g">g (gramos)</option>
+                      <option value="L">L (litros)</option>
+                      <option value="mL">mL (mililitros)</option>
+                      <option value="ton">tonelada</option>
+                      <option value="m">m (metros)</option>
+                      <option value="cm">cm (centímetros)</option>
+                    </select>
                   </div>
-                )}
-              </div>
+                  {form.baseUnit && form.baseUnit !== 'unit' && (
+                    <div className="input-group">
+                      <label>Precio por {form.baseUnit}</label>
+                      <input className="input" type="number" step="0.01" min="0"
+                        value={form.pricePerKg} onChange={set('pricePerKg')}
+                        placeholder="ej: 25.00" />
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="input-group">
                 <label style={{ display:'flex', alignItems:'center', gap:6 }}>
                   Variantes (empaque)

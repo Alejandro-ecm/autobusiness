@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../store/AuthContext'
-import { inventory as inventoryApi, orders as ordersApi, store as storeApi, business as businessApi, upload as uploadApi } from '../api'
+import { inventory as inventoryApi, orders as ordersApi, store as storeApi, business as businessApi, upload as uploadApi, onboarding as onboardingApi } from '../api'
 import { useToast } from '../store/ToastContext'
 import StoreQRCode from '../components/StoreQRCode'
+import { PROFILES } from '../utils/businessProfile'
 import './StoreAdmin.css'
 
 const fmt = (n) => `$${Number(n || 0).toLocaleString('es-MX', { minimumFractionDigits: 2 })}`
@@ -88,6 +89,21 @@ export default function StoreAdmin() {
   const logoInputRef   = useRef(null)
   const bannerInputRef = useRef(null)
   const [deliveryCode, setDeliveryCode] = useState('')
+  const [profileType, setProfileType] = useState(user?.profileType || 'otro')
+  const [profileSaving, setProfileSaving] = useState(false)
+
+  const saveProfileType = async () => {
+    setProfileSaving(true)
+    try {
+      await onboardingApi.complete(profileType)
+      updateUser({ profileType })
+      show('Giro de negocio actualizado', 'success')
+    } catch (e) {
+      show(e?.error || 'Error al actualizar el giro de negocio', 'error')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   const handleLogoUpload = async (file) => {
     if (!file || !file.type.startsWith('image/')) return
@@ -509,6 +525,28 @@ export default function StoreAdmin() {
       {/* Diseño */}
       {tab === 'diseno' && (
         <div className="design-tab">
+          {/* Giro de negocio */}
+          <div className="card design-section">
+            <h3 className="design-section-title">Giro de tu negocio</h3>
+            <p className="design-label" style={{ marginBottom: 10 }}>
+              Ajusta qué funciones ves (ej: venta por peso/kg) según el tipo de negocio.
+            </p>
+            <div className="design-field">
+              <select
+                className="input"
+                value={profileType}
+                onChange={e => setProfileType(e.target.value)}
+              >
+                {PROFILES.map(p => (
+                  <option key={p.id} value={p.id}>{p.icon} {p.label}</option>
+                ))}
+              </select>
+            </div>
+            <button className="btn btn-outline" onClick={saveProfileType} disabled={profileSaving}>
+              {profileSaving ? 'Guardando…' : 'Guardar giro de negocio'}
+            </button>
+          </div>
+
           {/* Identidad */}
           <div className="card design-section">
             <h3 className="design-section-title">Identidad de la tienda</h3>
