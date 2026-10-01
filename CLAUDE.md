@@ -51,6 +51,28 @@ uvicorn main:app --reload --port 8001
 
 ---
 
+## Despliegue en producción (confirmado 2026-09-30)
+
+Producción real usa **dos proveedores separados**, no Docker Compose:
+
+- **Frontend**: Vercel. Dominio `autobusiness.skytechnologieslatam.com`
+  (CNAME a `cname.vercel-dns.com`). El `vercel.json` de la **raíz** del repo
+  es el que usa Vercel (build con `--prefix frontend`) y hace rewrite de
+  `/api/:path*` hacia el backend de Railway. El navegador nunca llama a
+  Railway directo — el cliente del frontend siempre pide la ruta relativa
+  `/api`.
+- **Backend**: Railway, servicio `autobusiness`
+  (`autobusiness-production-ccbc.up.railway.app`), con Flyway.
+- `docker-compose.prod.yml`, `setup-server.sh` y el nginx del frontend
+  (`frontend/nginx.conf`, `nginx.railway.conf`) son una **ruta de
+  despliegue alterna** (VPS self-hosted) — no corren dentro de Vercel/Railway
+  y no sirven el dominio de producción actual. No confundirlos con el flujo
+  real de deploy.
+- Detalle completo (orden de deploy, variables de entorno por proveedor,
+  riesgos de auto-deploy/Preview Deployments) en `docs/deploy-plan.md`.
+
+---
+
 ## Variables de entorno clave
 
 | Variable                 | Default                                         | Usado en     |

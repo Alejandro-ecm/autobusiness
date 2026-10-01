@@ -67,7 +67,48 @@ borra el volumen de datos. Si en algún momento hay que reiniciar
 contenedores en producción, usar `restart` o `up -d` (sin `-v`, sin
 `down -v`).
 
-## Variables de entorno nuevas a confirmar/agregar en Railway
+## Topología real de producción (confirmado 2026-09-30)
+
+- **Frontend**: Vercel. Dominio `autobusiness.skytechnologieslatam.com` →
+  CNAME `cname.vercel-dns.com` (confirmado con `nslookup`). Vercel construye
+  el sitio estático (`vercel.json` en la **raíz** del repo — es el que usa
+  el proyecto, confirmado por `installCommand`/`outputDirectory` con
+  prefijo `frontend/`, lo que solo tiene sentido si el Root Directory del
+  proyecto Vercel es la raíz) y hace rewrite de `/api/:path*` hacia el
+  backend de Railway. El navegador **nunca** llama directo a Railway: el
+  cliente HTTP del frontend siempre pide la ruta relativa `/api`
+  (`frontend/src/api/client.js`, `frontend/src/api/index.js`, etc. — ninguno
+  fija `VITE_API_URL` a una URL absoluta).
+- **Backend**: Railway, servicio `autobusiness`
+  (`autobusiness-production-ccbc.up.railway.app`), con Flyway.
+- El nginx del repo (`frontend/nginx.conf`, `nginx.railway.conf`) y
+  `docker-compose.prod.yml` + `setup-server.sh` son una **ruta de
+  despliegue alterna** (VPS self-hosted) — no corren dentro de Vercel y no
+  sirven el dominio de producción actual. No confundirlos con el flujo real.
+- **Riesgo confirmado de Preview Deployments**: el rewrite en `vercel.json`
+  es estático (no varía por environment), así que cualquier Preview
+  Deployment (ej. al pushear una rama como `release/2026-10`) apunta al
+  **mismo** backend de Railway de producción — no existe un backend de
+  staging. Si se navega una URL de Preview, **no** hacer login real, no
+  completar checkouts, no registrar negocios de prueba ahí — cualquier
+  acción de escritura toca datos reales. (Mejora futura, no bloqueante:
+  usar `vercel.ts` con `deploymentEnv` para apuntar Preview a un backend de
+  staging, una vez que ese staging exista.)
+- **Auto-deploy de Vercel sobre `main` — pendiente de confirmar en el
+  dashboard** (no se puede ver desde el repo; CLI de Vercel no instalado en
+  esta sesión). Dos escenarios:
+  - Si el proyecto tiene Git auto-deploy conectado a `main` para
+    Production: desconectarlo para Production antes de este deploy (dejar
+    solo Preview automático en ramas no-`main`), o configurar un "Ignored
+    Build Step" que valide la salud del backend antes de construir.
+  - Si los deploys son 100% manuales vía CLI (lo que sugiere
+    `CLAUDE_CODE_HANDOFF.md`: `vercel deploy --prod` + `vercel alias set`
+    como flujo documentado): no hay riesgo de auto-deploy — el orden ya
+    está bajo control manual, solo hay que respetar la secuencia de abajo.
+
+## Variables de entorno nuevas a confirmar/agregar — por proveedor
+
+**Railway (backend):**
 
 | Variable | Requerida para | Si falta |
 |---|---|---|
@@ -75,6 +116,17 @@ contenedores en producción, usar `restart` o `up -d` (sin `-v`, sin
 | `RESEND_FROM_EMAIL` | Mismo feature (tiene default razonable) | Usa el remitente genérico `onboarding@resend.dev` |
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Push notifications (commit `9a5dd37`) | **CRÍTICO si no se cambia**: el valor por default está escrito en el código fuente (`application.yml`, ya en GitHub) — usar el default en producción expone la llave privada públicamente. Generar un par nuevo antes de este deploy. |
 | `ACCOUNT_DELETION_DRY_RUN` | Opcional — default `false`, no cambia el comportamiento ya activo hoy | No pasa nada si no se agrega |
+| `DIAGNOSTICS_ENABLED` | Habilita temporalmente `GET /api/super-admin/diagnostics/request-info` (ver FASE 2 — IP confiable) para verificar la topología real de red en vivo | Sin ella el endpoint responde 403 siempre — default seguro, encender solo durante la verificación y apagar después |
+
+**Vercel (frontend):**
+
+| Variable | Requerida para | Si falta |
+|---|---|---|
+| `VITE_*` | Ninguna fijada hoy — el cliente usa rutas relativas `/api` | N/A |
+| Llave **pública** de VAPID | Solo si en el futuro el frontend necesita `pushManager.subscribe()` en el navegador | No rompe nada hoy, push notifications son server-initiated |
+
+Nunca poner la llave **privada** de VAPID ni `RESEND_API_KEY` en Vercel —
+esas son del backend.
 
 Acción previa al push: generar un par VAPID nuevo (`npx web-push
 generate-vapid-keys` o la librería equivalente) y configurarlo en
@@ -165,19 +217,27 @@ faec0a7 feat(seguridad): blinda el scheduler de eliminacion de cuentas y
 1. Probar "Olvidé mi contraseña" con un correo real de prueba — confirmar
    que el correo llega (depende de `RESEND_API_KEY` ya configurado).
 2. Confirmar que `request.getRemoteAddr()` en producción resuelve la IP
-   real del cliente y no `127.0.0.1`/la IP del proxy — probar un login y
-   revisar el campo `ip_address` en `legal_acceptances` tras aceptar
-   términos. Si el proxy real de producción no es un peer RFC1918 directo
-   (ej. un load balancer público delante de Railway), puede que haga
-   falta agregar su rango a `server.tomcat.remoteip.internal-proxies` —
-   **confirmar la topología real de red de producción antes de asumir
-   que el default de Tomcat basta.**
+   real del cliente y no una IP interna de Railway repetida en cada
+   petición. Encender temporalmente `DIAGNOSTICS_ENABLED=true` en Railway y
+   llamar `GET /api/super-admin/diagnostics/request-info` (token
+   SUPER_ADMIN) desde dos redes reales distintas (ej. wifi + datos
+   móviles): deben verse dos IPs públicas distintas en `remoteAddr`. Si en
+   cambio ambas muestran la misma IP interna, hay que sobreescribir
+   `server.tomcat.remoteip.internal-proxies` con el rango real observado en
+   los headers crudos de la respuesta — no antes de confirmarlo así.
+   Apagar `DIAGNOSTICS_ENABLED` después. También probar un login y revisar
+   el campo `ip_address` en `legal_acceptances` tras aceptar términos.
 3. **No forzar una ejecución real del scheduler de eliminación de cuentas
    en producción como prueba** — si se quiere verificar sin riesgo, usar
    `ACCOUNT_DELETION_DRY_RUN=true` temporalmente, revisar los logs al
    pasar las 3am, y quitarlo después.
 
 ## Comandos de despliegue
+
+Orden obligatorio: **Railway (backend) primero, verificar, Vercel
+(frontend) después** — nunca al revés, porque el frontend ya en producción
+podría empezar a llamar endpoints/campos nuevos antes de que el backend los
+tenga.
 
 ```bash
 # 1. Confirmar que no hay nada sin commitear
@@ -186,16 +246,29 @@ git status --short   # debe salir vacío
 # 2. Backup + conteo de control (ver sección de arriba) — HACERLO ANTES
 #    del push, no después.
 
-# 3. Push (dispara el deploy en Railway para backend y frontend,
-#    asumiendo auto-deploy desde `main` — confirmar esto en el dashboard
-#    de Railway antes, incluyendo si cada servicio filtra por carpeta o
-#    redeploya siempre los dos juntos)
+# 3. Push a main (dispara el deploy en Railway del backend si tiene
+#    auto-deploy conectado; confirmar en el dashboard de Railway si el
+#    servicio filtra por carpeta o redeploya siempre).
+#    Si Vercel también tiene auto-deploy conectado a `main`, este mismo
+#    push puede disparar el deploy del FRONTEND al instante — ver sección
+#    "Topología real de producción" arriba sobre cómo evitarlo si aplica.
 git push origin main
 
-# 4. Smoke test contra producción (ajustar URLs reales)
+# 4. Verificar el backend en Railway ANTES de tocar el frontend:
+curl https://autobusiness-production-ccbc.up.railway.app/api/health
+curl https://autobusiness-production-ccbc.up.railway.app/api/actuator/health
+#    y revisar en los logs de Railway que Flyway aplicó las 7 migraciones
+#    sin error.
+
+# 5. Solo si el backend verificó bien: desplegar/confirmar el frontend.
+#    Si los deploys de Vercel son manuales (ver CLAUDE_CODE_HANDOFF.md):
+vercel deploy --prod --yes --name autobusiness --scope ale-s-projects89
+vercel alias set <VERCEL_DEPLOY_URL> autobusiness.skytechnologieslatam.com --scope ale-s-projects89
+
+# 6. Smoke test contra producción (ajustar URLs reales)
 cd frontend
 SMOKE_APP_URL=https://autobusiness.skytechnologieslatam.com \
-SMOKE_API_URL=https://<backend-real>/api \
+SMOKE_API_URL=https://autobusiness-production-ccbc.up.railway.app/api \
 SMOKE_EMAIL=<usuario-de-prueba> SMOKE_PASSWORD=<pw> \
 node scripts/smoke.mjs
 ```
@@ -226,11 +299,18 @@ node scripts/smoke.mjs
 
 - [ ] Confirmar en Railway cómo está configurado el auto-deploy desde
       `main` (un servicio o dos, filtra por carpeta o no).
+- [ ] Confirmar en el dashboard de Vercel si el proyecto tiene Git
+      auto-deploy conectado a `main` para Production (ver sección
+      "Topología real de producción" arriba) — desconectarlo o usar un
+      Ignored Build Step si aplica, para no desplegar el frontend antes de
+      verificar el backend.
 - [ ] Generar y configurar un par VAPID nuevo en producción (no usar el
       default que está en el repo).
 - [ ] Confirmar que `RESEND_API_KEY` está configurado en Railway.
-- [ ] Confirmar la topología real de red/proxy de producción para
-      `server.tomcat.remoteip.internal-proxies`.
+- [ ] Verificar con `GET /api/super-admin/diagnostics/request-info`
+      (`DIAGNOSTICS_ENABLED=true` temporal) si
+      `server.tomcat.remoteip.internal-proxies` necesita ajuste para la
+      topología real Vercel → Railway.
 - [ ] Backup + conteo de control ejecutado y guardado.
 - [ ] Decidir si se quiere avisar a los clientes activos (incluida la
       papelería) antes de un despliegue de este tamaño, dado que incluye
