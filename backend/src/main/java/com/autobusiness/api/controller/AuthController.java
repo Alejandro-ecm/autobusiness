@@ -7,6 +7,7 @@ import com.autobusiness.domain.service.MercadoPagoService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -20,12 +21,21 @@ import java.util.Map;
 @Slf4j
 public class AuthController {
 
-    private static final int FORGOT_PASSWORD_MAX_ATTEMPTS = 5;
-    private static final Duration FORGOT_PASSWORD_WINDOW = Duration.ofMinutes(15);
+    private static final int FORGOT_PASSWORD_IP_MAX_ATTEMPTS = 5;
+    private static final Duration FORGOT_PASSWORD_IP_WINDOW = Duration.ofMinutes(15);
+    private static final int FORGOT_PASSWORD_EMAIL_MAX_ATTEMPTS = 3;
+    private static final Duration FORGOT_PASSWORD_EMAIL_WINDOW = Duration.ofMinutes(15);
 
     private final AuthService authService;
     private final MercadoPagoService mpService;
     private final RateLimiter rateLimiter;
+
+    // Apaga/enciende el rate limit de forgot-password. Default false a
+    // propósito — se enciende en Railway solo después de confirmar con el
+    // endpoint de diagnóstico que request.getRemoteAddr() resuelve la IP
+    // real del cliente y no la de un proxy intermedio.
+    @Value("${app.rate-limit-enabled:false}")
+    private boolean rateLimitEnabled;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
@@ -62,8 +72,15 @@ public class AuthController {
         // request.getRemoteAddr() ya viene resuelto de forma segura por
         // Tomcat (server.forward-headers-strategy=native, ver application.yml)
         String ip = request.getRemoteAddr();
-        if (rateLimiter.allow("forgot-password:" + ip, FORGOT_PASSWORD_MAX_ATTEMPTS, FORGOT_PASSWORD_WINDOW)) {
-            authService.forgotPassword(body.get("email"));
+        String email = body.get("email");
+        String emailKey = email == null ? "" : email.trim().toLowerCase();
+
+        boolean allowed = !rateLimitEnabled
+                || (rateLimiter.allow("forgot-password-ip:" + ip, FORGOT_PASSWORD_IP_MAX_ATTEMPTS, FORGOT_PASSWORD_IP_WINDOW)
+                    && rateLimiter.allow("forgot-password-email:" + emailKey, FORGOT_PASSWORD_EMAIL_MAX_ATTEMPTS, FORGOT_PASSWORD_EMAIL_WINDOW));
+
+        if (allowed) {
+            authService.forgotPassword(email);
         } else {
             log.warn("forgot-password rate limit excedido para IP {}", ip);
         }

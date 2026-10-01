@@ -117,6 +117,7 @@ contenedores en producción, usar `restart` o `up -d` (sin `-v`, sin
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Push notifications (commit `9a5dd37`) | **CRÍTICO si no se cambia**: el valor por default está escrito en el código fuente (`application.yml`, ya en GitHub) — usar el default en producción expone la llave privada públicamente. Generar un par nuevo antes de este deploy. |
 | `ACCOUNT_DELETION_DRY_RUN` | Opcional — default `false`, no cambia el comportamiento ya activo hoy | No pasa nada si no se agrega |
 | `DIAGNOSTICS_ENABLED` | Habilita temporalmente `GET /api/super-admin/diagnostics/request-info` (ver FASE 2 — IP confiable) para verificar la topología real de red en vivo | Sin ella el endpoint responde 403 siempre — default seguro, encender solo durante la verificación y apagar después |
+| `RATE_LIMIT_ENABLED` | Activa el rate limit de `/auth/forgot-password` (5/15min por IP + 3/15min por email, `AuthController`/`RateLimiter`) | Sin ella el endpoint no limita nada (comportamiento actual) — default `false` a propósito: encender solo **después** de confirmar con `DIAGNOSTICS_ENABLED` que `request.getRemoteAddr()` resuelve IPs reales distintas por cliente, no la misma IP interna repetida |
 
 **Vercel (frontend):**
 
@@ -311,6 +312,16 @@ node scripts/smoke.mjs
       (`DIAGNOSTICS_ENABLED=true` temporal) si
       `server.tomcat.remoteip.internal-proxies` necesita ajuste para la
       topología real Vercel → Railway.
+      **Diferido explícitamente (no implementado esta sesión):** si el
+      diagnóstico muestra que `X-Forwarded-For` no es confiable tal cual
+      (ej. porque Railway ve la IP de salida de Vercel, no la del cliente
+      final), la mitigación de "header secreto compartido" solo es posible
+      reemplazando el rewrite estático de `/api` en `vercel.json` (raíz del
+      repo) por una Vercel Function o Routing Middleware que inyecte el
+      header antes de reenviar a Railway — un rewrite estático **no** puede
+      añadir headers a un destino externo. Es un cambio de arquitectura del
+      frontend, no solo backend; evaluar aparte una vez que el diagnóstico
+      confirme si realmente hace falta.
 - [ ] Backup + conteo de control ejecutado y guardado.
 - [ ] Decidir si se quiere avisar a los clientes activos (incluida la
       papelería) antes de un despliegue de este tamaño, dado que incluye

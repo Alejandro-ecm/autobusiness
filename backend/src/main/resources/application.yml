@@ -125,6 +125,13 @@ app:
   # En producción: lista separada por comas con tu dominio real
   # Ejemplo: https://app.tudominio.com,https://tudominio.com
   allowed-origins: ${APP_ALLOWED_ORIGINS:https://autobusiness.skytechnologieslatam.com,https://app.skytechnologieslatam.com,https://skytechnologieslatam.com,http://localhost:3000,http://localhost:5173,http://localhost:4173}
+  # Binding explícito: por relaxed binding de Spring, sin esta línea la env
+  # var esperada sería APP_DIAGNOSTICS_ENABLED (no DIAGNOSTICS_ENABLED, que es
+  # lo que documenta docs/deploy-plan.md) — así el nombre documentado funciona.
+  diagnostics-enabled: ${DIAGNOSTICS_ENABLED:false}
+  # Igual: enciende el rate limit de forgot-password (ver AuthController).
+  # Default false hasta confirmar las IPs reales con el diagnóstico de arriba.
+  rate-limit-enabled: ${RATE_LIMIT_ENABLED:false}
 
 management:
   endpoints:
