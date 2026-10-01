@@ -4,6 +4,7 @@ import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { legal as legalApi, auth as authApi } from '../api'
 import ConsentCheckbox from '../components/ConsentCheckbox'
+import { DraftBanner } from '../components/legal/LegalPageLayout'
 import './Login.css'
 
 function LegalAcceptanceScreen({ onDone }) {
@@ -133,9 +134,12 @@ function LegalDocModal({ type, title, onClose }) {
           {loading ? (
             <div style={{ textAlign: 'center', padding: 40, color: '#64748b' }}>Cargando...</div>
           ) : (
-            <div style={{ fontSize: 13, lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-line' }}>
-              {content}
-            </div>
+            <>
+              <DraftBanner>debe revisarlo un abogado antes de publicarse como definitivo.</DraftBanner>
+              <div style={{ fontSize: 13, lineHeight: 1.7, color: '#374151', whiteSpace: 'pre-line' }}>
+                {content}
+              </div>
+            </>
           )}
         </div>
         <div style={{ padding: '14px 24px', borderTop: '1px solid #e2e8f0', textAlign: 'center', flexShrink: 0 }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { legal as legalApi } from '../api'
+import { DraftBanner } from '../components/legal/LegalPageLayout'
 
 export default function AcceptableUse() {
   const [doc, setDoc] = useState(null)
@@ -22,7 +23,8 @@ export default function AcceptableUse() {
           ) : doc ? (
             <>
               <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>{doc.title}</h1>
-              <p style={{ fontSize: 12, color: '#1e293b', marginBottom: 28 }}>Versión {doc.version}</p>
+              <p style={{ fontSize: 12, color: '#1e293b', marginBottom: 20 }}>Versión {doc.version}</p>
+              <DraftBanner />
               <div style={{ fontSize: 14, lineHeight: 1.8, color: '#374151', whiteSpace: 'pre-line' }}>
                 {doc.content}
               </div>

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { DraftBanner } from '../components/legal/LegalPageLayout'
 
 const LAST_UPDATED = '30 de mayo de 2026'
 
@@ -21,6 +22,8 @@ export default function PrivacyPolicy() {
 
         {/* Content */}
         <div style={styles.content}>
+
+          <DraftBanner>debe revisarlo un abogado antes de publicarse como definitivo.</DraftBanner>
 
           <Section title="1. Quiénes somos">
             <p>
