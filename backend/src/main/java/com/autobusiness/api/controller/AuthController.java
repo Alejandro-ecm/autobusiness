@@ -31,7 +31,9 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, String> body, HttpServletRequest request) {
         try {
-            String ip = getClientIp(request);
+            // request.getRemoteAddr() ya viene resuelto de forma segura por
+            // Tomcat (server.forward-headers-strategy=native, ver application.yml)
+            String ip = request.getRemoteAddr();
             String ua = request.getHeader("User-Agent");
             return ResponseEntity.ok(authService.register(
                     body.get("businessName"),
@@ -151,13 +153,5 @@ public class AuthController {
     @GetMapping("/health")
     public ResponseEntity<?> health() {
         return ResponseEntity.ok(Map.of("status", "ok", "service", "AutoBusiness AI"));
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) return realIp.trim();
-        return request.getRemoteAddr();
     }
 }

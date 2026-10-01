@@ -51,20 +51,14 @@ public class LegalController {
             @AuthenticationPrincipal AuthPrincipal principal,
             HttpServletRequest request) {
         try {
-            String ip = getClientIp(request);
+            // request.getRemoteAddr() ya viene resuelto de forma segura por
+            // Tomcat (server.forward-headers-strategy=native, ver application.yml)
+            String ip = request.getRemoteAddr();
             String ua = request.getHeader("User-Agent");
             legalService.recordAcceptance(principal.userId(), ip, ua);
             return ResponseEntity.ok(Map.of("message", "Aceptación registrada correctamente"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) return realIp.trim();
-        return request.getRemoteAddr();
     }
 }

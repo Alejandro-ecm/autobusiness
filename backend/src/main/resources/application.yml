@@ -35,6 +35,17 @@ server:
   port: ${PORT:8080}
   servlet:
     context-path: /api
+  # Resuelve la IP real del cliente de forma segura: Tomcat (RemoteIpValve)
+  # solo confia en X-Forwarded-For/X-Real-IP cuando la conexion TCP directa
+  # viene de una IP interna (rangos privados RFC1918 + loopback — el default
+  # de Tomcat, sin sobreescribir server.tomcat.remoteip.internal-proxies).
+  # Una peticion que llega directo desde internet con esos headers falsos NO
+  # cambia request.getRemoteAddr() — el header simplemente se ignora. Hoy
+  # (sin proxy en produccion todavia) esto ya cubre el caso real: el nginx
+  # del contenedor frontend, que SI esta en la red interna de Docker.
+  # Si en el futuro se agrega un proxy publico (Cloudflare, un load balancer
+  # externo), hay que sumar su rango de IPs a internal-proxies aqui.
+  forward-headers-strategy: native
   tomcat:
     threads:
       max: 25

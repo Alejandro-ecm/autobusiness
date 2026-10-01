@@ -63,19 +63,15 @@ public class OnlineStoreController {
                     paymentMethod,
                     deliveryType,
                     consentAccepted,
-                    getClientIp(request)
+                    // request.getRemoteAddr() ya viene resuelto de forma segura
+                    // por Tomcat (server.forward-headers-strategy=native, ver
+                    // application.yml) — antes se leia X-Forwarded-For/X-Real-IP
+                    // sin validar el origen, spoofeable por cualquier cliente.
+                    request.getRemoteAddr()
             ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
-    }
-
-    private String getClientIp(jakarta.servlet.http.HttpServletRequest request) {
-        String xff = request.getHeader("X-Forwarded-For");
-        if (xff != null && !xff.isBlank()) return xff.split(",")[0].trim();
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) return realIp.trim();
-        return request.getRemoteAddr();
     }
 
     // Público — crear preferencia de Mercado Pago para una orden de tienda online
