@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { pos as posApi, printJobs as printJobsApi, categories as categoriesApi } from '../api'
+import { pos as posApi, printJobs as printJobsApi, categories as categoriesApi, reports as reportsApi } from '../api'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { buildEscposTicket } from '../utils/escposTicket'
 import { bluetoothSupported, bluetoothConnected, bluetoothPrint } from '../utils/bluetoothPrinter'
+import CorteModal from '../components/pos/CorteModal'
+import { fmtDay, folioOf, filterTickets, printSaleTicket, buildTicketHtml } from '../lib/ticketReprint'
 import './POS.css'
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
@@ -222,7 +224,7 @@ async function printViaCloud(sale, user) {
 }
 
 export default function POS() {
-  const { user } = useAuth()
+  const { user, isOwner } = useAuth()
   const { show } = useToast()
   const [products, setProducts] = useState([])
   const [topProducts, setTopProducts] = useState([])
@@ -232,6 +234,12 @@ export default function POS() {
   const [cashReceived, setCashReceived] = useState('')
   const [payMethod, setPayMethod] = useState('cash')
   const [lastSale, setLastSale] = useState(null)
+  const [showCorte, setShowCorte] = useState(false)
+  const [showLastTickets, setShowLastTickets] = useState(false)
+  const [todaySales, setTodaySales] = useState(null)
+  const [loadingTickets, setLoadingTickets] = useState(false)
+  const [ticketQuery, setTicketQuery] = useState('')
+  const [previewSale, setPreviewSale] = useState(null)
   const [discount, setDiscount] = useState('')
   const [discountType, setDiscountType] = useState('pct') // 'pct' | 'fixed'
   const [sessionHistory, setSessionHistory] = useState([])
@@ -884,11 +892,44 @@ export default function POS() {
     </div>
   )
 
+  // ── Últimos tickets (solo OWNER/ADMIN — /reports/sales no lo permite a CAJERO) ──
+  const openLastTickets = async () => {
+    setShowLastTickets(true)
+    setLoadingTickets(true)
+    try {
+      const fromMs = new Date().setHours(0, 0, 0, 0)
+      const res = await reportsApi.sales(fromMs, Date.now())
+      const sorted = [...(res.sales || [])].sort((a, b) => new Date(b.date) - new Date(a.date))
+      setTodaySales(sorted)
+    } catch {
+      show('No se pudieron cargar los tickets de hoy', 'error')
+    } finally {
+      setLoadingTickets(false)
+    }
+  }
+
+  const closeLastTickets = () => { setShowLastTickets(false); setPreviewSale(null); setTicketQuery('') }
+
+  const handlePrintTicket = (sale) => {
+    printSaleTicket(sale, user?.businessName,
+      () => show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'))
+  }
+
+  const lastTicketResults = useMemo(() => filterTickets(todaySales, ticketQuery), [todaySales, ticketQuery])
+
   const cartPanel = (
     <div className="pos-cart">
       <div className="pos-cart-header">
         <h2>Carrito {cart.length > 0 && <span className="cart-count">{cart.length}</span>}</h2>
         <div style={{ display: 'flex', gap: 6 }}>
+          <button className="btn btn-sm btn-outline" onClick={() => setShowCorte(true)} title="Cierre de caja">
+            📊 Corte
+          </button>
+          {isOwner && (
+            <button className="btn btn-sm btn-outline" onClick={openLastTickets} title="Últimos tickets de hoy">
+              🧾 Últimos tickets
+            </button>
+          )}
           <button className="btn btn-producto-libre" onClick={() => setCustomItemModal(true)} title="Producto libre: nombre y precio manual">
             ✏️ Producto libre
           </button>
@@ -1098,6 +1139,63 @@ export default function POS() {
           {cartPanel}
         </div>
       </div>
+
+      <CorteModal open={showCorte} onClose={() => setShowCorte(false)} />
+
+      {showLastTickets && (
+        <div className="modal-overlay" onClick={closeLastTickets}>
+          <div className="modal-box card pos-ticket-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>🧾 Últimos tickets de hoy</h3>
+              <button className="modal-close" onClick={closeLastTickets}>×</button>
+            </div>
+
+            {loadingTickets ? (
+              <div className="page-loading"><div className="spinner" /></div>
+            ) : !previewSale ? (
+              <>
+                <input
+                  type="text"
+                  className="pos-ticket-search"
+                  placeholder="Buscar por folio, cajero o monto…"
+                  value={ticketQuery}
+                  onChange={e => setTicketQuery(e.target.value)}
+                  autoFocus
+                />
+                <div className="pos-ticket-list">
+                  {lastTicketResults.length === 0 ? (
+                    <p className="text-soft" style={{ padding: '24px 0', textAlign: 'center' }}>
+                      No se encontraron tickets.
+                    </p>
+                  ) : lastTicketResults.map(s => (
+                    <div key={s.id} className="pos-ticket-row">
+                      <div className="pos-ticket-row-info">
+                        <span className="pos-ticket-folio">#{folioOf(s.id)}</span>
+                        <span className="text-soft text-sm">{fmtDay(s.date)} · {s.cashier || '—'}</span>
+                      </div>
+                      <div className="pos-ticket-row-total">{fmt(s.total)}</div>
+                      <button className="btn btn-outline btn-sm" onClick={() => setPreviewSale(s)}>🖨️ Reimprimir</button>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="pos-ticket-preview-header">
+                  <button className="btn btn-outline btn-sm" onClick={() => setPreviewSale(null)}>‹ Volver</button>
+                  <span className="text-soft text-sm">Folio #{folioOf(previewSale.id)}</span>
+                </div>
+                <div className="pos-ticket-preview">
+                  <iframe title="Vista previa del ticket" srcDoc={buildTicketHtml(previewSale, user?.businessName)} />
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-primary" onClick={() => handlePrintTicket(previewSale)}>🖨️ Imprimir / Guardar PDF</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {sessionHistory.length > 0 && (
         <div className="pos-history">

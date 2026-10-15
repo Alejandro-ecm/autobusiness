@@ -2,9 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useAuth } from '../store/AuthContext'
 import { useToast } from '../store/ToastContext'
 import { pos as posApi } from '../api'
+import CorteModal from '../components/pos/CorteModal'
 import './CajaIA.css'
-
-const API = import.meta.env.VITE_API_URL || '/api'
 
 // COCO-SSD keyword → Spanish product keywords (fallback when no custom model)
 const KEYWORD_MAP = {
@@ -155,7 +154,6 @@ export default function CajaIA() {
   const [discount,         setDiscount]         = useState({ type: 'percent', value: '' })
   const [showDiscount,     setShowDiscount]     = useState(false)
   const [showCorte,        setShowCorte]        = useState(false)
-  const [corteData,        setCorteData]        = useState(null)
   const [weightPicker,     setWeightPicker]     = useState(null)  // {product, mode}
   const [weightInput,      setWeightInput]      = useState('')
 
@@ -631,40 +629,6 @@ export default function CajaIA() {
     }
   }
 
-  // ── Cierre de caja ────────────────────────────────────────────────────────
-  const openCorte = async () => {
-    try {
-      const token = localStorage.getItem('ab_token')
-      const data  = await fetch(`${API}/pos/corte/today`, {
-        headers: { Authorization: `Bearer ${token}` }
-      }).then(r => r.json())
-      setCorteData(data)
-      setShowCorte(true)
-    } catch {
-      show('No se pudo cargar el corte', 'error')
-    }
-  }
-
-  const [corteNotes, setCorteNotes] = useState('')
-  const [corteSaving, setCorteSaving] = useState(false)
-
-  const handleCloseRegister = async () => {
-    setCorteSaving(true)
-    try {
-      const token = localStorage.getItem('ab_token')
-      await fetch(`${API}/pos/corte/close`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body:    JSON.stringify({ notes: corteNotes }),
-      })
-      show('✓ Corte guardado correctamente', 'success')
-      setShowCorte(false)
-      setCorteNotes('')
-    } catch {
-      show('Error al guardar el corte', 'error')
-    } finally { setCorteSaving(false) }
-  }
-
   // ── Checkout ──────────────────────────────────────────────────────────────
   const checkout = async () => {
     if (!cart.length) { show('El carrito está vacío', 'error'); return }
@@ -876,70 +840,7 @@ export default function CajaIA() {
   return (
     <>
     {WeightPickerModal}
-    {/* ── Cierre de caja modal ── */}
-    {showCorte && corteData && (
-      <div className="caia-modal-backdrop" onClick={() => setShowCorte(false)}>
-        <div className="caia-modal" onClick={e => e.stopPropagation()}>
-          <div className="caia-modal-header">
-            <h2>📊 Corte de caja</h2>
-            <button className="caia-modal-close" onClick={() => setShowCorte(false)}>✕</button>
-          </div>
-          <div className="caia-corte-body">
-            <div className="caia-corte-date">{new Date().toLocaleDateString('es-MX', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</div>
-            <div className="caia-corte-stats">
-              <div className="caia-corte-stat">
-                <span className="caia-corte-label">Total del día</span>
-                <span className="caia-corte-val" style={{ color:'#6366f1' }}>{fmt(corteData.totalRevenue ?? 0)}</span>
-              </div>
-              <div className="caia-corte-stat">
-                <span className="caia-corte-label">Transacciones</span>
-                <span className="caia-corte-val">{corteData.transactionCount ?? 0}</span>
-              </div>
-              <div className="caia-corte-stat">
-                <span className="caia-corte-label">Ticket promedio</span>
-                <span className="caia-corte-val">{fmt(corteData.avgTicket ?? 0)}</span>
-              </div>
-            </div>
-            <div className="caia-corte-methods">
-              {[
-                { key:'cash',     label:'💵 Efectivo',       val: corteData.cash     ?? 0 },
-                { key:'card',     label:'💳 Tarjeta',        val: corteData.card     ?? 0 },
-                { key:'transfer', label:'🏦 Transferencia',  val: corteData.transfer ?? 0 },
-                { key:'mp',       label:'💙 Mercado Pago',   val: corteData.mp       ?? 0 },
-              ].map(m => (
-                <div key={m.key} className="caia-corte-method-row">
-                  <span>{m.label}</span>
-                  <span>{fmt(m.val)}</span>
-                </div>
-              ))}
-            </div>
-            {corteData.history?.length > 0 && (
-              <div className="caia-corte-history">
-                <p className="caia-corte-history-title">Últimos cortes</p>
-                {corteData.history.slice(0, 3).map(h => (
-                  <div key={h.id} className="caia-corte-history-row">
-                    <span>{new Date(h.closedAt).toLocaleDateString('es-MX', { day:'numeric', month:'short' })}</span>
-                    <span>{h.transactions} ventas</span>
-                    <span>{fmt(h.total)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <textarea className="caia-corte-notes-input"
-              placeholder="Notas del corte (fondo de caja, incidencias…)"
-              rows={2}
-              value={corteNotes}
-              onChange={e => setCorteNotes(e.target.value)}
-            />
-            <button className="caia-btn-primary full"
-              onClick={handleCloseRegister}
-              disabled={corteSaving}>
-              {corteSaving ? 'Guardando…' : '✓ Cerrar turno y guardar corte'}
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
+    <CorteModal open={showCorte} onClose={() => setShowCorte(false)} />
 
     <div className="caia-page">
 
@@ -1192,7 +1093,7 @@ export default function CajaIA() {
             <div className="caia-cart-header">
               <span>🛒 Carrito</span>
               <div style={{ display:'flex', gap:6 }}>
-                <button className="caia-clear-btn" onClick={openCorte} title="Cierre de caja">📊 Corte</button>
+                <button className="caia-clear-btn" onClick={() => setShowCorte(true)} title="Cierre de caja">📊 Corte</button>
                 {cart.length > 0 && (
                   <button className="caia-clear-btn" onClick={() => setCart([])}>Vaciar</button>
                 )}
