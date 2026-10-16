@@ -915,7 +915,10 @@ export default function POS() {
       () => show('El navegador bloqueó la ventana emergente. Permite popups para imprimir.', 'error'))
   }
 
-  const lastTicketResults = useMemo(() => filterTickets(todaySales, ticketQuery), [todaySales, ticketQuery])
+  // OJO: sin useMemo a proposito. Esta linea esta DESPUES del `if (lastSale) return`
+  // (pantalla "Venta completada"); un hook aqui cambia el numero de hooks entre
+  // renders y React truena al terminar cada venta (desaparecia el boton Imprimir).
+  const lastTicketResults = filterTickets(todaySales, ticketQuery)
 
   const cartPanel = (
     <div className="pos-cart">
