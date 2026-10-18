@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { reports as reportsApi } from '../../api'
 import { qtyLabel } from '../../lib/ticketReprint'
 import { periodRange, PERIOD_LABELS } from '../../lib/categoryPeriods'
@@ -19,7 +20,12 @@ function buildBreakdown(sales, products, categoryId, cardRevenue, cardProfit) {
 
   for (const sale of sales || []) {
     for (const item of sale.items || []) {
-      if ((nameToCategoryId.get(item.name) ?? null) !== (categoryId || null)) continue
+      // Un nombre que no está en el inventario es un "producto libre" sin
+      // categoría identificable — nunca debe contar como match directo (ni
+      // siquiera contra "Sin categoría"), o se cuela en la fila equivocada.
+      // Su importe solo aparece vía la reconciliación "Otros" de su categoría real.
+      if (!nameToCategoryId.has(item.name)) continue
+      if ((nameToCategoryId.get(item.name) || null) !== (categoryId || null)) continue
       const qty = Number(item.qty)
       const revenue = Number(item.subtotal)
       const profit = (Number(item.price) - Number(item.cost || 0)) * qty
@@ -65,7 +71,7 @@ export default function CategoryDetailModal({ category, periodKey, cardRevenue, 
     return () => { cancelled = true }
   }, [category.categoryId, periodKey])
 
-  return (
+  return createPortal(
     <div className="catdet-overlay" onClick={onClose}>
       <div className="catdet-box" onClick={e => e.stopPropagation()}>
         <div className="catdet-header">
@@ -113,6 +119,7 @@ export default function CategoryDetailModal({ category, periodKey, cardRevenue, 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
