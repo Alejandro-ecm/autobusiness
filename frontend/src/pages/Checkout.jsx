@@ -64,17 +64,20 @@ export default function Checkout() {
   const { show } = useToast()
 
   const plan = (searchParams.get('plan') || 'PRO').toUpperCase()
-  if (!PLAN_PRICES[plan]) { navigate('/register'); return null }
 
-  const price    = PLAN_PRICES[plan]
-  const features = PLAN_FEATURES[plan] || []
-  const color    = PLAN_COLOR[plan] || '#6366f1'
-
+  // Hooks siempre antes del early return de abajo — un plan invalido no debe
+  // cambiar cuantos hooks se llaman entre renders (react-hooks/rules-of-hooks).
   const [phase,   setPhase]   = useState('form')
   const [form,    setForm]    = useState({ businessName: '', ownerName: '', email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
   const [payData, setPayData] = useState(null)
+
+  if (!PLAN_PRICES[plan]) { navigate('/register'); return null }
+
+  const price    = PLAN_PRICES[plan]
+  const features = PLAN_FEATURES[plan] || []
+  const color    = PLAN_COLOR[plan] || '#6366f1'
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
