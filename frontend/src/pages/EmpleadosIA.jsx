@@ -102,7 +102,7 @@ export default function EmpleadosIA() {
     }
 
     return () => clearInterval(pollRef.current)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const startPolling = useCallback(() => {
     clearInterval(pollRef.current)
