@@ -14,7 +14,7 @@ export const folioOf = (id) => id ? String(id).replace(/-/g, '').slice(0, 8).toU
 
 const escHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-function qtyLabel(qty) {
+export function qtyLabel(qty) {
   const n = Number(qty)
   return n % 1 !== 0 ? `${n.toFixed(3)} kg` : String(n)
 }

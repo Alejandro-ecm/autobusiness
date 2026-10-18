@@ -3,6 +3,7 @@ import { inventory as inventoryApi, categories as categoriesApi, upload as uploa
 import { useToast } from '../store/ToastContext'
 import { useAuth } from '../store/AuthContext'
 import { useLocation, useNavigate } from 'react-router-dom'
+import CategoryDetailModal from '../components/inventory/CategoryDetailModal'
 import './Inventory.css'
 
 const API = import.meta.env.VITE_API_URL || '/api'
@@ -190,6 +191,7 @@ export default function Inventory() {
   const [showStats,   setShowStats]   = useState(true)
   const [catEarnings, setCatEarnings] = useState([])
   const [showEarnings, setShowEarnings] = useState(false)
+  const [catDetail, setCatDetail] = useState(null) // { category, periodKey, revenue, profit } | null
   const [showImport,    setShowImport]    = useState(false)
   const [importRows,    setImportRows]    = useState([])
   const [importing,     setImporting]     = useState(false)
@@ -871,12 +873,25 @@ export default function Inventory() {
                         {c.name}
                       </td>
                       {['today', 'yesterday', 'dayBeforeYesterday', 'week', 'month'].map(p => (
-                        <td key={p} className="cat-earn-td-period">
+                        <td key={p}
+                          className={`cat-earn-td-period${isOwner ? ' cat-earn-td-clickable' : ''}`}
+                          onClick={isOwner ? () => setCatDetail({
+                            category: { categoryId: c.categoryId, name: c.name, color: c.color },
+                            periodKey: p,
+                            revenue: c.periods?.[p]?.revenue,
+                            profit: c.periods?.[p]?.profit,
+                          }) : undefined}>
                           <div className="cat-earn-cell-total"><small>Total</small> {fmt(c.periods?.[p]?.revenue)}</div>
                           <div className="cat-earn-cell-profit"><small>Ganancia</small> {fmt(c.periods?.[p]?.profit)}</div>
                         </td>
                       ))}
-                      <td className="cat-earn-td-period">
+                      <td className={`cat-earn-td-period${isOwner ? ' cat-earn-td-clickable' : ''}`}
+                        onClick={isOwner ? () => setCatDetail({
+                          category: { categoryId: c.categoryId, name: c.name, color: c.color },
+                          periodKey: 'total',
+                          revenue: c.revenue,
+                          profit: c.profit,
+                        }) : undefined}>
                         <div className="cat-earn-cell-total"><small>Total</small> {fmt(c.revenue)}</div>
                         <div className="cat-earn-cell-profit"><small>Ganancia</small> {fmt(c.profit)}</div>
                         <div className="cat-earn-cell-units">{Number(c.units || 0).toLocaleString('es-MX')} uds vendidas</div>
@@ -1633,6 +1648,17 @@ export default function Inventory() {
             </form>
           </div>
         </div>
+      )}
+
+      {catDetail && (
+        <CategoryDetailModal
+          category={catDetail.category}
+          periodKey={catDetail.periodKey}
+          cardRevenue={catDetail.revenue}
+          cardProfit={catDetail.profit}
+          products={products}
+          onClose={() => setCatDetail(null)}
+        />
       )}
     </div>
   )

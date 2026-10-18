@@ -1,0 +1,100 @@
+/* Detalle de ganancias por categoría — modal en escritorio, pantalla completa en celular.
+   Clases con prefijo catdet- para no colisionar con .modal-* que ya reutilizan varias páginas. */
+
+.catdet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 20px;
+}
+
+.catdet-box {
+  width: 100%;
+  max-width: 640px;
+  max-height: 85vh;
+  background: var(--color-surface, #fff);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.catdet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(148, 163, 184, .25);
+}
+
+.catdet-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catdet-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.catdet-header-info h3 { margin: 0; font-size: 17px; font-weight: 700; }
+.catdet-period { font-size: 12px; color: var(--color-text-soft, #64748b); }
+
+.catdet-close {
+  background: none;
+  border: none;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--color-text-soft, #64748b);
+  cursor: pointer;
+  padding: 0 4px;
+}
+.catdet-close:hover { color: var(--color-text, #1e293b); }
+
+.catdet-body {
+  overflow-y: auto;
+  padding: 10px 20px 20px;
+}
+
+.catdet-loading { display: flex; justify-content: center; padding: 40px 0; }
+
+.catdet-empty {
+  text-align: center;
+  padding: 40px 10px;
+  color: var(--color-text-soft, #64748b);
+  font-size: 14px;
+}
+
+.catdet-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.catdet-table thead th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  color: var(--color-text-soft, #64748b);
+  padding: 8px 6px;
+  border-bottom: 1px solid rgba(148, 163, 184, .3);
+}
+.catdet-table tbody td { padding: 10px 6px; border-bottom: 1px solid rgba(148, 163, 184, .18); }
+.catdet-table tbody tr:last-child td { border-bottom: none; }
+.catdet-row-otros td { color: var(--color-text-soft, #64748b); font-style: italic; }
+
+/* Pantalla completa en celular */
+@media (max-width: 640px) {
+  .catdet-overlay { padding: 0; align-items: flex-start; }
+  .catdet-box {
+    max-width: none;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+  }
+  .catdet-close { font-size: 34px; padding: 6px 10px; }
+}
