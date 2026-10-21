@@ -101,7 +101,8 @@ export default function CorteModal({ open, onClose }) {
                     <span className="corte-history-sales">{h.transactions} ventas</span>
                     <span className="corte-history-total">{fmt(h.total)}</span>
                   </button>
-                  {isOpen && (
+                  {/* El desglose solo existe si el backend ya expone cash/card/transfer/mp */}
+                  {isOpen && h.cash !== undefined && (
                     <div className="corte-history-detail">
                       {[
                         { label: '💵 Efectivo',      val: h.cash     ?? 0 },

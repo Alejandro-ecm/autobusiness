@@ -277,18 +277,12 @@ public class PosService {
                 "card",             byMethod.getOrDefault("card",     BigDecimal.ZERO),
                 "transfer",         byMethod.getOrDefault("transfer", BigDecimal.ZERO),
                 "mp",               byMethod.getOrDefault("mp",       BigDecimal.ZERO),
-                "history",          history.stream().map(s -> {
-                    Map<String, Object> m = new HashMap<>();
-                    m.put("id",           s.getId());
-                    m.put("closedAt",     s.getClosedAt().toString());
-                    m.put("total",        s.getTotalRevenue());
-                    m.put("transactions", s.getTransactionCount());
-                    m.put("cash",         s.getTotalCash());
-                    m.put("card",         s.getTotalCard());
-                    m.put("transfer",     s.getTotalTransfer());
-                    m.put("mp",           s.getTotalMp());
-                    return m;
-                }).toList()
+                "history",          history.stream().map(s -> Map.of(
+                        "id",           s.getId(),
+                        "closedAt",     s.getClosedAt().toString(),
+                        "total",        s.getTotalRevenue(),
+                        "transactions", s.getTransactionCount()
+                )).toList()
         );
     }
 
