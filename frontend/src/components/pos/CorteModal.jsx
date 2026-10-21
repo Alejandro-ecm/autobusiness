@@ -5,15 +5,24 @@ import './CorteModal.css'
 
 const fmt = (n) => `$${Number(n || 0).toFixed(2)}`
 
+const fmtCorteDate = (iso) => {
+  const d = new Date(iso)
+  const fecha = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })
+  const hora = d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' })
+  return `${fecha}, ${hora}`
+}
+
 export default function CorteModal({ open, onClose }) {
   const { show } = useToast()
   const [corteData,  setCorteData]  = useState(null)
   const [notes,      setNotes]      = useState('')
   const [saving,     setSaving]     = useState(false)
+  const [openHistId, setOpenHistId] = useState(null)
 
   useEffect(() => {
     if (!open) return
     setCorteData(null)
+    setOpenHistId(null)
     posApi.corteToday()
       .then(setCorteData)
       .catch(() => show('No se pudo cargar el corte', 'error'))
@@ -73,18 +82,44 @@ export default function CorteModal({ open, onClose }) {
               </div>
             ))}
           </div>
-          {corteData.history?.length > 0 && (
-            <div className="corte-history">
-              <p className="corte-history-title">Últimos cortes</p>
-              {corteData.history.slice(0, 3).map(h => (
-                <div key={h.id} className="corte-history-row">
-                  <span>{new Date(h.closedAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}</span>
-                  <span>{h.transactions} ventas</span>
-                  <span>{fmt(h.total)}</span>
+          <div className="corte-history">
+            <p className="corte-history-title">Historial de cortes (últimos 10)</p>
+            {!corteData.history?.length && (
+              <p className="corte-history-empty">Aún no hay cortes cerrados</p>
+            )}
+            {corteData.history?.map(h => {
+              const isOpen = openHistId === h.id
+              return (
+                <div key={h.id} className="corte-history-item">
+                  <button
+                    type="button"
+                    className="corte-history-row"
+                    onClick={() => setOpenHistId(isOpen ? null : h.id)}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="corte-history-date">{fmtCorteDate(h.closedAt)}</span>
+                    <span className="corte-history-sales">{h.transactions} ventas</span>
+                    <span className="corte-history-total">{fmt(h.total)}</span>
+                  </button>
+                  {isOpen && (
+                    <div className="corte-history-detail">
+                      {[
+                        { label: '💵 Efectivo',      val: h.cash     ?? 0 },
+                        { label: '💳 Tarjeta',       val: h.card     ?? 0 },
+                        { label: '🏦 Transferencia', val: h.transfer ?? 0 },
+                        { label: '💙 Mercado Pago',  val: h.mp       ?? 0 },
+                      ].map(m => (
+                        <div key={m.label} className="corte-method-row">
+                          <span>{m.label}</span>
+                          <span>{fmt(m.val)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
           <textarea className="corte-notes-input"
             placeholder="Notas del corte (fondo de caja, incidencias…)"
             rows={2}
